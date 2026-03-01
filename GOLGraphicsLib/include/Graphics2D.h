@@ -1,5 +1,5 @@
-#ifndef __Graphics2D_h__
-#define __Graphics2D_h__
+#ifndef Graphics2D_h_
+#define Graphics2D_h_
 
 #include <cmath>
 #include <concepts>

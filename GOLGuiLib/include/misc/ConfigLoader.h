@@ -1,5 +1,5 @@
-#ifndef __StyleLoader_h__
-#define __StyleLoader_h__
+#define StyleLoader_h_
+#define StyleLoader_h_
 
 #include <algorithm>
 #include <cctype>

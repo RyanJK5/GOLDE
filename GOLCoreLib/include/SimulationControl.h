@@ -1,5 +1,5 @@
-#ifndef __SimulationControl_h__
-#define __SimulationControl_h__
+#ifndef SimulationControl_h_
+#define SimulationControl_h_
 
 #include <cstdint>
 #include <imgui/imgui.h>

@@ -1,5 +1,5 @@
-#ifndef __LifeAlgorithm_h__
-#define __LifeAlgorithm_h__
+#ifndef LifeAlgorithm_h_
+#define LifeAlgorithm_h_
 
 #include <functional>
 #include <span>

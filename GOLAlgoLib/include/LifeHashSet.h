@@ -1,5 +1,5 @@
-#ifndef __LifeHashSet_h__
-#define __LifeHashSet_h__
+#ifndef LifeHashSet_h_
+#define LifeHashSet_h_
 
 #include <unordered_dense.h>
 

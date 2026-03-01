@@ -1,5 +1,5 @@
-#ifndef __GameGrid_h__
-#define __GameGrid_h__
+#ifndef GameGrid_h_
+#define GameGrid_h_
 
 #include <cstdint>
 #include <memory>
