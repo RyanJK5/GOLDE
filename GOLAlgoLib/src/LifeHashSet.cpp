@@ -4,6 +4,7 @@
 #include "Graphics2D.h"
 #include "LifeHashSet.h"
 
+// Arbitrary hash function
 size_t std::hash<gol::Vec2>::operator()(gol::Vec2 vec) const {
     using ankerl::unordered_dense::hash;
     return hash<uint64_t>{}(static_cast<uint64_t>(vec.X) << 32 |

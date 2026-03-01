@@ -1,21 +1,22 @@
 #include <algorithm>
+#include <cstdint>
 #include <font-awesome/IconsFontAwesome7.h>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <string>
 #include <utility>
 
+#include "EditorResult.h"
+#include "FileDialog.h"
+#include "GameEnums.h"
 #include "GameGrid.h"
 #include "Graphics2D.h"
 #include "GraphicsHandler.h"
+#include "InputString.h"
 #include "Logging.h"
 #include "PresetSelection.h"
 #include "PresetSelectionResult.h"
 #include "RLEEncoder.h"
-#include <EditorResult.h>
-#include <GameEnums.h>
-#include <InputString.h>
-#include <cstdint>
 
 gol::PresetDisplay::PresetDisplay(const GameGrid &grid,
                                   const std::string &fileName, Size2 windowSize)

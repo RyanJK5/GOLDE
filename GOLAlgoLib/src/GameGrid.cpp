@@ -25,6 +25,8 @@ GameGrid GameGrid::GenerateNoise(Rect bounds, float density) {
     static std::random_device random{};
     static std::mt19937 generator{random()};
 
+    // Since our density is not totally accurate because it can produce overlapping
+    // cells, we create the illusion that it is fully accurate when density == 1.
     if (density == 1.f) {
         GameGrid ret{bounds.Width, bounds.Height};
         for (auto x = 0; x < bounds.Width; x++)
@@ -34,23 +36,23 @@ GameGrid GameGrid::GenerateNoise(Rect bounds, float density) {
         return ret;
     }
 
-    // 1. Determine the number of points to generate
+    // Determine the number of points to generate
     const auto area = bounds.Width * bounds.Height;
     const auto mean = density * area;
     std::poisson_distribution<int> countDist{mean};
     const auto finalCount = countDist(generator); // The random "actual" count
 
-    // 2. Prepare distributions for coordinates
+    // Prepare distributions for coordinates
     std::uniform_int_distribution<int32_t> distX{0, bounds.Width - 1};
     std::uniform_int_distribution<int32_t> distY{0, bounds.Height - 1};
 
-    // 3. Fill the container
+    // Fill the container
     GameGrid ret{bounds.Width, bounds.Height};
     ret.m_Data.reserve(finalCount);
 
     std::ranges::generate_n(
         std::inserter(ret.m_Data, ret.m_Data.end()), finalCount,
-        [&]() { return Vec2{distX(generator), distY(generator)}; });
+        [&] { return Vec2{distX(generator), distY(generator)}; });
 
     ret.m_Population = ret.m_Data.size();
     return ret;
@@ -79,15 +81,17 @@ void GameGrid::SetAlgorithm(LifeAlgorithm algorithm) {
 }
 
 void GameGrid::PrepareCopyBetweenThreads() {
-    if (m_HashLifeData)
+    if (m_HashLifeData) {
         m_HashLifeData->PrepareCopyBetweenThreads();
+    }
 }
 
 bool GameGrid::Dead() const { return m_Data.size() == 0; }
 
 Rect GameGrid::BoundingBox() const {
-    if (Bounded())
+    if (Bounded()) {
         return {0, 0, m_Width, m_Height};
+    }
 
     const auto findBox = [](std::ranges::input_range auto &&data) {
         auto least = Vec2{std::numeric_limits<int32_t>::max(),
@@ -106,10 +110,11 @@ Rect GameGrid::BoundingBox() const {
                     most.Y - least.Y + 1};
     };
 
-    if (m_CacheInvalidated && m_HashLifeData)
+    if (m_CacheInvalidated && m_HashLifeData) {
         return findBox(*m_HashLifeData);
-    else
+    } else {
         return findBox(m_Data);
+    }
 }
 
 const std::set<Vec2> &GameGrid::SortedData() const {
@@ -167,15 +172,17 @@ int64_t GameGrid::Update(int64_t numSteps, std::stop_token stopToken) {
 }
 
 bool GameGrid::Toggle(int32_t x, int32_t y) {
-    if (!InBounds(x, y))
+    if (!InBounds(x, y)) {
         return false;
+    }
 
     return Set(x, y, m_Data.find({x, y}) != m_Data.end());
 }
 
 bool GameGrid::Set(int32_t x, int32_t y, bool active) {
-    if (!InBounds(x, y))
+    if (!InBounds(x, y)) {
         return false;
+    }
 
     auto itr = m_Data.find({x, y});
     if (itr == m_Data.end() && active) {
@@ -192,8 +199,8 @@ bool GameGrid::Set(int32_t x, int32_t y, bool active) {
     return true;
 }
 
-void GameGrid::TranslateRegion(const Rect &region, Vec2 translation) {
-    std::vector<Vec2> newCells;
+void GameGrid::TranslateRegion(Rect region, Vec2 translation) {
+    std::vector<Vec2> newCells{};
     auto it = m_Data.begin();
     while (it != m_Data.end()) {
         if (region.InBounds(*it)) {
@@ -203,12 +210,16 @@ void GameGrid::TranslateRegion(const Rect &region, Vec2 translation) {
         }
         ++it;
     }
-    for (auto &pos : newCells)
+    for (const auto pos : newCells) {
         m_Data.insert(pos);
+    }
 }
 
-GameGrid GameGrid::SubRegion(const Rect &region) const {
+GameGrid GameGrid::SubRegion(Rect region) const {
+    // TODO: Clunky lambda, abstract into static helper function
     const auto fillGrid =
+        // We only have to check bounds when copying from m_Data, so we can control
+        // at compile time whether to check or not
         [region]<bool CheckBounds>(GameGrid &grid,
                                    std::ranges::input_range auto &&range) {
             for (const auto pos : range) {
@@ -218,12 +229,13 @@ GameGrid GameGrid::SubRegion(const Rect &region) const {
                 }
                 grid.m_Population++;
                 grid.m_Data.insert(pos - region.Pos());
-            } //
+            }
             return grid;
         };
 
     if (m_CacheInvalidated && m_HashLifeData) {
         GameGrid result{region.Width, region.Height};
+        // Because we're using the bounded iterator here, we can disable bounds check
         return fillGrid.operator()<false>(
             result, std::ranges::subrange(m_HashLifeData->begin(region),
                                           m_HashLifeData->end()));
@@ -232,34 +244,36 @@ GameGrid GameGrid::SubRegion(const Rect &region) const {
     return fillGrid.operator()<true>(result, m_Data);
 }
 
-LifeHashSet GameGrid::ReadRegion(const Rect &region) const {
-    LifeHashSet result;
-    for (auto &&pos : m_Data) {
+// TODO: Unsafe if running hash life & cache is invalidated
+LifeHashSet GameGrid::ReadRegion(Rect region) const {
+    LifeHashSet result{};
+    for (const auto pos : m_Data) {
         if (region.InBounds(pos))
             result.insert(pos);
     }
     return result;
 }
 
-void GameGrid::ClearRegion(const Rect &region) {
+void GameGrid::ClearRegion(Rect region) {
     m_Population -= std::erase_if(
         m_Data, [region](Vec2 pos) { return region.InBounds(pos); });
     m_CacheInvalidated = true;
 }
 
 void GameGrid::ClearData(const std::vector<Vec2> &data, Vec2 offset) {
-    for (const auto vec : data)
+    for (const auto vec : data) {
         m_Population -= m_Data.erase({vec.X + offset.X, vec.Y + offset.Y});
+    }
     m_CacheInvalidated = true;
 }
 
 LifeHashSet GameGrid::InsertGrid(const GameGrid &region, Vec2 pos) {
-    ValidateCache(true);
+    ValidateCache(true); // HashQuadtree does not support insertion
     m_HashLifeData.reset();
-
+    
     LifeHashSet result{};
-    for (auto &&cell : region.m_Data) {
-        Vec2 offsetPos = {pos.X + cell.X, pos.Y + cell.Y};
+    for (const auto cell : region.m_Data) {
+        const Vec2 offsetPos{pos.X + cell.X, pos.Y + cell.Y};
         if (m_Data.find(offsetPos) != m_Data.end())
             continue;
         m_Data.insert(offsetPos);
@@ -271,16 +285,18 @@ LifeHashSet GameGrid::InsertGrid(const GameGrid &region, Vec2 pos) {
 }
 
 void GameGrid::RotateGrid(bool clockwise) {
-    auto center = Vec2F{static_cast<float>(m_Width / 2.f - 0.5f),
+    // Probably more easily read as ((width - 1) / 2, (height - 1) / 2)
+    const Vec2F center{static_cast<float>(m_Width / 2.f - 0.5f),
                         static_cast<float>(m_Height / 2.f - 0.5f)};
     LifeHashSet newSet{};
-    for (auto &&cellPos : m_Data) {
-        auto offset = Vec2F{static_cast<float>(cellPos.X),
-                            static_cast<float>(cellPos.Y)} -
-                      center;
-        auto rotated =
+    
+    for (const auto cellPos : m_Data) {
+        const auto offset = Vec2F{static_cast<float>(cellPos.X),
+                                  static_cast<float>(cellPos.Y)} -
+                            center;
+        const auto rotated =
             clockwise ? Vec2F{-offset.Y, offset.X} : Vec2F{offset.Y, -offset.X};
-        auto result = rotated + Vec2F{center.Y, center.X};
+        const auto result = rotated + Vec2F{center.Y, center.X};
         newSet.insert(Vec2{static_cast<int32_t>(result.X),
                            static_cast<int32_t>(result.Y)});
     }
@@ -290,20 +306,22 @@ void GameGrid::RotateGrid(bool clockwise) {
 }
 
 void GameGrid::FlipGrid(bool vertical) {
-    LifeHashSet newData;
+    LifeHashSet newData{};
     if (!Bounded()) {
         for (const auto pos : m_Data) {
-            if (vertical)
+            if (vertical) {
                 newData.insert({pos.X, -pos.Y});
-            else
+            } else {
                 newData.insert({-pos.X, pos.Y});
+            }
         }
     } else {
         for (const auto pos : m_Data) {
-            if (vertical)
+            if (vertical) {
                 newData.insert({pos.X, m_Height - 1 - pos.Y});
-            else
+            } else {
                 newData.insert({m_Width - 1 - pos.X, pos.Y});
+            }
         }
     }
     m_CacheInvalidated = true;

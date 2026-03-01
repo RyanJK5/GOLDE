@@ -14,10 +14,14 @@
 #include "LifeHashSet.h"
 
 namespace gol {
+
+// The class responsible for the Game of Life universe.
 class GameGrid {
   public:
+    // Returns a GameGrid with randomly generated cells according to the provided density.
     static GameGrid GenerateNoise(Rect bounds, float density);
 
+    // Calling with `width` or `height` set to zero creates an unbounded universe.
     GameGrid(int32_t width = 0, int32_t height = 0);
     GameGrid(Size2 size);
 
@@ -27,8 +31,12 @@ class GameGrid {
 
     void SetAlgorithm(LifeAlgorithm algorithm);
 
+    // IMPORTANT: This function MUST be called whenever a GameGrid is being copied
+    // across threads. The rationale behind this is explained in HashQuadtree.
     void PrepareCopyBetweenThreads();
 
+    // Advances the universe `numSteps` generations. A stop token can optionally
+    // be provided if the thread may terminate during advance.
     int64_t Update(int64_t numSteps = 1, std::stop_token stopToken = {});
 
     int32_t Width() const { return m_Width; }
@@ -38,6 +46,8 @@ class GameGrid {
 
     bool Bounded() const { return m_Width > 0 && m_Height > 0; }
 
+    // If bounded, returns the universe's bounds; otherwise, returns the
+    // smallest `Rect` that encompasses all live cells.
     Rect BoundingBox() const;
 
     bool InBounds(int32_t x, int32_t y) const { return InBounds({x, y}); }
@@ -48,47 +58,74 @@ class GameGrid {
     int64_t Generation() const { return m_Generation; }
     int64_t Population() const { return m_Population; }
 
+    // Indicates if the universe contains any live cells
     bool Dead() const;
 
     bool Set(int32_t x, int32_t y, bool active);
     bool Toggle(int32_t x, int32_t y);
 
-    void TranslateRegion(const Rect &region, Vec2 translation);
+    void TranslateRegion(Rect region, Vec2 translation);
 
-    GameGrid SubRegion(const Rect &region) const;
+    // Copies provided region to a new GameGrid.
+    GameGrid SubRegion(Rect region) const;
 
-    LifeHashSet ReadRegion(const Rect &region) const;
+    // Returns a set containing all live cells in `region`.
+    LifeHashSet ReadRegion(Rect region) const;
 
-    void ClearRegion(const Rect &region);
+    // Kills all cells in `region`.
+    void ClearRegion(Rect region);
 
-    void ClearData(const std::vector<Vec2> &data, Vec2 pos);
+    // Removes any cells present in `data`. `offset` is added to
+    // each value in `data`.
+    void ClearData(const std::vector<Vec2> &data, Vec2 offset);
 
-    LifeHashSet InsertGrid(const GameGrid &grid, Vec2 pos);
+    // Adds all cells from `grid` to this object, with each cell
+    // offset by `offset`. Returns the set of all sells that were
+    // not already present in this object.
+    LifeHashSet InsertGrid(const GameGrid &grid, Vec2 offset);
 
+    // Performs a 90 degree rotation.
     void RotateGrid(bool clockwise = true);
 
+    // If `vertical` is true, flips the grid along its centered
+    // vertical axis. Otherwise, flips the grid along its centered
+    // horizontal axis.
     void FlipGrid(bool vertical);
 
+    // Returns the state of the cell at (`x`, `y`) if it is within
+    // bounds.
     std::optional<bool> Get(int32_t x, int32_t y) const;
+    // Returns the state of the cell at `pos` if it is within
+    // bounds.
     std::optional<bool> Get(Vec2 pos) const;
 
+    // Returns a sorted set of the universe's data.
     const std::set<Vec2> &SortedData() const;
+    // Returns an unordered set of the universe's data.
     const LifeHashSet &Data() const;
+
+    // Returns the underlying data that the universe is currently
+    // using. Typically, when simulating using the HashLife algorithm,
+    // this will return a `const HashQuadtree&`, and will otherwise
+    // return a `LifeHashSet`.
     std::variant<std::reference_wrapper<const LifeHashSet>,
                  std::reference_wrapper<const HashQuadtree>>
     IterableData() const;
 
   private:
+    // Used to validate `m_Data` and optionally `m_SortedData` based on
+    // `validateSorted`.
     void ValidateCache(bool validateSorted) const;
-
   private:
     LifeAlgorithm m_Algorithm;
 
-    mutable LifeHashSet m_Data;
-    std::optional<HashQuadtree> m_HashLifeData;
+    mutable LifeHashSet m_Data; // Declared mutable due to hidden cache validation
+    std::optional<HashQuadtree> m_HashLifeData; // Empty if the algorithm is not HashLife
 
-    mutable std::set<Vec2> m_SortedData;
-    mutable bool m_CacheInvalidated = true;
+    mutable std::set<Vec2> m_SortedData; // Declared mutable due to hidden cache validation
+
+    // TODO: Determine if this is actually functioning correctly
+    mutable bool m_CacheInvalidated = true; // Declared mutable due to hidden cache validation
 
     int32_t m_Width;
     int32_t m_Height;
