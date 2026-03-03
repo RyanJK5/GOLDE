@@ -1,38 +1,38 @@
 #include <algorithm>
+#include <cassert>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <filesystem>
 #include <format>
+#include <functional>
 #include <glm/fwd.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <limits>
 #include <locale>
+#include <memory>
 #include <optional>
 #include <ranges>
 #include <string>
 #include <type_traits>
 #include <utility>
-#include <cassert>
-#include <chrono>
-#include <functional>
-#include <memory>
 #include <variant>
 
+#include "EditorResult.hpp"
 #include "GameEnums.hpp"
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
 #include "GraphicsHandler.hpp"
+#include "HashQuadtree.hpp"
+#include "LifeHashSet.hpp"
 #include "LoadingSpinner.hpp"
 #include "PopupWindow.hpp"
 #include "PresetSelectionResult.hpp"
 #include "SimulationControlResult.hpp"
 #include "SimulationEditor.hpp"
-#include "VersionManager.hpp"
-#include "EditorResult.hpp"
-#include "HashQuadtree.hpp"
-#include "LifeHashSet.hpp"
 #include "SimulationWorker.hpp"
+#include "VersionManager.hpp"
 
 namespace gol {
 SimulationEditor::SimulationEditor(uint32_t id,

@@ -2,18 +2,18 @@
 #include <array>
 #include <cmath>
 #include <concepts>
+#include <cstdint>
 #include <memory>
 #include <ranges>
-#include <cstdint>
 #include <span>
 #include <stop_token>
 #include <type_traits>
 #include <unordered_dense.h>
 #include <vector>
 
-#include "LifeAlgorithm.hpp"
 #include "Graphics2D.hpp"
 #include "HashQuadtree.hpp"
+#include "LifeAlgorithm.hpp"
 #include "LifeHashSet.hpp"
 
 namespace gol {
@@ -34,8 +34,8 @@ constexpr static int64_t MaxAdvanceOf(int64_t stepSize) {
     return Pow2(power - static_cast<int64_t>(1));
 }
 
-// Free function form of calling HashQuadtree::Advance, with the added bonus of supporting
-// an exact `stepCount` rather than just a `maxAdvance`.
+// Free function form of calling HashQuadtree::Advance, with the added bonus of
+// supporting an exact `stepCount` rather than just a `maxAdvance`.
 int64_t HashLife(HashQuadtree &data, int64_t numSteps,
                  std::stop_token stopToken) {
     if (numSteps == 0) // Hyper speed
@@ -64,11 +64,9 @@ size_t LifeNodeHash::operator()(const gol::LifeNode *node) const {
 size_t SlowHash::operator()(const SlowKey &key) const noexcept {
     const auto h1 = static_cast<uint64_t>(LifeNodeHash{}(key.Node));
     const auto h2 = static_cast<uint64_t>(
-        static_cast<uint64_t>(key.MaxAdvance) +
-                                        0x9e3779b97f4a7c15ULL);
+        static_cast<uint64_t>(key.MaxAdvance) + 0x9e3779b97f4a7c15ULL);
 
-    auto combined =
-        h1 ^ (h2 + 0x9e3779b97f4a7c15ULL + (h1 << 6) + (h1 >> 2));
+    auto combined = h1 ^ (h2 + 0x9e3779b97f4a7c15ULL + (h1 << 6) + (h1 >> 2));
 
     combined = (combined ^ (combined >> 30)) * 0xBF58476D1CE4E5B9ULL;
     combined = (combined ^ (combined >> 27)) * 0x94D049BB133111EBULL;
@@ -118,7 +116,7 @@ static const LifeNode *FindOrCreateFromCache(HashLifeCache &cache,
 
 // Simple container for using some dynamic programming when preparing
 // quadtree copies.
-using TransferMap = 
+using TransferMap =
     ankerl::unordered_dense::map<const LifeNode *, const LifeNode *>;
 static const LifeNode *BuildCache(TransferMap &transferMap,
                                   HashLifeCache &cache,
@@ -294,7 +292,7 @@ const LifeNode *HashQuadtree::CenteredVertical(const LifeNode &north,
     // -----
     // |E|F|
     // -----
-    
+
     return FindOrCreate(north.SouthWest, north.SouthEast, south.NorthWest,
                         south.NorthEast);
 }
@@ -326,7 +324,7 @@ const LifeNode *HashQuadtree::AdvanceBase(const LifeNode *node) const {
     constexpr static auto gridSize = 4;
 
     // Imagine cells as a 2D grid, 4x4 grid.
-    const std::array cells {
+    const std::array cells{
         node->NorthWest->NorthWest, node->NorthWest->NorthEast,
         node->NorthEast->NorthWest, node->NorthEast->NorthEast,
         node->NorthWest->SouthWest, node->NorthWest->SouthEast,
@@ -376,13 +374,13 @@ NodeUpdateInfo HashQuadtree::AdvanceNode(std::stop_token stopToken,
 NodeUpdateInfo HashQuadtree::AdvanceSlow(std::stop_token stopToken,
                                          const LifeNode *node, int32_t level,
                                          int64_t maxAdvance) const {
-    // At a high level, AdvanceSlow will split `node` into an 8x8 grid of subnodes.
-    // Then, we can use overlapping components to take the 4x4 grids aligned with
-    // each corner, and then advance them into a 2x2 nodes. Finally, we assemble
-    // these 2x2 nodes into the centered 4x4 node, which is the result of advancing
-    // the original node. Unlike HashQuadtree, we're only making recursive calls one
-    // level down, and thus have more fine-grained control over how many generations
-    // we advance.
+    // At a high level, AdvanceSlow will split `node` into an 8x8 grid of
+    // subnodes. Then, we can use overlapping components to take the 4x4 grids
+    // aligned with each corner, and then advance them into a 2x2 nodes.
+    // Finally, we assemble these 2x2 nodes into the centered 4x4 node, which is
+    // the result of advancing the original node. Unlike HashQuadtree, we're
+    // only making recursive calls one level down, and thus have more
+    // fine-grained control over how many generations we advance.
 
     if (node == FalseNode)
         return {FalseNode, 0};
@@ -421,16 +419,14 @@ NodeUpdateInfo HashQuadtree::AdvanceSlow(std::stop_token stopToken,
         }
     }
 
-    const auto combine2x2 = [&](int32_t startX,
-                                int32_t startY) {
+    const auto combine2x2 = [&](int32_t startX, int32_t startY) {
         return FindOrCreate(segments[index(startX, startY)],
                             segments[index(startX + 1, startY)],
                             segments[index(startX, startY + 1)],
                             segments[index(startX + 1, startY + 1)]);
     };
 
-    const auto buildWindow = [&](int32_t startX,
-                                 int32_t startY) {
+    const auto buildWindow = [&](int32_t startX, int32_t startY) {
         const auto *nw = combine2x2(startX, startY);
         const auto *ne = combine2x2(startX + 2, startY);
         const auto *sw = combine2x2(startX, startY + 2);
@@ -463,15 +459,16 @@ NodeUpdateInfo HashQuadtree::AdvanceSlow(std::stop_token stopToken,
 NodeUpdateInfo HashQuadtree::AdvanceFast(std::stop_token stopToken,
                                          const LifeNode *node, int32_t level,
                                          int64_t maxAdvance) const {
-    // At a high level, we want to assemble a node that is half the size of `node`,
-    // but centered at the same point. By following this logic all the way down the
-    // recursion, we are able to safely advance the entire universe without having
-    // to worry about any cells on the boundary of the universe. To achieve this end,
-    // we create a grid of overlapping cells centered around `node`'s center, and 
-    // tactically combine them to form the four quadrants of the center node that is
-    // half the size. THe key to this process is that the two levels are made by recursively
-    // calling AdvanceFast, which allows for logarithmic time progression.
-    
+    // At a high level, we want to assemble a node that is half the size of
+    // `node`, but centered at the same point. By following this logic all the
+    // way down the recursion, we are able to safely advance the entire universe
+    // without having to worry about any cells on the boundary of the universe.
+    // To achieve this end, we create a grid of overlapping cells centered
+    // around `node`'s center, and tactically combine them to form the four
+    // quadrants of the center node that is half the size. THe key to this
+    // process is that the two levels are made by recursively calling
+    // AdvanceFast, which allows for logarithmic time progression.
+
     if (node == FalseNode)
         return {FalseNode, 0};
 
@@ -625,18 +622,19 @@ int64_t HashQuadtree::Advance(int64_t maxAdvance, std::stop_token stopToken) {
 
     const auto *root = m_Root;
 
-    // Before we can actually advance, we must make sure the universe is sufficiently large
-    // so that no data is lost after advancing (remember that HashLife will cut off 75% of
-    // the universe's area)
+    // Before we can actually advance, we must make sure the universe is
+    // sufficiently large so that no data is lost after advancing (remember that
+    // HashLife will cut off 75% of the universe's area)
 
     auto depth = CalculateDepth();
     auto size = std::max(static_cast<int64_t>(1), CalculateTreeSize());
     auto offset = m_RootOffset;
 
-    // The second condition in this while loop is to prevent freezing when the user asks
-    // for a large step size on a small pattern. For example, running hyperspeed on a 2x2
-    // block will not cause it to advance particularly fast since it exhibits no expansion,
-    // but if maxAdvance is specified to 2^32, we can make it happen instantly.
+    // The second condition in this while loop is to prevent freezing when the
+    // user asks for a large step size on a small pattern. For example, running
+    // hyperspeed on a 2x2 block will not cause it to advance particularly fast
+    // since it exhibits no expansion, but if maxAdvance is specified to 2^32,
+    // we can make it happen instantly.
     while (NeedsExpansion(root, depth) || (size / 4 < maxAdvance)) {
         root = ExpandUniverse(root, depth);
         const auto delta = std::max(static_cast<int64_t>(1), size / 2);
@@ -663,8 +661,9 @@ const LifeNode *HashQuadtree::EmptyTree(int64_t size) const {
     if (size <= 1)
         return FalseNode;
 
-    // Empty node cache is used here as simple memoization. Since empty nodes are
-    // requested practically every frame, this reduces time complexity significantly.
+    // Empty node cache is used here as simple memoization. Since empty nodes
+    // are requested practically every frame, this reduces time complexity
+    // significantly.
     if (const auto it = s_Cache.EmptyNodeCache.find(size);
         it != s_Cache.EmptyNodeCache.end())
         return it->second;

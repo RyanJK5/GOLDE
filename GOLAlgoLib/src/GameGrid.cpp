@@ -1,23 +1,23 @@
 #include <algorithm>
 #include <cstdint>
-#include <limits>
-#include <optional>
 #include <functional>
 #include <iterator>
+#include <limits>
+#include <optional>
+#include <random>
 #include <ranges>
+#include <set>
 #include <stop_token>
 #include <type_traits>
 #include <unordered_dense.h>
-#include <variant>
-#include <random>
-#include <set>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
-#include "LifeAlgorithm.hpp"
 #include "HashQuadtree.hpp"
+#include "LifeAlgorithm.hpp"
 #include "LifeHashSet.hpp"
 
 namespace gol {
@@ -25,8 +25,9 @@ GameGrid GameGrid::GenerateNoise(Rect bounds, float density) {
     static std::random_device random{};
     static std::mt19937 generator{random()};
 
-    // Since our density is not totally accurate because it can produce overlapping
-    // cells, we create the illusion that it is fully accurate when density == 1.
+    // Since our density is not totally accurate because it can produce
+    // overlapping cells, we create the illusion that it is fully accurate when
+    // density == 1.
     if (density == 1.f) {
         GameGrid ret{bounds.Width, bounds.Height};
         for (auto x = 0; x < bounds.Width; x++)
@@ -218,8 +219,8 @@ void GameGrid::TranslateRegion(Rect region, Vec2 translation) {
 GameGrid GameGrid::SubRegion(Rect region) const {
     // TODO: Clunky lambda, abstract into static helper function
     const auto fillGrid =
-        // We only have to check bounds when copying from m_Data, so we can control
-        // at compile time whether to check or not
+        // We only have to check bounds when copying from m_Data, so we can
+        // control at compile time whether to check or not
         [region]<bool CheckBounds>(GameGrid &grid,
                                    std::ranges::input_range auto &&range) {
             for (const auto pos : range) {
@@ -235,7 +236,8 @@ GameGrid GameGrid::SubRegion(Rect region) const {
 
     if (m_CacheInvalidated && m_HashLifeData) {
         GameGrid result{region.Width, region.Height};
-        // Because we're using the bounded iterator here, we can disable bounds check
+        // Because we're using the bounded iterator here, we can disable bounds
+        // check
         return fillGrid.operator()<false>(
             result, std::ranges::subrange(m_HashLifeData->begin(region),
                                           m_HashLifeData->end()));
@@ -270,7 +272,7 @@ void GameGrid::ClearData(const std::vector<Vec2> &data, Vec2 offset) {
 LifeHashSet GameGrid::InsertGrid(const GameGrid &region, Vec2 pos) {
     ValidateCache(true); // HashQuadtree does not support insertion
     m_HashLifeData.reset();
-    
+
     LifeHashSet result{};
     for (const auto cell : region.m_Data) {
         const Vec2 offsetPos{pos.X + cell.X, pos.Y + cell.Y};
@@ -287,9 +289,9 @@ LifeHashSet GameGrid::InsertGrid(const GameGrid &region, Vec2 pos) {
 void GameGrid::RotateGrid(bool clockwise) {
     // Probably more easily read as ((width - 1) / 2, (height - 1) / 2)
     const Vec2F center{static_cast<float>(m_Width / 2.f - 0.5f),
-                        static_cast<float>(m_Height / 2.f - 0.5f)};
+                       static_cast<float>(m_Height / 2.f - 0.5f)};
     LifeHashSet newSet{};
-    
+
     for (const auto cellPos : m_Data) {
         const auto offset = Vec2F{static_cast<float>(cellPos.X),
                                   static_cast<float>(cellPos.Y)} -
