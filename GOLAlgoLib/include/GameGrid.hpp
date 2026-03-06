@@ -37,7 +37,7 @@ class GameGrid {
 
     // Advances the universe `numSteps` generations. A stop token can optionally
     // be provided if the thread may terminate during advance.
-    int64_t Update(int64_t numSteps = 1, std::stop_token stopToken = {});
+    int64_t Update(int64_t numSteps = 1, const std::stop_token& stopToken = {});
 
     int32_t Width() const { return m_Width; }
     int32_t Height() const { return m_Height; }

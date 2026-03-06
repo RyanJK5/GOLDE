@@ -13,6 +13,7 @@
 #include "Logging.hpp"
 #include "ShaderManager.hpp"
 
+namespace gol {
 ShaderManager::ShaderManager(const std::filesystem::path &shaderFilePath) {
     auto itr = s_Shaders.find(shaderFilePath);
     if (itr != s_Shaders.end()) {
@@ -193,3 +194,5 @@ void ShaderManager::CreateShader(uint32_t program, uint32_t shaderId) {
     GL_DEBUG(glAttachShader(program, shaderId));
     GL_DEBUG(glDeleteShader(shaderId));
 }
+
+} // namespace gol

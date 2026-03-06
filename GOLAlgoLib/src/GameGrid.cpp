@@ -1,3 +1,4 @@
+
 #include <algorithm>
 #include <cstdint>
 #include <functional>
@@ -28,11 +29,13 @@ GameGrid GameGrid::GenerateNoise(Rect bounds, float density) {
     // Since our density is not totally accurate because it can produce
     // overlapping cells, we create the illusion that it is fully accurate when
     // density == 1.
-    if (density == 1.f) {
+    if (density == 1.F) {
         GameGrid ret{bounds.Width, bounds.Height};
-        for (auto x = 0; x < bounds.Width; x++)
-            for (auto y = 0; y < bounds.Height; y++)
+        for (auto x = 0; x < bounds.Width; x++) {
+            for (auto y = 0; y < bounds.Height; y++) {
                 ret.m_Data.insert({x, y});
+            }
+        }
         ret.m_Population = ret.m_Data.size();
         return ret;
     }
@@ -60,8 +63,7 @@ GameGrid GameGrid::GenerateNoise(Rect bounds, float density) {
 }
 
 GameGrid::GameGrid(int32_t width, int32_t height)
-    : m_Algorithm(LifeAlgorithm::HashLife), m_Data(), m_Width(width),
-      m_Height(height) {}
+    : m_Algorithm(LifeAlgorithm::HashLife), m_Width(width), m_Height(height) {}
 
 GameGrid::GameGrid(Size2 size) : GameGrid(size.Width, size.Height) {}
 
@@ -87,7 +89,7 @@ void GameGrid::PrepareCopyBetweenThreads() {
     }
 }
 
-bool GameGrid::Dead() const { return m_Data.size() == 0; }
+bool GameGrid::Dead() const { return m_Data.empty(); }
 
 Rect GameGrid::BoundingBox() const {
     if (Bounded()) {
@@ -113,20 +115,21 @@ Rect GameGrid::BoundingBox() const {
 
     if (m_CacheInvalidated && m_HashLifeData) {
         return findBox(*m_HashLifeData);
-    } else {
-        return findBox(m_Data);
     }
+    return findBox(m_Data);
 }
 
 const std::set<Vec2> &GameGrid::SortedData() const {
-    if (m_CacheInvalidated)
+    if (m_CacheInvalidated) {
         ValidateCache(true);
+    }
     return m_SortedData;
 }
 
 const LifeHashSet &GameGrid::Data() const {
-    if (m_CacheInvalidated && m_HashLifeData)
+    if (m_CacheInvalidated && m_HashLifeData) {
         ValidateCache(false);
+    }
     m_CacheInvalidated = false;
     return m_Data;
 }
@@ -134,20 +137,21 @@ const LifeHashSet &GameGrid::Data() const {
 std::variant<std::reference_wrapper<const LifeHashSet>,
              std::reference_wrapper<const HashQuadtree>>
 GameGrid::IterableData() const {
-    if (m_Algorithm == LifeAlgorithm::HashLife && m_HashLifeData)
+    if (m_Algorithm == LifeAlgorithm::HashLife && m_HashLifeData) {
         return std::ref(*m_HashLifeData);
-    else
-        return std::ref(m_Data);
+    }
+    return std::ref(m_Data);
 }
 
-int64_t GameGrid::Update(int64_t numSteps, std::stop_token stopToken) {
+int64_t GameGrid::Update(int64_t numSteps, const std::stop_token &stopToken) {
     m_CacheInvalidated = true;
 
     switch (m_Algorithm) {
     case LifeAlgorithm::SparseLife:
         for (auto i = 0; i < numSteps; i++) {
-            if (stopToken.stop_requested())
+            if (stopToken.stop_requested()) {
                 break;
+            }
             m_Data = SparseLife(m_Data, {0, 0, m_Width, m_Height}, stopToken);
             m_Generation++;
         }
@@ -161,10 +165,11 @@ int64_t GameGrid::Update(int64_t numSteps, std::stop_token stopToken) {
         }
         const auto generations = HashLife(*m_HashLifeData, numSteps, stopToken);
 
-        if (std::numeric_limits<int64_t>::max() - generations < m_Generation)
+        if (std::numeric_limits<int64_t>::max() - generations < m_Generation) {
             m_Generation = std::numeric_limits<int64_t>::max();
-        else
+        } else {
             m_Generation += generations;
+        }
         m_Population = m_HashLifeData->Population();
         return generations;
     }
@@ -177,7 +182,7 @@ bool GameGrid::Toggle(int32_t x, int32_t y) {
         return false;
     }
 
-    return Set(x, y, m_Data.find({x, y}) != m_Data.end());
+    return Set(x, y, m_Data.contains({x, y}));
 }
 
 bool GameGrid::Set(int32_t x, int32_t y, bool active) {
@@ -225,8 +230,9 @@ GameGrid GameGrid::SubRegion(Rect region) const {
                                    std::ranges::input_range auto &&range) {
             for (const auto pos : range) {
                 if constexpr (CheckBounds) {
-                    if (!region.InBounds(pos))
+                    if (!region.InBounds(pos)) {
                         continue;
+                    }
                 }
                 grid.m_Population++;
                 grid.m_Data.insert(pos - region.Pos());
@@ -250,8 +256,9 @@ GameGrid GameGrid::SubRegion(Rect region) const {
 LifeHashSet GameGrid::ReadRegion(Rect region) const {
     LifeHashSet result{};
     for (const auto pos : m_Data) {
-        if (region.InBounds(pos))
+        if (region.InBounds(pos)) {
             result.insert(pos);
+        }
     }
     return result;
 }
@@ -276,8 +283,9 @@ LifeHashSet GameGrid::InsertGrid(const GameGrid &region, Vec2 pos) {
     LifeHashSet result{};
     for (const auto cell : region.m_Data) {
         const Vec2 offsetPos{pos.X + cell.X, pos.Y + cell.Y};
-        if (m_Data.find(offsetPos) != m_Data.end())
+        if (m_Data.contains(offsetPos)) {
             continue;
+        }
         m_Data.insert(offsetPos);
         m_SortedData.insert(offsetPos);
         result.insert(offsetPos);
@@ -288,8 +296,7 @@ LifeHashSet GameGrid::InsertGrid(const GameGrid &region, Vec2 pos) {
 
 void GameGrid::RotateGrid(bool clockwise) {
     // Probably more easily read as ((width - 1) / 2, (height - 1) / 2)
-    const Vec2F center{static_cast<float>(m_Width / 2.f - 0.5f),
-                       static_cast<float>(m_Height / 2.f - 0.5f)};
+    const Vec2F center{((m_Width / 2.F) - 0.5F), ((m_Height / 2.F) - 0.5F)};
     LifeHashSet newSet{};
 
     for (const auto cellPos : m_Data) {
@@ -335,15 +342,18 @@ std::optional<bool> GameGrid::Get(int32_t x, int32_t y) const {
 }
 
 std::optional<bool> GameGrid::Get(Vec2 pos) const {
-    if (!InBounds(pos))
+    if (!InBounds(pos)) {
         return std::nullopt;
-    return m_Data.find(pos) != m_Data.end();
+    }
+    return m_Data.contains(pos);
 }
 
 void GameGrid::ValidateCache(bool validateSorted) const {
-    if (m_HashLifeData)
+    if (m_HashLifeData) {
         m_Data = *m_HashLifeData | std::ranges::to<LifeHashSet>();
-    if (validateSorted)
+    }
+    if (validateSorted) {
         m_SortedData = m_Data | std::ranges::to<std::set<Vec2>>();
+    }
 }
 } // namespace gol

@@ -6,6 +6,7 @@
 
 #include "Logging.hpp"
 
+namespace gol {
 constexpr std::array<std::string_view, 4> TermBlacklist = {
     "class", "__cdecl", "__thiscall", "std::"};
 constexpr std::array<std::string_view, 1> TemplateBlacklist = {"basic_string"};
@@ -96,3 +97,4 @@ void LogGLErrors(const std::source_location &location) {
         Log(LogCode::GLError, location, "Error Code {}", error);
     }
 }
+} // namespace gol
