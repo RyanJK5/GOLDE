@@ -56,7 +56,7 @@ SkipTokens(const std::string &expression, size_t &pos,
     return false;
 }
 
-std::string gol::logimpl::SimplifyFileName(const std::string &fileName) {
+std::string logimpl::SimplifyFileName(const std::string &fileName) {
     size_t nameStart = fileName.find_last_of('\\');
     if (nameStart > 0 && nameStart < fileName.size() - 1) {
         return fileName.substr(nameStart + 1);
@@ -64,7 +64,7 @@ std::string gol::logimpl::SimplifyFileName(const std::string &fileName) {
     return fileName;
 }
 
-std::string gol::logimpl::SimplifyFunctionName(const std::string &funcName) {
+std::string logimpl::SimplifyFunctionName(const std::string &funcName) {
     std::string result = "";
     for (size_t i = 0; i < funcName.length(); i++) {
         if (SkipTokens(funcName, i, TermBlacklist))
@@ -77,22 +77,22 @@ std::string gol::logimpl::SimplifyFunctionName(const std::string &funcName) {
     return result;
 }
 
-constexpr std::string gol::logimpl::StringRepresentation(gol::LogCode code) {
+constexpr std::string logimpl::StringRepresentation(LogCode code) {
     switch (code) {
-    case gol::LogCode::GLError:
+    case LogCode::GLError:
         return "[GL ERROR]";
-    case gol::LogCode::Error:
+    case LogCode::Error:
         return "[ERROR]";
-    case gol::LogCode::Warning:
+    case LogCode::Warning:
         return "[WARNING]";
-    case gol::LogCode::Info:
+    case LogCode::Info:
         return "[INFO]";
     }
     return "";
 }
 
-void gol::LogGLErrors(const std::source_location &location) {
+void LogGLErrors(const std::source_location &location) {
     while (GLenum error = glGetError()) {
-        gol::Log(gol::LogCode::GLError, location, "Error Code {}", error);
+        Log(LogCode::GLError, location, "Error Code {}", error);
     }
 }

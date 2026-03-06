@@ -177,7 +177,7 @@ inline std::vector<StorageType> EncodeRegion(const GameGrid &grid,
         }
     }
     if (!running) {
-        gol::Vec2 pos = region.LowerRight() - offset;
+        Vec2 pos = region.LowerRight() - offset;
         StorageType count = static_cast<StorageType>(
             (region.Height * (pos.X - 1 - runStart.X) + pos.Y - runStart.Y) -
             1);

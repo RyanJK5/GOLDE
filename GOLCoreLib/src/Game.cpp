@@ -32,20 +32,23 @@ OpenGLWindow::OpenGLWindow(int32_t width, int32_t height)
     : Bounds(0, 0, width, height) {
     if (!glfwInit())
         throw GLException("Failed to initialize glfw");
-    
-    m_Underlying =
-        glfwCreateWindow(width, height, "GOLDE", NULL, NULL);
-  
-    const auto deleteStbiImage = [](unsigned char *pixels) { stbi_image_free(pixels); };
+
+    m_Underlying = glfwCreateWindow(width, height, "GOLDE", NULL, NULL);
+
+    const auto deleteStbiImage = [](unsigned char *pixels) {
+        stbi_image_free(pixels);
+    };
 
     auto iconWidth = 0;
     auto iconHeight = 0;
     [[maybe_unused]] auto iconChannels = 0;
-        
+
     std::unique_ptr<unsigned char, decltype(deleteStbiImage)> pixels{
-        stbi_load("resources/icon.png", &iconWidth, &iconHeight, &iconChannels, 4),
+        stbi_load("resources/icon.png", &iconWidth, &iconHeight, &iconChannels,
+                  4),
         deleteStbiImage};
-    const GLFWimage icon{.width = iconWidth, .height = iconHeight, .pixels = pixels.get()};
+    const GLFWimage icon{
+        .width = iconWidth, .height = iconHeight, .pixels = pixels.get()};
     glfwSetWindowIcon(m_Underlying, 1, &icon);
 
     if (!m_Underlying)

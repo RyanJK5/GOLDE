@@ -72,9 +72,7 @@ std::string LoadButton::Label(const EditorResult &) const {
 
 bool LoadButton::Enabled(const EditorResult &) const { return true; }
 
-FileWidget::FileWidget(
-    const ShortcutMap
-        &shortcutInfo)
+FileWidget::FileWidget(const ShortcutMap &shortcutInfo)
     : m_NewFileButton(shortcutInfo.at(EditorAction::NewFile)),
       m_UpdateFileButton(shortcutInfo.at(EditorAction::Save)),
       m_SaveButton(shortcutInfo.at(EditorAction::SaveAsNew)),
@@ -132,8 +130,7 @@ SimulationControlResult FileWidget::UpdateImpl(const EditorResult &state) {
             .FromShortcut = result.FromShortcut};
 }
 
-void FileWidget::SetShortcutsImpl(const ShortcutMap& shortcutInfo)
-{
+void FileWidget::SetShortcutsImpl(const ShortcutMap &shortcutInfo) {
     m_NewFileButton.SetShortcuts(shortcutInfo.at(EditorAction::NewFile));
     m_UpdateFileButton.SetShortcuts(shortcutInfo.at(EditorAction::Save));
     m_SaveButton.SetShortcuts(shortcutInfo.at(EditorAction::SaveAsNew));

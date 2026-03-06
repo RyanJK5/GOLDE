@@ -70,7 +70,7 @@ class SelectionManager {
     bool CanDrawGrid() const;
 
   private:
-    SelectionUpdateResult UpdateUnlockedSelection(gol::Vec2 &gridPos);
+    SelectionUpdateResult UpdateUnlockedSelection(Vec2 &gridPos);
 
     void RestoreGridVersion(EditorAction undoRedo, GameGrid &grid,
                             const VersionChange &change);

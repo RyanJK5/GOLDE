@@ -100,7 +100,7 @@ struct LifeNodeEqual {
 
 struct LifeNodeHash {
     using is_transparent = void;
-    size_t operator()(const gol::LifeNode *node) const;
+    size_t operator()(const LifeNode *node) const;
 };
 
 // Underlying node for TrueNode.

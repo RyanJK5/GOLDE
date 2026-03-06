@@ -72,7 +72,7 @@ class SimulationEditor {
 
     void SaveToFile(const SimulationControlResult &result);
 
-    gol::SimulationState ResizeGrid(const gol::SimulationControlResult &result);
+    SimulationState ResizeGrid(const SimulationControlResult &result);
 
     void UpdateViewport();
 

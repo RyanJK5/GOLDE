@@ -54,7 +54,7 @@ int64_t HashLife(HashQuadtree &data, int64_t numSteps,
     return generation;
 }
 
-size_t LifeNodeHash::operator()(const gol::LifeNode *node) const {
+size_t LifeNodeHash::operator()(const LifeNode *node) const {
     if (!node)
         return std::hash<const void *>{}(nullptr);
     return node->Hash;

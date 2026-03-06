@@ -18,21 +18,21 @@
 #include "PresetSelectionResult.hpp"
 #include "RLEEncoder.hpp"
 
-gol::PresetDisplay::PresetDisplay(const GameGrid &grid,
-                                  const std::string &fileName, Size2 windowSize)
+namespace gol {
+PresetDisplay::PresetDisplay(const GameGrid &grid, const std::string &fileName,
+                             Size2 windowSize)
     : Grid(grid), FileName(fileName),
       Graphics(std::filesystem::path("resources") / "shader", windowSize.Width,
                windowSize.Height, Color{}) {}
 
-gol::PresetSelection::PresetSelection(const std::filesystem::path &defaultPath,
-                                      Size2 windowSize)
+PresetSelection::PresetSelection(const std::filesystem::path &defaultPath,
+                                 Size2 windowSize)
     : m_DefaultPath(defaultPath), m_WindowSize(windowSize) {
     ReadFiles(m_DefaultPath);
     m_SearchText = InputString{m_MaxFileName};
 }
 
-gol::PresetSelectionResult
-gol::PresetSelection::Update(const EditorResult &info) {
+PresetSelectionResult PresetSelection::Update(const EditorResult &info) {
     ImGui::Begin("Presets", nullptr, ImGuiWindowFlags_NoNav);
 
     ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, 10.f);
@@ -137,7 +137,7 @@ gol::PresetSelection::Update(const EditorResult &info) {
     return {.ClipboardText = retString};
 }
 
-void gol::PresetSelection::ReadFiles(const std::filesystem::path &path) {
+void PresetSelection::ReadFiles(const std::filesystem::path &path) {
     m_MaxGridDimensions = Size2F{};
     for (const auto &file :
          std::filesystem::recursive_directory_iterator(path)) {
@@ -165,3 +165,4 @@ void gol::PresetSelection::ReadFiles(const std::filesystem::path &path) {
                                m_WindowSize);
     }
 }
+} // namespace gol

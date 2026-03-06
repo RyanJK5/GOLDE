@@ -38,7 +38,7 @@ enum class LogCode { GLError, Error, Warning, Info };
 inline LogCode Level = LogCode::Info;
 
 namespace logimpl {
-constexpr std::string StringRepresentation(gol::LogCode code);
+constexpr std::string StringRepresentation(LogCode code);
 
 std::string SimplifyFileName(const std::string &fileName);
 

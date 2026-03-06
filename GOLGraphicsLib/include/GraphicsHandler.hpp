@@ -25,7 +25,7 @@ struct GraphicsHandlerArgs {
 };
 
 struct FrameBufferBinder {
-    FrameBufferBinder(const gol::GLFrameBuffer &buffer);
+    FrameBufferBinder(const GLFrameBuffer &buffer);
 
     ~FrameBufferBinder();
 
@@ -104,13 +104,12 @@ class GraphicsHandler {
     GLTexture m_Texture;
     GLRenderBuffer m_renderBuffer;
 };
-} // namespace gol
 
 template <typename T>
 concept HasSize = requires(T a) { a.size(); };
 
 std::vector<float>
-gol::GraphicsHandler::GenerateGLBuffer(Vec2 offset,
+GraphicsHandler::GenerateGLBuffer(Vec2 offset,
                                        std::ranges::input_range auto &&grid,
                                        const GraphicsHandlerArgs &args) const {
     std::vector<float> result{};
@@ -144,7 +143,7 @@ gol::GraphicsHandler::GenerateGLBuffer(Vec2 offset,
     return result;
 }
 
-void gol::GraphicsHandler::DrawGrid(Vec2 offset,
+void GraphicsHandler::DrawGrid(Vec2 offset,
                                     std::ranges::input_range auto &&grid,
                                     const GraphicsHandlerArgs &args) {
     FrameBufferBinder binder{m_FrameBuffer};
@@ -181,5 +180,7 @@ void gol::GraphicsHandler::DrawGrid(Vec2 offset,
 
     GL_DEBUG(glBindVertexArray(0));
 }
+
+} // namespace gol
 
 #endif

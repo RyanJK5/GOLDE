@@ -41,7 +41,7 @@ SimulationControlResult NoiseWidget::UpdateImpl(const EditorResult &state) {
                                    .FromShortcut = result.FromShortcut};
 }
 
-void NoiseWidget::SetShortcutsImpl(const ShortcutMap& shortcuts) {
+void NoiseWidget::SetShortcutsImpl(const ShortcutMap &shortcuts) {
     m_Button.SetShortcuts(shortcuts.at(EditorAction::GenerateNoise));
 }
 

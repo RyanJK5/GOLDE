@@ -13,7 +13,7 @@
 #include "Logging.hpp"
 #include "ShaderManager.hpp"
 
-gol::ShaderManager::ShaderManager(const std::filesystem::path &shaderFilePath) {
+ShaderManager::ShaderManager(const std::filesystem::path &shaderFilePath) {
     auto itr = s_Shaders.find(shaderFilePath);
     if (itr != s_Shaders.end()) {
         itr->second.RefCount++;
@@ -44,12 +44,11 @@ gol::ShaderManager::ShaderManager(const std::filesystem::path &shaderFilePath) {
     m_ControlBlock = &s_Shaders[shaderFilePath];
 }
 
-gol::ShaderManager::ShaderManager(ShaderManager &&other) noexcept {
+ShaderManager::ShaderManager(ShaderManager &&other) noexcept {
     m_ControlBlock = std::exchange(other.m_ControlBlock, nullptr);
 }
 
-gol::ShaderManager &
-gol::ShaderManager::operator=(ShaderManager &&other) noexcept {
+ShaderManager &ShaderManager::operator=(ShaderManager &&other) noexcept {
     if (this != &other) {
         Destroy();
         m_ControlBlock = std::exchange(other.m_ControlBlock, nullptr);
@@ -57,9 +56,9 @@ gol::ShaderManager::operator=(ShaderManager &&other) noexcept {
     return *this;
 }
 
-gol::ShaderManager::~ShaderManager() { Destroy(); }
+ShaderManager::~ShaderManager() { Destroy(); }
 
-void gol::ShaderManager::Destroy() {
+void ShaderManager::Destroy() {
     if (!m_ControlBlock)
         return;
 
@@ -76,12 +75,12 @@ void gol::ShaderManager::Destroy() {
     }
 }
 
-uint32_t gol::ShaderManager::Program() const {
+uint32_t ShaderManager::Program() const {
     return !m_ControlBlock ? 0 : m_ControlBlock->ProgramID;
 }
 
-uint32_t gol::ShaderManager::CompileShader(uint32_t type,
-                                           std::string_view source) const {
+uint32_t ShaderManager::CompileShader(uint32_t type,
+                                      std::string_view source) const {
     uint32_t id = glCreateShader(type);
     const char *src = source.data();
 
@@ -105,8 +104,8 @@ uint32_t gol::ShaderManager::CompileShader(uint32_t type,
     throw GLException(error);
 }
 
-std::optional<gol::ShaderManager::IDPair> gol::ShaderManager::ParseShader(
-    const std::filesystem::path &shaderFilePath) const {
+std::optional<ShaderManager::IDPair>
+ShaderManager::ParseShader(const std::filesystem::path &shaderFilePath) const {
     std::ifstream stream(shaderFilePath);
     if (!stream.is_open()) {
         return std::nullopt;
@@ -159,25 +158,25 @@ std::optional<gol::ShaderManager::IDPair> gol::ShaderManager::ParseShader(
     return std::make_pair(id1.value(), id2.value());
 }
 
-void gol::ShaderManager::AttachUniformVec2(std::string_view label,
-                                           const glm::vec2 &vec) {
+void ShaderManager::AttachUniformVec2(std::string_view label,
+                                      const glm::vec2 &vec) {
     auto loc = UniformLocation(label);
     GL_DEBUG(glUniform2f(loc, vec.x, vec.y));
 }
 
-void gol::ShaderManager::AttachUniformVec4(std::string_view label,
-                                           const glm::vec4 &vec) {
+void ShaderManager::AttachUniformVec4(std::string_view label,
+                                      const glm::vec4 &vec) {
     auto loc = UniformLocation(label);
     GL_DEBUG(glUniform4f(loc, vec.x, vec.y, vec.z, vec.w));
 }
 
-void gol::ShaderManager::AttachUniformMatrix4(std::string_view label,
-                                              const glm::mat4 &matrix) {
+void ShaderManager::AttachUniformMatrix4(std::string_view label,
+                                         const glm::mat4 &matrix) {
     GL_DEBUG(
         glUniformMatrix4fv(UniformLocation(label), 1, GL_FALSE, &matrix[0][0]));
 }
 
-int32_t gol::ShaderManager::UniformLocation(std::string_view label) {
+int32_t ShaderManager::UniformLocation(std::string_view label) {
     if (m_ControlBlock->Uniforms.find(label) != m_ControlBlock->Uniforms.end())
         return m_ControlBlock->Uniforms[label];
 
@@ -190,7 +189,7 @@ int32_t gol::ShaderManager::UniformLocation(std::string_view label) {
     return location;
 }
 
-void gol::ShaderManager::CreateShader(uint32_t program, uint32_t shaderId) {
+void ShaderManager::CreateShader(uint32_t program, uint32_t shaderId) {
     GL_DEBUG(glAttachShader(program, shaderId));
     GL_DEBUG(glDeleteShader(shaderId));
 }
