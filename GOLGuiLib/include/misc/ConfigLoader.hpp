@@ -52,10 +52,10 @@ class StyleLoaderException : public std::exception {
 };
 
 template <Vector4 Vec> struct StyleInfo {
-    std::filesystem::path OriginPath;
-    std::unordered_map<StyleColor, Vec> StyleColors;
-    std::unordered_map<ImGuiCol_, StyleColor> AttributeColors;
-    std::unordered_map<ActionVariant, std::vector<ImGuiKeyChord>> Shortcuts;
+    std::filesystem::path OriginPath{};
+    std::unordered_map<StyleColor, Vec> StyleColors{};
+    std::unordered_map<ImGuiCol_, StyleColor> AttributeColors{};
+    std::unordered_map<ActionVariant, std::vector<ImGuiKeyChord>> Shortcuts{};
 };
 
 static const std::unordered_map<std::string_view, StyleColor> ColorDefinitions =
