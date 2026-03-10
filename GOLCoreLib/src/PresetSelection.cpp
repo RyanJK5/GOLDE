@@ -61,8 +61,8 @@ PresetSelectionResult PresetSelection::Update(const EditorResult& info) {
 
     ImGui::PopStyleVar();
 
-    const bool enabled = info.State == SimulationState::Paint ||
-                         info.State == SimulationState::Empty;
+    const bool enabled = info.Simulation.State == SimulationState::Paint ||
+                         info.Simulation.State == SimulationState::Empty;
     auto retString = std::string{};
     auto cursorPos = ImGui::GetCursorPos();
     auto numAvailable = 0;

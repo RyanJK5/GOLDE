@@ -13,6 +13,7 @@
 #include "GraphicsHandler.hpp"
 #include "PresetSelectionResult.hpp"
 #include "SelectionManager.hpp"
+#include "SimulationCommand.hpp"
 #include "SimulationControlResult.hpp"
 #include "SimulationWorker.hpp"
 #include "VersionManager.hpp"
@@ -60,19 +61,17 @@ class SimulationEditor {
     SimulationState StartSimulation();
     void StopSimulation(bool stealGrid);
 
-    void UpdateVersion(const SimulationControlResult &args);
-
     DisplayResult DisplaySimulation(bool grabFocus);
 
     SimulationState UpdateState(const SimulationControlResult &action);
 
     void PasteSelection();
 
-    void LoadFile(const SimulationControlResult &result);
+    void LoadFile(const std::filesystem::path &path);
 
-    void SaveToFile(const SimulationControlResult &result);
+    void SaveToFile(const std::filesystem::path &path, bool markAsSaved);
 
-    SimulationState ResizeGrid(const SimulationControlResult &result);
+    SimulationState ResizeGrid(Size2 newDimensions);
 
     void UpdateViewport();
 

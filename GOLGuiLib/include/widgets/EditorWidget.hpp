@@ -10,8 +10,8 @@
 #include "EditorResult.hpp"
 #include "GameEnums.hpp"
 #include "Graphics2D.hpp"
-#include "SimulationControlResult.hpp"
 #include "Widget.hpp"
+#include "WidgetResult.hpp"
 
 namespace gol {
 class CopyButton : public ActionButton<SelectionAction, true> {
@@ -132,7 +132,7 @@ class EditorWidget : public Widget {
     friend Widget;
 
   public:
-    SimulationControlResult UpdateImpl(const EditorResult &state);
+    WidgetResult UpdateImpl(const EditorResult &state);
 
     void SetShortcutsImpl(const ShortcutMap &shortcuts);
   private:

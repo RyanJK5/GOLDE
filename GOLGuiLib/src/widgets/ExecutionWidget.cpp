@@ -8,7 +8,7 @@
 #include "ExecutionWidget.hpp"
 #include "GameEnums.hpp"
 #include "Graphics2D.hpp"
-#include "SimulationControlResult.hpp"
+#include "WidgetResult.hpp"
 
 namespace gol {
 Size2F StartButton::Dimensions() const {
@@ -16,7 +16,7 @@ Size2F StartButton::Dimensions() const {
             MultiActionButton::DefaultButtonHeight};
 }
 std::string StartButton::Label(const EditorResult& state) const {
-    switch (state.State) {
+    switch (state.Simulation.State) {
         using enum SimulationState;
     case Simulation:
         return ICON_FA_PAUSE;
@@ -25,7 +25,7 @@ std::string StartButton::Label(const EditorResult& state) const {
     }
 }
 GameAction StartButton::Action(const EditorResult& state) const {
-    switch (state.State) {
+    switch (state.Simulation.State) {
         using enum SimulationState;
     case Paint:
         return GameAction::Start;
@@ -39,9 +39,9 @@ GameAction StartButton::Action(const EditorResult& state) const {
     std::unreachable();
 }
 bool StartButton::Enabled(const EditorResult& state) const {
-    return state.State == SimulationState::Paint ||
-           state.State == SimulationState::Paused ||
-           state.State == SimulationState::Simulation;
+    return state.Simulation.State == SimulationState::Paint ||
+           state.Simulation.State == SimulationState::Paused ||
+           state.Simulation.State == SimulationState::Simulation;
 }
 
 Size2F ResetButton::Dimensions() const {
@@ -52,9 +52,9 @@ std::string ResetButton::Label(const EditorResult&) const {
     return ICON_FA_STOP;
 }
 bool ResetButton::Enabled(const EditorResult& state) const {
-    return state.State == SimulationState::Simulation ||
-           state.State == SimulationState::Paused ||
-           state.State == SimulationState::Stepping;
+    return state.Simulation.State == SimulationState::Simulation ||
+           state.Simulation.State == SimulationState::Paused ||
+           state.Simulation.State == SimulationState::Stepping;
 }
 
 Size2F RestartButton::Dimensions() const {
@@ -65,8 +65,8 @@ std::string RestartButton::Label(const EditorResult&) const {
     return ICON_FA_REPEAT;
 }
 bool RestartButton::Enabled(const EditorResult& state) const {
-    return state.State == SimulationState::Simulation ||
-           state.State == SimulationState::Paused;
+    return state.Simulation.State == SimulationState::Simulation ||
+           state.Simulation.State == SimulationState::Paused;
 }
 
 Size2F ClearButton::Dimensions() const {
@@ -77,11 +77,11 @@ std::string ClearButton::Label(const EditorResult&) const {
     return ICON_FA_TRASH;
 }
 bool ClearButton::Enabled(const EditorResult& state) const {
-    return state.State != SimulationState::Empty;
+    return state.Simulation.State != SimulationState::Empty;
 }
 
-SimulationControlResult ExecutionWidget::UpdateImpl(const EditorResult& state) {
-    auto result = SimulationControlResult{};
+WidgetResult ExecutionWidget::UpdateImpl(const EditorResult& state) {
+    auto result = WidgetResult{};
     UpdateResult(result, m_StartButton.Update(state));
     UpdateResult(result, m_ResetButton.Update(state));
     UpdateResult(result, m_RestartButton.Update(state));

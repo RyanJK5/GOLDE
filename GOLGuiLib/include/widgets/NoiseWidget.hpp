@@ -11,8 +11,8 @@
 #include "GameEnums.hpp"
 #include "Graphics2D.hpp"
 #include "InputString.hpp"
-#include "SimulationControlResult.hpp"
 #include "Widget.hpp"
+#include "WidgetResult.hpp"
 
 namespace gol {
 class GenerateNoiseButton : public ActionButton<EditorAction, true> {
@@ -37,7 +37,7 @@ class NoiseWidget : public Widget {
     friend Widget;
 
   private:
-    SimulationControlResult UpdateImpl(const EditorResult &state);
+    WidgetResult UpdateImpl(const EditorResult &state);
     
     void SetShortcutsImpl(const ShortcutMap &shortcuts);
   private:

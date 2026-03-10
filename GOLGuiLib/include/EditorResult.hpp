@@ -4,19 +4,29 @@
 #include <filesystem>
 
 #include "GameEnums.hpp"
-#include "LifeAlgorithm.hpp"
 
 namespace gol {
-struct EditorResult {
-    std::filesystem::path CurrentFilePath{};
+struct SimulationStatus {
     SimulationState State = SimulationState::Paint;
-    LifeAlgorithm Algorithm = LifeAlgorithm::SparseLife;
-    bool Active = true;
-    bool Closing = false;
+};
+
+struct EditingStatus {
     bool SelectionActive = false;
     bool UndosAvailable = false;
     bool RedosAvailable = false;
+};
+
+struct FileStatus {
+    std::filesystem::path CurrentFilePath{};
     bool HasUnsavedChanges = false;
+};
+
+struct EditorResult {
+    SimulationStatus Simulation{};
+    EditingStatus Editing{};
+    FileStatus File{};
+    bool Active = true;
+    bool Closing = false;
 };
 } // namespace gol
 

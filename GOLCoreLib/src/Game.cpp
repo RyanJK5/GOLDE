@@ -19,6 +19,7 @@
 #include "Logging.hpp"
 #include "PopupWindow.hpp"
 #include "PresetSelectionResult.hpp"
+#include "SimulationCommand.hpp"
 #include "SimulationControlResult.hpp"
 #include "SimulationEditor.hpp"
 
@@ -113,8 +114,6 @@ void Game::UpdateEditors(SimulationControlResult& controlResult,
 
     auto newWindowIndex = m_LastActive;
     bool pastWindowEnabled = CheckForNewEditors(controlResult);
-    if (!pastWindowEnabled)
-        controlResult.State = SimulationState::Paint;
 
     m_UnsavedWarning.Update();
 
@@ -122,7 +121,7 @@ void Game::UpdateEditors(SimulationControlResult& controlResult,
         std::swap(m_Editors[m_LastActive], m_Editors.back());
     m_LastActive = m_Editors.size() > 0 ? m_Editors.size() - 1 : 0UZ;
     if (m_Editors.size() == 0)
-        m_State.State = SimulationState::None;
+        m_State.Simulation.State = SimulationState::None;
     for (size_t i = 0; i < m_Editors.size(); i++) {
         auto activeOverride = [&]() -> std::optional<bool> {
             if (newWindowIndex != i && !pastWindowEnabled)
@@ -139,19 +138,19 @@ void Game::UpdateEditors(SimulationControlResult& controlResult,
             m_State = result;
             m_LastActive = i;
         }
-        if (result.Closing && !result.HasUnsavedChanges) {
+        if (result.Closing && !result.File.HasUnsavedChanges) {
             m_Editors.erase(m_Editors.begin() + i--);
         } else if (result.Closing) {
             m_UnsavedWarning.Activate();
             m_UnsavedWarning.Message =
-                result.CurrentFilePath.empty()
+                result.File.CurrentFilePath.empty()
                     ? "This file has not been saved. Are you sure you want to "
                       "close "
                       "it without saving?"
                     : std::format(
                           "{} has unsaved changes. Are you sure you want to "
                           "close it without saving?",
-                          result.CurrentFilePath.filename().string());
+                          result.File.CurrentFilePath.filename().string());
             m_Unsaved = &m_Editors[i];
         }
     }
@@ -319,24 +318,27 @@ bool Game::WindowCanClose() {
 }
 
 bool Game::CheckForNewEditors(const SimulationControlResult& controlResult) {
-    if (!controlResult.FilePath)
-        return true;
-    if (!controlResult.Action)
-        return true;
-    if (controlResult.Action != ActionVariant{EditorAction::Load} &&
-        controlResult.Action != ActionVariant{EditorAction::NewFile})
+    if (!controlResult.Command)
         return true;
 
+    const auto* loadCmd = std::get_if<LoadCommand>(&*controlResult.Command);
+    const auto* newFileCmd =
+        std::get_if<NewFileCommand>(&*controlResult.Command);
+
+    if (!loadCmd && !newFileCmd)
+        return true;
+
+    const auto& filePath = loadCmd ? loadCmd->FilePath : newFileCmd->FilePath;
+
     const bool fileOpen =
-        controlResult.Action == ActionVariant{EditorAction::Load} &&
-        std::ranges::any_of(m_Editors, [path = controlResult.FilePath](
-                                           const SimulationEditor& editor) {
-            return editor.CurrentFilePath() == path;
-        });
+        loadCmd && std::ranges::any_of(
+                       m_Editors, [&filePath](const SimulationEditor& editor) {
+                           return editor.CurrentFilePath() == filePath;
+                       });
     if (fileOpen)
         return false;
 
-    m_Editors.emplace_back(m_EditorCounter++, *controlResult.FilePath,
+    m_Editors.emplace_back(m_EditorCounter++, filePath,
                            Size2{DefaultWindowWidth, DefaultWindowHeight},
                            Size2{DefaultGridWidth, DefaultGridHeight});
 

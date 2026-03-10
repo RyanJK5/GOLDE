@@ -150,6 +150,13 @@ struct HashLifeCache {
     // A cache that relates the level of an empty node to its actual representation.
     // Useful for efficiently referencing large, empty regions of the universe.
     ankerl::unordered_dense::map<int64_t, const LifeNode *> EmptyNodeCache{};
+
+    HashLifeCache()
+    {
+        NodeMap.reserve(1 << 20); // Reserve space for 1 million nodes to avoid rehashing
+                      // during early stages of the simulation.
+        SlowCache.reserve(1 << 20);
+    }
 };
 
 // This is the primary data structure for executing the HashLife algorithm. It satisfies

@@ -3,10 +3,11 @@
 
 #include "GameEnums.hpp"
 #include "ResizeWidget.hpp"
-#include "SimulationControlResult.hpp"
+#include "SimulationCommand.hpp"
+#include "WidgetResult.hpp"
 
 namespace gol {
-SimulationControlResult ResizeWidget::UpdateImpl(const EditorResult& state) {
+WidgetResult ResizeWidget::UpdateImpl(const EditorResult& state) {
     const float totalWidth = ImGui::GetContentRegionAvail().x;
     ImGui::SetCursorPosX(ImGui::GetStyle().FramePadding.x * 3);
     ImGui::Text("Width");
@@ -39,9 +40,10 @@ SimulationControlResult ResizeWidget::UpdateImpl(const EditorResult& state) {
     ImGui::Separator();
     ImGui::PopStyleVar();
 
-    return {.Action = result.Action,
-            .NewDimensions = m_Dimensions,
-            .FromShortcut = result.FromShortcut};
+    if (result.Action)
+        return {.Command = ResizeCommand{m_Dimensions},
+                .FromShortcut = result.FromShortcut};
+    return {};
 }
 
 void ResizeWidget::SetShortcutsImpl(const ShortcutMap& shortcuts) {

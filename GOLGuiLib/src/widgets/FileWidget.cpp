@@ -11,7 +11,8 @@
 #include "GameEnums.hpp"
 #include "Graphics2D.hpp"
 #include "PopupWindow.hpp"
-#include "SimulationControlResult.hpp"
+#include "SimulationCommand.hpp"
+#include "WidgetResult.hpp"
 
 namespace gol {
 NewFileButton::NewFileButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -35,11 +36,11 @@ std::string UpdateFileButton::Label(const EditorResult&) const {
     return ICON_FA_FILE_ARROW_UP;
 }
 bool UpdateFileButton::Enabled(const EditorResult& state) const {
-    return (state.CurrentFilePath.empty() &&
-            state.State == SimulationState::Paused) ||
-           (state.CurrentFilePath.empty() &&
-            state.State == SimulationState::Empty) ||
-           state.State == SimulationState::Paint;
+    return (state.File.CurrentFilePath.empty() &&
+            state.Simulation.State == SimulationState::Paused) ||
+           (state.File.CurrentFilePath.empty() &&
+            state.Simulation.State == SimulationState::Empty) ||
+           state.Simulation.State == SimulationState::Paint;
 }
 
 SaveButton::SaveButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -55,8 +56,8 @@ std::string SaveButton::Label(const EditorResult&) const {
 }
 
 bool SaveButton::Enabled(const EditorResult& state) const {
-    return state.State == SimulationState::Paint ||
-           state.State == SimulationState::Paused;
+    return state.Simulation.State == SimulationState::Paint ||
+           state.Simulation.State == SimulationState::Paused;
 }
 
 LoadButton::LoadButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -79,36 +80,48 @@ FileWidget::FileWidget(const ShortcutMap& shortcutInfo)
       m_LoadButton(shortcutInfo.at(EditorAction::Load)),
       m_FileNotOpened("File Not Opened", [](auto) {}) {}
 
-SimulationControlResult FileWidget::UpdateImpl(const EditorResult& state) {
+WidgetResult FileWidget::UpdateImpl(const EditorResult& state) {
     m_FileNotOpened.Update();
 
-    auto result = SimulationControlResult{};
-    UpdateResult(result, m_NewFileButton.Update(state));
-    UpdateResult(result, m_UpdateFileButton.Update(state));
-    UpdateResult(result, m_SaveButton.Update(state));
+    std::optional<EditorAction> action;
+    bool fromShortcut = false;
+
+    auto tryButton = [&](auto& button) {
+        if (action)
+            return;
+        auto btnResult = button.Update(state);
+        if (btnResult.Action) {
+            action = *btnResult.Action;
+            fromShortcut = btnResult.FromShortcut;
+        }
+    };
+
+    tryButton(m_NewFileButton);
+    tryButton(m_UpdateFileButton);
+    tryButton(m_SaveButton);
 
     ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, 30.f);
-    UpdateResult(result, m_LoadButton.Update(state));
+    tryButton(m_LoadButton);
     ImGui::Separator();
     ImGui::PopStyleVar();
 
-    if (!result.Action)
-        return {.FilePath = state.CurrentFilePath};
+    if (!action)
+        return {};
 
     auto filePath =
-        [&result,
-         state] -> std::expected<std::filesystem::path, FileDialogFailure> {
-        switch (std::get<EditorAction>(*result.Action)) {
+        [&action,
+         &state] -> std::expected<std::filesystem::path, FileDialogFailure> {
+        switch (*action) {
             using enum EditorAction;
         case NewFile:
             return std::filesystem::path{};
         case Save:
-            if (!state.CurrentFilePath.empty())
-                return state.CurrentFilePath;
+            if (!state.File.CurrentFilePath.empty())
+                return state.File.CurrentFilePath;
             return FileDialog::SaveFileDialog("gol", "");
         case SaveAsNew:
-            return FileDialog::SaveFileDialog("gol",
-                                              state.CurrentFilePath.string());
+            return FileDialog::SaveFileDialog(
+                "gol", state.File.CurrentFilePath.string());
         case Load:
             return FileDialog::OpenFileDialog("gol", "");
         default:
@@ -122,12 +135,26 @@ SimulationControlResult FileWidget::UpdateImpl(const EditorResult& state) {
             m_FileNotOpened.Activate();
             m_FileNotOpened.Message = filePath.error().Message;
         }
-        return {.FilePath = state.CurrentFilePath};
+        return {};
     }
 
-    return {.Action = result.Action,
-            .FilePath = *filePath,
-            .FromShortcut = result.FromShortcut};
+    auto command = [&]() -> SimulationCommand {
+        switch (*action) {
+            using enum EditorAction;
+        case NewFile:
+            return NewFileCommand{*filePath};
+        case Save:
+            return SaveCommand{*filePath};
+        case SaveAsNew:
+            return SaveAsNewCommand{*filePath};
+        case Load:
+            return LoadCommand{*filePath};
+        default:
+            std::unreachable();
+        }
+    }();
+
+    return {.Command = command, .FromShortcut = fromShortcut};
 }
 
 void FileWidget::SetShortcutsImpl(const ShortcutMap& shortcutInfo) {

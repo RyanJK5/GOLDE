@@ -8,8 +8,8 @@
 #include "EditorResult.hpp"
 #include "GameEnums.hpp"
 #include "Graphics2D.hpp"
-#include "SimulationControlResult.hpp"
 #include "Widget.hpp"
+#include "WidgetResult.hpp"
 
 namespace gol {
 class ResizeButton : public ActionButton<EditorAction, false> {
@@ -26,8 +26,8 @@ class ResizeButton : public ActionButton<EditorAction, false> {
         return "Apply";
     }
     virtual bool Enabled(const EditorResult &state) const final {
-        return state.State == SimulationState::Paint ||
-               state.State == SimulationState::Empty;
+        return state.Simulation.State == SimulationState::Paint ||
+               state.Simulation.State == SimulationState::Empty;
     }
 };
 
@@ -38,7 +38,7 @@ class ResizeWidget : public Widget {
     friend Widget;
 
   private:
-    SimulationControlResult UpdateImpl(const EditorResult &state);
+    WidgetResult UpdateImpl(const EditorResult &state);
     void SetShortcutsImpl(const ShortcutMap &shortcuts);
   private:
     ResizeButton m_Button;

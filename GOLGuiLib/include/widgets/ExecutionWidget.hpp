@@ -11,8 +11,8 @@
 #include "GameEnums.hpp"
 #include "Graphics2D.hpp"
 #include "KeyShortcut.hpp"
-#include "SimulationControlResult.hpp"
 #include "Widget.hpp"
+#include "WidgetResult.hpp"
 
 namespace gol {
 class StartButton : public MultiActionButton<GameAction, true> {
@@ -79,7 +79,7 @@ class ExecutionWidget : public Widget {
     friend Widget;
 
   private:
-    SimulationControlResult UpdateImpl(const EditorResult &state);
+    WidgetResult UpdateImpl(const EditorResult &state);
 
     void SetShortcutsImpl(const ShortcutMap &shortcuts);
   private:

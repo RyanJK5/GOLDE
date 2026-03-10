@@ -29,6 +29,7 @@
 #include "LoadingSpinner.hpp"
 #include "PopupWindow.hpp"
 #include "PresetSelectionResult.hpp"
+#include "SimulationCommand.hpp"
 #include "SimulationControlResult.hpp"
 #include "SimulationEditor.hpp"
 #include "SimulationWorker.hpp"
@@ -59,7 +60,7 @@ SimulationEditor::Update(std::optional<bool> activeOverride,
                          const SimulationControlResult& controlArgs,
                          const PresetSelectionResult& presetArgs) {
     auto displayResult = DisplaySimulation(
-        (controlArgs.Action || !presetArgs.ClipboardText.empty()) &&
+        (controlArgs.Command || !presetArgs.ClipboardText.empty()) &&
         activeOverride && (*activeOverride));
     if (!displayResult.Visible || (activeOverride && !(*activeOverride)))
         return {.Active = false, .Closing = displayResult.Closing};
@@ -69,7 +70,7 @@ SimulationEditor::Update(std::optional<bool> activeOverride,
                             .GridSize = m_Grid.Size(),
                             .CellSize = {SimulationEditor::DefaultCellWidth,
                                          SimulationEditor::DefaultCellHeight},
-                            .ShowGridLines = controlArgs.GridLines};
+                            .ShowGridLines = controlArgs.Settings.GridLines};
     UpdateViewport();
     UpdateDragState();
     m_Graphics.RescaleFrameBuffer(WindowBounds(), ViewportBounds());
@@ -101,14 +102,11 @@ SimulationEditor::Update(std::optional<bool> activeOverride,
         }
     }
 
-    if (controlArgs.TickDelayMs)
-        m_Worker->SetTickDelayMs(*controlArgs.TickDelayMs);
+    m_Worker->SetTickDelayMs(controlArgs.Settings.TickDelayMs);
+    m_Worker->SetStepCount(controlArgs.Settings.StepCount);
+    m_Grid.SetAlgorithm(controlArgs.Settings.Algorithm);
 
-    m_Worker->SetStepCount(controlArgs.StepCount);
-    if (controlArgs.Algorithm)
-        m_Grid.SetAlgorithm(*controlArgs.Algorithm);
-
-    if (controlArgs.Action &&
+    if (controlArgs.Command &&
         ((activeOverride && *activeOverride) || displayResult.Selected))
         m_State = UpdateState(controlArgs);
 
@@ -131,16 +129,17 @@ SimulationEditor::Update(std::optional<bool> activeOverride,
         std::unreachable();
     }();
 
-    return {.CurrentFilePath = m_CurrentFilePath,
-            .State = m_State,
-            .Active =
-                (activeOverride && *activeOverride) || displayResult.Selected,
-            .Closing = displayResult.Closing ||
-                       controlArgs.Action == ActionVariant{EditorAction::Close},
-            .SelectionActive = m_SelectionManager.CanDrawGrid(),
-            .UndosAvailable = m_VersionManager.UndosAvailable(),
-            .RedosAvailable = m_VersionManager.RedosAvailable(),
-            .HasUnsavedChanges = !m_VersionManager.IsSaved()};
+    return {
+        .Simulation = {.State = m_State},
+        .Editing = {.SelectionActive = m_SelectionManager.CanDrawGrid(),
+                    .UndosAvailable = m_VersionManager.UndosAvailable(),
+                    .RedosAvailable = m_VersionManager.RedosAvailable()},
+        .File = {.CurrentFilePath = m_CurrentFilePath,
+                 .HasUnsavedChanges = !m_VersionManager.IsSaved()},
+        .Active = (activeOverride && *activeOverride) || displayResult.Selected,
+        .Closing = displayResult.Closing ||
+                   (controlArgs.Command && std::holds_alternative<CloseCommand>(
+                                               *controlArgs.Command))};
 }
 
 void SimulationEditor::DrawHashLifeData(const HashQuadtree& quadtree,
@@ -361,138 +360,154 @@ std::optional<Vec2> SimulationEditor::CursorGridPos() {
     return ConvertToGridPos(ImGui::GetMousePos());
 }
 
-void SimulationEditor::UpdateVersion(const SimulationControlResult& args) {
-    if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
-        return;
-
-    auto action = std::get<EditorAction>(*args.Action);
-
-    auto versionChanges = action == EditorAction::Undo
-                              ? m_VersionManager.Undo()
-                              : m_VersionManager.Redo();
-    if (!versionChanges)
-        return;
-
-    m_SelectionManager.HandleVersionChange(action, m_Grid, *versionChanges);
-}
-
 SimulationState
 SimulationEditor::UpdateState(const SimulationControlResult& result) {
     if (result.FromShortcut && !m_TakeKeyboardInput)
-        return result.State;
+        return m_State;
 
-    if (auto* action = std::get_if<GameAction>(&*result.Action)) {
-        switch (*action) {
-            using enum GameAction;
-        case Start:
-            m_SelectionManager.Deselect(m_Grid);
-            m_InitialGrid = m_Grid;
-            return StartSimulation();
-        case Clear:
-            StopSimulation(false);
-            m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid));
-            m_VersionManager.PushChange(
-                {.Action = GameAction::Clear,
-                 .SelectionBounds = m_InitialGrid.BoundingBox(),
-                 .CellsInserted = {},
-                 .CellsDeleted = m_InitialGrid.Data()});
-            m_Grid = GameGrid{m_Grid.Size()};
-            return SimulationState::Paint;
-        case Reset:
-            StopSimulation(false);
-            m_SelectionManager.Deselect(m_Grid);
-            m_Grid = m_InitialGrid;
-            return SimulationState::Paint;
-        case Restart:
-            StopSimulation(false);
-            m_SelectionManager.Deselect(m_Grid);
-            m_Grid = m_InitialGrid;
-            return StartSimulation();
-        case Pause:
-            StopSimulation(true);
-            return SimulationState::Paused;
-        case Resume:
-            m_SelectionManager.Deselect(m_Grid);
-            return StartSimulation();
-        case Step:
-            m_SelectionManager.Deselect(m_Grid);
-            if (result.State == SimulationState::Paint)
+    return std::visit(
+        overloaded{
+            [this](const StartCommand&) -> SimulationState {
+                m_SelectionManager.Deselect(m_Grid);
                 m_InitialGrid = m_Grid;
-            m_Worker->Start(m_Grid, true, [this] { m_StopStepCommand = true; });
-            return SimulationState::Stepping;
-        default:
-            assert(false && "Invalid GameAction passed to UpdateState");
-        }
-    }
-
-    if (auto* action = std::get_if<EditorAction>(&*result.Action)) {
-        switch (*action) {
-            using enum EditorAction;
-        case Resize:
-            return ResizeGrid(result);
-        case GenerateNoise: {
-            if (!m_SelectionManager.CanDrawGrid())
-                return result.State;
-            const auto selectionBounds = m_SelectionManager.SelectionBounds();
-            m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid));
-            m_VersionManager.TryPushChange(m_SelectionManager.InsertNoise(
-                selectionBounds, *result.NoiseDensity));
-            return result.State;
-        }
-        case Undo:
-            UpdateVersion(result);
-            return result.State;
-        case Redo:
-            UpdateVersion(result);
-            return result.State;
-        case NewFile:
-            return result.State;
-        case Save:
-            [[fallthrough]];
-        case SaveAsNew:
-            if (*action == SaveAsNew && m_Grid.Population() > 10'000'000) {
-                m_SaveWarning.SetCallback(
-                    [this, result](PopupWindowState state) {
-                        if (state != PopupWindowState::Success)
-                            return;
-
-                        SaveToFile(result);
-                    });
-                m_SaveWarning.Activate();
-                m_SaveWarning.Message = std::format( //
-                    std::locale(""),
-                    "This file has {:L} total cells. The saved file will be\n"
-                    "large and may take a long time to save. Are you sure\n"
-                    "you want to continue?",
-                    m_Grid.Population());
-                return result.State;
-            }
-            SaveToFile(result);
-            return result.State;
-        case Load:
-            LoadFile(result);
-            m_VersionManager.Save();
-            return result.State;
-        case Close:
-            return result.State;
-        default:
-            assert(false && "Invalid EditorAction passed to UpdateState");
-        }
-    }
-
-    if (auto* action = std::get_if<SelectionAction>(&*result.Action)) {
-        if (*action == SelectionAction::Paste) {
-            PasteSelection();
-            return result.State;
-        }
-        if (*action == SelectionAction::SelectAll)
-            m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid));
-
-        m_VersionManager.TryPushChange(
-            m_SelectionManager.HandleAction(*action, m_Grid, result.NudgeSize));
-    }
-
-    return result.State;
+                return StartSimulation();
+            },
+            [this](const ClearCommand&) -> SimulationState {
+                StopSimulation(false);
+                m_VersionManager.TryPushChange(
+                    m_SelectionManager.Deselect(m_Grid));
+                m_VersionManager.PushChange(
+                    {.Action = GameAction::Clear,
+                     .SelectionBounds = m_InitialGrid.BoundingBox(),
+                     .CellsInserted = {},
+                     .CellsDeleted = m_InitialGrid.Data()});
+                m_Grid = GameGrid{m_Grid.Size()};
+                return SimulationState::Paint;
+            },
+            [this](const ResetCommand&) -> SimulationState {
+                StopSimulation(false);
+                m_SelectionManager.Deselect(m_Grid);
+                m_Grid = m_InitialGrid;
+                return SimulationState::Paint;
+            },
+            [this](const RestartCommand&) -> SimulationState {
+                StopSimulation(false);
+                m_SelectionManager.Deselect(m_Grid);
+                m_Grid = m_InitialGrid;
+                return StartSimulation();
+            },
+            [this](const PauseCommand&) -> SimulationState {
+                StopSimulation(true);
+                return SimulationState::Paused;
+            },
+            [this](const ResumeCommand&) -> SimulationState {
+                m_SelectionManager.Deselect(m_Grid);
+                return StartSimulation();
+            },
+            [this](const StepCommand&) -> SimulationState {
+                m_SelectionManager.Deselect(m_Grid);
+                if (m_State == SimulationState::Paint)
+                    m_InitialGrid = m_Grid;
+                m_Worker->Start(m_Grid, true,
+                                [this] { m_StopStepCommand = true; });
+                return SimulationState::Stepping;
+            },
+            [this](const ResizeCommand& cmd) -> SimulationState {
+                return ResizeGrid(cmd.NewDimensions);
+            },
+            [this](const GenerateNoiseCommand& cmd) -> SimulationState {
+                if (!m_SelectionManager.CanDrawGrid())
+                    return m_State;
+                const auto selectionBounds =
+                    m_SelectionManager.SelectionBounds();
+                m_VersionManager.TryPushChange(
+                    m_SelectionManager.Deselect(m_Grid));
+                m_VersionManager.TryPushChange(m_SelectionManager.InsertNoise(
+                    selectionBounds, cmd.Density));
+                return m_State;
+            },
+            [this](const UndoCommand&) -> SimulationState {
+                if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+                    return m_State;
+                auto versionChanges = m_VersionManager.Undo();
+                if (versionChanges)
+                    m_SelectionManager.HandleVersionChange(
+                        EditorAction::Undo, m_Grid, *versionChanges);
+                return m_State;
+            },
+            [this](const RedoCommand&) -> SimulationState {
+                if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+                    return m_State;
+                auto versionChanges = m_VersionManager.Redo();
+                if (versionChanges)
+                    m_SelectionManager.HandleVersionChange(
+                        EditorAction::Redo, m_Grid, *versionChanges);
+                return m_State;
+            },
+            [this](const SaveCommand& cmd) -> SimulationState {
+                if (m_Grid.Population() > 10'000'000) {
+                    m_SaveWarning.SetCallback(
+                        [this, path = cmd.FilePath](PopupWindowState state) {
+                            if (state != PopupWindowState::Success)
+                                return;
+                            SaveToFile(path, true);
+                        });
+                    m_SaveWarning.Activate();
+                    m_SaveWarning.Message = std::format(
+                        std::locale(""),
+                        "This file has {:L} total cells. The saved file will "
+                        "be\n"
+                        "large and may take a long time to save. Are you sure\n"
+                        "you want to continue?",
+                        m_Grid.Population());
+                    return m_State;
+                }
+                SaveToFile(cmd.FilePath, true);
+                return m_State;
+            },
+            [this](const SaveAsNewCommand& cmd) -> SimulationState {
+                if (m_Grid.Population() > 10'000'000) {
+                    m_SaveWarning.SetCallback(
+                        [this, path = cmd.FilePath](PopupWindowState state) {
+                            if (state != PopupWindowState::Success)
+                                return;
+                            SaveToFile(path, false);
+                        });
+                    m_SaveWarning.Activate();
+                    m_SaveWarning.Message = std::format(
+                        std::locale(""),
+                        "This file has {:L} total cells. The saved file will "
+                        "be\n"
+                        "large and may take a long time to save. Are you sure\n"
+                        "you want to continue?",
+                        m_Grid.Population());
+                    return m_State;
+                }
+                SaveToFile(cmd.FilePath, false);
+                return m_State;
+            },
+            [this](const LoadCommand& cmd) -> SimulationState {
+                LoadFile(cmd.FilePath);
+                m_VersionManager.Save();
+                return m_State;
+            },
+            [this](const NewFileCommand&) -> SimulationState {
+                return m_State;
+            },
+            [this](const CloseCommand&) -> SimulationState { return m_State; },
+            [this](const SelectionCommand& cmd) -> SimulationState {
+                if (cmd.Action == SelectionAction::Paste) {
+                    PasteSelection();
+                    return m_State;
+                }
+                if (cmd.Action == SelectionAction::SelectAll)
+                    m_VersionManager.TryPushChange(
+                        m_SelectionManager.Deselect(m_Grid));
+                m_VersionManager.TryPushChange(m_SelectionManager.HandleAction(
+                    cmd.Action, m_Grid, cmd.NudgeSize));
+                return m_State;
+            }},
+        *result.Command);
 }
 
 SimulationState SimulationEditor::StartSimulation() {
@@ -540,10 +555,10 @@ void SimulationEditor::PasteSelection() {
     }
 }
 
-void SimulationEditor::LoadFile(const SimulationControlResult& result) {
+void SimulationEditor::LoadFile(const std::filesystem::path& path) {
     m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid));
 
-    auto loadResult = m_SelectionManager.Load(*result.FilePath);
+    auto loadResult = m_SelectionManager.Load(path);
     if (loadResult)
         m_VersionManager.PushChange(*loadResult);
     else {
@@ -553,34 +568,32 @@ void SimulationEditor::LoadFile(const SimulationControlResult& result) {
     }
 }
 
-void SimulationEditor::SaveToFile(const SimulationControlResult& result) {
-    if (m_SelectionManager.Save(m_Grid, *result.FilePath)) {
+void SimulationEditor::SaveToFile(const std::filesystem::path& path,
+                                  bool markAsSaved) {
+    if (m_SelectionManager.Save(m_Grid, path)) {
         if (m_CurrentFilePath.empty())
-            m_CurrentFilePath = *result.FilePath;
-        if (result.Action == ActionVariant{EditorAction::Save})
+            m_CurrentFilePath = path;
+        if (markAsSaved)
             m_VersionManager.Save();
     } else {
         m_FileErrorWindow.Activate();
-        m_FileErrorWindow.Message = std::format("Failed to save file to \n{}",
-                                                result.FilePath->string());
+        m_FileErrorWindow.Message =
+            std::format("Failed to save file to \n{}", path.string());
     }
 }
 
-SimulationState
-SimulationEditor::ResizeGrid(const SimulationControlResult& result) {
-    if (result.NewDimensions->Width == m_Grid.Width() &&
-        result.NewDimensions->Height == m_Grid.Height())
+SimulationState SimulationEditor::ResizeGrid(Size2 newDimensions) {
+    if (newDimensions.Width == m_Grid.Width() &&
+        newDimensions.Height == m_Grid.Height())
         return SimulationState::Paint;
-    if ((result.NewDimensions->Width == 0 ||
-         result.NewDimensions->Height == 0) &&
+    if ((newDimensions.Width == 0 || newDimensions.Height == 0) &&
         (m_Grid.Width() == 0 || m_Grid.Height() == 0))
         return SimulationState::Paint;
 
-    m_VersionManager.PushChange(
-        {.Action = EditorAction::Resize,
-         .GridResize = {{m_Grid, *result.NewDimensions}}});
+    m_VersionManager.PushChange({.Action = EditorAction::Resize,
+                                 .GridResize = {{m_Grid, newDimensions}}});
 
-    m_Grid = GameGrid{std::move(m_Grid), *result.NewDimensions};
+    m_Grid = GameGrid{std::move(m_Grid), newDimensions};
     if (m_SelectionManager.CanDrawSelection()) {
         auto selection = m_SelectionManager.SelectionBounds();
         if (!m_Grid.InBounds(selection.UpperLeft()) ||
@@ -589,9 +602,8 @@ SimulationEditor::ResizeGrid(const SimulationControlResult& result) {
             !m_Grid.InBounds(selection.LowerRight()))
             m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid));
     }
-    m_Graphics.Camera.Center = {
-        result.NewDimensions->Width * DefaultCellWidth / 2.f,
-        result.NewDimensions->Height * DefaultCellHeight / 2.f};
+    m_Graphics.Camera.Center = {newDimensions.Width * DefaultCellWidth / 2.f,
+                                newDimensions.Height * DefaultCellHeight / 2.f};
     return SimulationState::Paint;
 }
 

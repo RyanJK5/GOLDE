@@ -4,7 +4,7 @@
 
 #include "EditorWidget.hpp"
 #include "GameEnums.hpp"
-#include "SimulationControlResult.hpp"
+#include "WidgetResult.hpp"
 
 namespace gol {
 
@@ -21,7 +21,7 @@ std::string CopyButton::Label(const EditorResult&) const {
 }
 
 bool CopyButton::Enabled(const EditorResult& state) const {
-    return state.SelectionActive;
+    return state.Editing.SelectionActive;
 }
 
 CutButton::CutButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -37,8 +37,9 @@ std::string CutButton::Label(const EditorResult&) const {
 }
 
 bool CutButton::Enabled(const EditorResult& state) const {
-    return state.SelectionActive && (state.State == SimulationState::Paint ||
-                                     state.State == SimulationState::Empty);
+    return state.Editing.SelectionActive &&
+           (state.Simulation.State == SimulationState::Paint ||
+            state.Simulation.State == SimulationState::Empty);
 }
 
 PasteButton::PasteButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -55,8 +56,8 @@ std::string PasteButton::Label(const EditorResult&) const {
 
 bool PasteButton::Enabled(const EditorResult& state) const {
     return ImGui::GetClipboardText() &&
-           (state.State == SimulationState::Paint ||
-            state.State == SimulationState::Empty);
+           (state.Simulation.State == SimulationState::Paint ||
+            state.Simulation.State == SimulationState::Empty);
 }
 
 DeleteButton::DeleteButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -72,8 +73,9 @@ std::string DeleteButton::Label(const EditorResult&) const {
 }
 
 bool DeleteButton::Enabled(const EditorResult& state) const {
-    return state.SelectionActive && (state.State == SimulationState::Paint ||
-                                     state.State == SimulationState::Empty);
+    return state.Editing.SelectionActive &&
+           (state.Simulation.State == SimulationState::Paint ||
+            state.Simulation.State == SimulationState::Empty);
 }
 
 DeselectButton::DeselectButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -89,7 +91,7 @@ std::string DeselectButton::Label(const EditorResult&) const {
 }
 
 bool DeselectButton::Enabled(const EditorResult& state) const {
-    return state.SelectionActive;
+    return state.Editing.SelectionActive;
 }
 
 RotateButton::RotateButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -105,8 +107,9 @@ std::string RotateButton::Label(const EditorResult&) const {
 }
 
 bool RotateButton::Enabled(const EditorResult& state) const {
-    return state.SelectionActive && (state.State == SimulationState::Paint ||
-                                     state.State == SimulationState::Empty);
+    return state.Editing.SelectionActive &&
+           (state.Simulation.State == SimulationState::Paint ||
+            state.Simulation.State == SimulationState::Empty);
 }
 
 FlipVerticalButton::FlipVerticalButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -122,8 +125,9 @@ std::string FlipVerticalButton::Label(const EditorResult&) const {
 }
 
 bool FlipVerticalButton::Enabled(const EditorResult& state) const {
-    return state.SelectionActive && (state.State == SimulationState::Paint ||
-                                     state.State == SimulationState::Empty);
+    return state.Editing.SelectionActive &&
+           (state.Simulation.State == SimulationState::Paint ||
+            state.Simulation.State == SimulationState::Empty);
 }
 
 FlipHorizontalButton::FlipHorizontalButton(
@@ -140,8 +144,9 @@ std::string FlipHorizontalButton::Label(const EditorResult&) const {
 }
 
 bool FlipHorizontalButton::Enabled(const EditorResult& state) const {
-    return state.SelectionActive && (state.State == SimulationState::Paint ||
-                                     state.State == SimulationState::Empty);
+    return state.Editing.SelectionActive &&
+           (state.Simulation.State == SimulationState::Paint ||
+            state.Simulation.State == SimulationState::Empty);
 }
 
 SelectAllButton::SelectAllButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -157,8 +162,8 @@ std::string SelectAllButton::Label(const EditorResult&) const {
 }
 
 bool SelectAllButton::Enabled(const EditorResult& state) const {
-    return state.State == SimulationState::Paint ||
-           state.State == SimulationState::Paused;
+    return state.Simulation.State == SimulationState::Paint ||
+           state.Simulation.State == SimulationState::Paused;
 }
 
 UndoButton::UndoButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -174,8 +179,9 @@ std::string UndoButton::Label(const EditorResult&) const {
 }
 
 bool UndoButton::Enabled(const EditorResult& state) const {
-    return state.UndosAvailable && (state.State == SimulationState::Paint ||
-                                    state.State == SimulationState::Empty);
+    return state.Editing.UndosAvailable &&
+           (state.Simulation.State == SimulationState::Paint ||
+            state.Simulation.State == SimulationState::Empty);
 }
 
 RedoButton::RedoButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -191,8 +197,9 @@ std::string RedoButton::Label(const EditorResult&) const {
 }
 
 bool RedoButton::Enabled(const EditorResult& state) const {
-    return state.RedosAvailable && (state.State == SimulationState::Paint ||
-                                    state.State == SimulationState::Empty);
+    return state.Editing.RedosAvailable &&
+           (state.Simulation.State == SimulationState::Paint ||
+            state.Simulation.State == SimulationState::Empty);
 }
 
 EditorWidget::EditorWidget(const ShortcutMap& shortcuts)
@@ -208,8 +215,8 @@ EditorWidget::EditorWidget(const ShortcutMap& shortcuts)
       m_UndoButton(shortcuts.at(EditorAction::Undo)),
       m_RedoButton(shortcuts.at(EditorAction::Redo)) {}
 
-SimulationControlResult EditorWidget::UpdateImpl(const EditorResult& state) {
-    auto result = SimulationControlResult{};
+WidgetResult EditorWidget::UpdateImpl(const EditorResult& state) {
+    auto result = WidgetResult{};
 
     UpdateResult(result, m_CopyButton.Update(state));
     UpdateResult(result, m_PasteButton.Update(state));

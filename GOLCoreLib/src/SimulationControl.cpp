@@ -6,8 +6,10 @@
 #include "ConfigLoader.hpp"
 #include "GameEnums.hpp"
 #include "KeyShortcut.hpp"
+#include "SimulationCommand.hpp"
 #include "SimulationControl.hpp"
 #include "SimulationControlResult.hpp"
+#include "WidgetResult.hpp"
 using namespace std::chrono_literals;
 
 namespace gol {
@@ -28,26 +30,30 @@ ButtonlessShortcuts::ButtonlessShortcuts(
             down | KeyShortcut::RepeatableMapChordsToVector},
            {EditorAction::Close, close | KeyShortcut::MapChordsToVector}}) {}
 
-SimulationControlResult
-ButtonlessShortcuts::UpdateImpl(const EditorResult& state) {
-    SimulationControlResult result{.NudgeSize = 1};
+WidgetResult ButtonlessShortcuts::UpdateImpl(const EditorResult& state) {
+    WidgetResult result{};
+    int32_t nudgeSize = 1;
     for (auto&& [action, actionShortcuts] : Shortcuts) {
         auto* selectionAction = std::get_if<SelectionAction>(&action);
         if (selectionAction && *selectionAction != SelectionAction::Deselect &&
-            state.State != SimulationState::Paint)
+            state.Simulation.State != SimulationState::Paint)
             continue;
 
         bool resultActive = false;
         for (auto& shortcut : actionShortcuts) {
             bool shortcutActive = shortcut.Active();
             if (shortcutActive && ((shortcut.Shortcut() & ImGuiMod_Shift) != 0))
-                result.NudgeSize = 10;
+                nudgeSize = 10;
             resultActive = shortcutActive || resultActive;
         }
-        if (resultActive && !result.Action)
-            result.Action = action;
+        if (resultActive && !result.Command) {
+            if (selectionAction)
+                result.Command = SelectionCommand{*selectionAction, nudgeSize};
+            else
+                result.Command = CloseCommand{};
+        }
     }
-    if (result.Action)
+    if (result.Command)
         result.FromShortcut = true;
     return result;
 }
@@ -86,31 +92,6 @@ SimulationControl::SimulationControl(
       m_ShortcutChecker(
           std::bind_front(&SimulationControl::TryUpdateShortcuts, this)) {}
 
-void SimulationControl::FillResults(
-    SimulationControlResult& current,
-    const SimulationControlResult& update) const {
-    if (!current.Algorithm)
-        current.Algorithm = update.Algorithm;
-    if (!current.Action)
-        current.Action = update.Action;
-    if (!current.NewDimensions)
-        current.NewDimensions = update.NewDimensions;
-    if (!current.StepCount)
-        current.StepCount = update.StepCount;
-    if (!current.TickDelayMs)
-        current.TickDelayMs = update.TickDelayMs;
-    if (current.NudgeSize == 0)
-        current.NudgeSize = update.NudgeSize;
-    if (!current.FilePath)
-        current.FilePath = update.FilePath;
-    if (!current.GridLines)
-        current.GridLines = update.GridLines;
-    if (!current.FromShortcut)
-        current.FromShortcut = update.FromShortcut;
-    if (!current.NoiseDensity)
-        current.NoiseDensity = update.NoiseDensity;
-}
-
 void SimulationControl::TryUpdateShortcuts(std::stop_token stopToken) {
     auto lastKnownWriteTime =
         std::filesystem::last_write_time(m_ShortcutConfigPath);
@@ -129,8 +110,6 @@ void SimulationControl::TryUpdateShortcuts(std::stop_token stopToken) {
 SimulationControlResult SimulationControl::Update(const EditorResult& state) {
     ImGui::Begin("Simulation Control", nullptr, ImGuiWindowFlags_NoNav);
 
-    SimulationControlResult result{.State = state.State};
-
     if (m_UpdateShortcuts.exchange(false, std::memory_order_relaxed)) {
         const auto fileInfo =
             ConfigLoader::LoadYAML<ImVec4>(m_ShortcutConfigPath);
@@ -140,11 +119,24 @@ SimulationControlResult SimulationControl::Update(const EditorResult& state) {
         });
     }
 
-    ForEachWidget([&, this](auto&& widget) {
-        FillResults(result, widget.Update(state));
+    std::optional<SimulationCommand> command;
+    bool fromShortcut = false;
+
+    ForEachWidget([&](auto&& widget) {
+        auto result = widget.Update(state);
+        if (!command && result.Command) {
+            command = result.Command;
+            fromShortcut = result.FromShortcut;
+        }
     });
 
     ImGui::End();
-    return result;
+    return {.Command = command,
+            .Settings = {.StepCount = m_StepWidget.EffectiveStepCount(),
+                         .Algorithm = m_StepWidget.CurrentAlgorithm(),
+                         .TickDelayMs = m_DelayWidget.TickDelayMs(),
+                         .HyperSpeed = m_StepWidget.IsHyperSpeed(),
+                         .GridLines = m_DelayWidget.ShowGridLines()},
+            .FromShortcut = fromShortcut};
 }
 } // namespace gol

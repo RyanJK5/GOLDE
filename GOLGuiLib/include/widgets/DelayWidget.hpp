@@ -6,8 +6,8 @@
 #include <span>
 
 #include "GameEnums.hpp"
-#include "SimulationControlResult.hpp"
 #include "Widget.hpp"
+#include "WidgetResult.hpp"
 
 namespace gol {
 class DelayWidget : public Widget {
@@ -16,8 +16,13 @@ class DelayWidget : public Widget {
     friend Widget;
 
   private:
-    SimulationControlResult UpdateImpl(const EditorResult &state);
+    WidgetResult UpdateImpl(const EditorResult &state);
     void SetShortcutsImpl(const ShortcutMap &) { }
+
+  public:
+    int32_t TickDelayMs() const { return m_TickDelayMs; }
+    bool ShowGridLines() const { return m_GridLines; }
+
   private:
     int32_t m_TickDelayMs = 1;
     bool m_GridLines = false;

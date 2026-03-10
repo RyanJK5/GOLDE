@@ -19,6 +19,7 @@
 #include "ResizeWidget.hpp"
 #include "SimulationControlResult.hpp"
 #include "StepWidget.hpp"
+#include "WidgetResult.hpp"
 
 namespace gol {
 struct ButtonlessShortcuts : public Widget {
@@ -30,7 +31,7 @@ struct ButtonlessShortcuts : public Widget {
                         const std::vector<ImGuiKeyChord> &down = {},
                         const std::vector<ImGuiKeyChord> &close = {});
 
-    SimulationControlResult UpdateImpl(const EditorResult &state);
+    WidgetResult UpdateImpl(const EditorResult &state);
 
     void SetShortcuts(const ShortcutMap &shortcuts);
 };
@@ -42,9 +43,6 @@ class SimulationControl {
     SimulationControlResult Update(const EditorResult &state);
 
   private:
-    void FillResults(SimulationControlResult &current,
-                     const SimulationControlResult &update) const;
-    
     void TryUpdateShortcuts(std::stop_token stopToken);
 
     void ForEachWidget(auto &&widgetCall);

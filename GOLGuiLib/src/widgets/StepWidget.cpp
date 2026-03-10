@@ -6,8 +6,9 @@
 
 #include "GameEnums.hpp"
 #include "Graphics2D.hpp"
-#include "SimulationControlResult.hpp"
+#include "SimulationCommand.hpp"
 #include "StepWidget.hpp"
+#include "WidgetResult.hpp"
 
 namespace gol {
 Size2F StepButton::Dimensions() const {
@@ -18,8 +19,8 @@ std::string StepButton::Label(const EditorResult&) const {
     return ICON_FA_FORWARD_STEP;
 }
 bool StepButton::Enabled(const EditorResult& state) const {
-    return state.State == SimulationState::Paint ||
-           state.State == SimulationState::Paused;
+    return state.Simulation.State == SimulationState::Paint ||
+           state.Simulation.State == SimulationState::Paused;
 }
 
 template <std::integral T> constexpr static T IntPow(T base, T exponent) {
@@ -90,7 +91,7 @@ void StepWidget::ShowInputText() {
     ImGui::PopItemWidth();
 }
 
-SimulationControlResult StepWidget::UpdateImpl(const EditorResult& state) {
+WidgetResult StepWidget::UpdateImpl(const EditorResult& state) {
     constexpr static auto beginGreyOutIf = [](bool condition) {
         if (condition) {
             ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
@@ -132,14 +133,15 @@ SimulationControlResult StepWidget::UpdateImpl(const EditorResult& state) {
     ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, 30.f);
     auto result = m_Button.Update(state);
 
-    auto retValue =
-        SimulationControlResult{.Action = result.Action,
-                                .StepCount = m_StepCount,
-                                .FromShortcut = result.FromShortcut};
+    auto retValue = WidgetResult{
+        .Command = result.Action ? std::make_optional(ToCommand(*result.Action))
+                                 : std::nullopt,
+        .FromShortcut = result.FromShortcut};
 
-    const bool showAlgoDropbox = state.State != SimulationState::Empty &&
-                                 state.State != SimulationState::Paint &&
-                                 state.State != SimulationState::Paused;
+    const bool showAlgoDropbox =
+        state.Simulation.State != SimulationState::Empty &&
+        state.Simulation.State != SimulationState::Paint &&
+        state.Simulation.State != SimulationState::Paused;
     beginGreyOutIf(showAlgoDropbox);
 
     auto algoID = std::to_underlying(m_Algorithm);
@@ -160,17 +162,14 @@ SimulationControlResult StepWidget::UpdateImpl(const EditorResult& state) {
             "It may be faster for small or chaotic patterns, but "
             "slower for larger ones.");
 
-    retValue.Algorithm = algo;
+    retValue.FromShortcut = retValue.FromShortcut || result.FromShortcut;
     m_Algorithm = algo;
 
     const bool showHyperSpeedOption =
-        state.State == SimulationState::Simulation;
+        state.Simulation.State == SimulationState::Simulation;
     beginGreyOutIf(showHyperSpeedOption);
 
     ImGui::Checkbox("Enable Hyper Speed", &m_HyperSpeed);
-    retValue.HyperSpeed = m_HyperSpeed;
-    if (m_HyperSpeed && m_Algorithm == LifeAlgorithm::HashLife)
-        retValue.StepCount = 0;
     ImGui::SetItemTooltip("Hyper Speed enables the HashLife algorithm to "
                           "progress as fast as possible. However, this means\n"
                           "it may skip several generations at a time, and step "

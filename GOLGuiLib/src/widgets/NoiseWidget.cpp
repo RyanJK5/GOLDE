@@ -1,4 +1,6 @@
 #include "NoiseWidget.hpp"
+#include "SimulationCommand.hpp"
+#include "WidgetResult.hpp"
 
 namespace gol {
 Size2F GenerateNoiseButton::Dimensions() const {
@@ -11,12 +13,12 @@ std::string GenerateNoiseButton::Label(const EditorResult&) const {
 }
 
 bool GenerateNoiseButton::Enabled(const EditorResult& state) const {
-    return (state.State == SimulationState::Empty ||
-            state.State == SimulationState::Paint) &&
-           state.SelectionActive;
+    return (state.Simulation.State == SimulationState::Empty ||
+            state.Simulation.State == SimulationState::Paint) &&
+           state.Editing.SelectionActive;
 }
 
-SimulationControlResult NoiseWidget::UpdateImpl(const EditorResult& state) {
+WidgetResult NoiseWidget::UpdateImpl(const EditorResult& state) {
     ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding, 10.f);
 
     ImGui::Text("Noise Density");
@@ -36,9 +38,10 @@ SimulationControlResult NoiseWidget::UpdateImpl(const EditorResult& state) {
 
     ImGui::PopStyleVar();
 
-    return SimulationControlResult{.Action = result.Action,
-                                   .NoiseDensity = m_Density,
-                                   .FromShortcut = result.FromShortcut};
+    if (result.Action)
+        return {.Command = GenerateNoiseCommand{m_Density},
+                .FromShortcut = result.FromShortcut};
+    return {};
 }
 
 void NoiseWidget::SetShortcutsImpl(const ShortcutMap& shortcuts) {

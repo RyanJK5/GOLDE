@@ -10,6 +10,7 @@
 #include "Graphics2D.hpp"
 #include "PopupWindow.hpp"
 #include "PresetSelection.hpp"
+#include "SimulationCommand.hpp"
 #include "SimulationControl.hpp"
 #include "SimulationEditor.hpp"
 
@@ -80,7 +81,7 @@ class Game {
     void InitDockspace(uint32_t dockspaceID, ImVec2 windowSize);
 
   private:
-    EditorResult m_State = {.State = SimulationState::Paint};
+    EditorResult m_State = {.Simulation = {.State = SimulationState::Paint}};
     size_t m_LastActive = 0UZ; // the index of the last active editor
     
     OpenGLWindow m_Window; // Underlying window backend

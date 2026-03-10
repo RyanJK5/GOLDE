@@ -11,8 +11,8 @@
 #include "ErrorWindow.hpp"
 #include "GameEnums.hpp"
 #include "Graphics2D.hpp"
-#include "SimulationControlResult.hpp"
 #include "Widget.hpp"
+#include "WidgetResult.hpp"
 
 namespace gol {
 class NewFileButton : public ActionButton<EditorAction, true> {
@@ -63,7 +63,7 @@ class FileWidget : public Widget {
     friend Widget;
 
   private:
-    SimulationControlResult UpdateImpl(const EditorResult &state);
+    WidgetResult UpdateImpl(const EditorResult &state);
     void SetShortcutsImpl(
         const ShortcutMap
             &shortcutInfo);

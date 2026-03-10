@@ -11,8 +11,9 @@
 #include "GameEnums.hpp"
 #include "Graphics2D.hpp"
 #include "InputString.hpp"
-#include "SimulationControlResult.hpp"
+#include "LifeAlgorithm.hpp"
 #include "Widget.hpp"
+#include "WidgetResult.hpp"
 
 namespace gol {
 class StepButton : public ActionButton<GameAction, false> {
@@ -40,13 +41,22 @@ class StepWidget : public Widget {
     friend Widget;
 
   private:
-    SimulationControlResult UpdateImpl(const EditorResult &state);
+    WidgetResult UpdateImpl(const EditorResult &state);
 
     void SetShortcutsImpl(const ShortcutMap &) { }
 
     void SetStepCount(int64_t stepCount);
 
     void ShowInputText();
+
+  public:
+    int64_t EffectiveStepCount() const {
+        return (m_HyperSpeed && m_Algorithm == LifeAlgorithm::HashLife)
+                   ? 0
+                   : m_StepCount;
+    }
+    LifeAlgorithm CurrentAlgorithm() const { return m_Algorithm; }
+    bool IsHyperSpeed() const { return m_HyperSpeed; }
 
   private:
     InputString m_InputText;
