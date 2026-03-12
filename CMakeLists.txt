@@ -9,6 +9,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 message(STATUS "Using C++ standard: C++${CMAKE_CXX_STANDARD}")
 
+# Optional AddressSanitizer support (requires ASAN runtime DLL on Windows)
+option(ENABLE_ASAN "Enable AddressSanitizer for debugging (requires ASAN runtime on Windows)" OFF)
+message(STATUS "AddressSanitizer: ${ENABLE_ASAN}")
+
 if(MSVC)
     add_compile_options(/W4 /WX)
     
@@ -16,8 +20,10 @@ if(MSVC)
     
     set(CMAKE_CXX_FLAGS_RELEASE "/O2 /DNDEBUG")
     
-    set(MSVC_SANITIZER_FLAGS "/fsanitize=address")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${MSVC_SANITIZER_FLAGS}")
+    if(ENABLE_ASAN)
+        set(MSVC_SANITIZER_FLAGS "/fsanitize=address")
+        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${MSVC_SANITIZER_FLAGS}")
+    endif()
     
     set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /INCREMENTAL:NO")
     set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} /INCREMENTAL:NO")
@@ -33,17 +39,19 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Xlinker /subsystem:windows")
     endif()
     
-    set(SANITIZER_FLAGS "-fsanitize=address -fsanitize=undefined")
-    if(NOT WIN32)
-        list(APPEND SANITIZER_FLAGS "-fsanitize=thread" "-fsanitize=memory")
+    if(ENABLE_ASAN)
+        set(SANITIZER_FLAGS "-fsanitize=address -fsanitize=undefined")
+        if(NOT WIN32)
+            list(APPEND SANITIZER_FLAGS "-fsanitize=thread" "-fsanitize=memory")
+        endif()
+        set(CMAKE_CXX_FLAGS_DEBUG "-g3 -O0 -Wall -Wextra -Wpedantic -fno-omit-frame-pointer ${SANITIZER_FLAGS}")
+        set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} ${SANITIZER_FLAGS}")
+        set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} ${SANITIZER_FLAGS}")
+    else()
+        set(CMAKE_CXX_FLAGS_DEBUG "-g3 -O0 -Wall -Wextra -Wpedantic -fno-omit-frame-pointer")
     endif()
-
-    set(CMAKE_CXX_FLAGS_DEBUG "-g3 -O0 -Wall -Wextra -Wpedantic -fno-omit-frame-pointer ${SANITIZER_FLAGS}")
     
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
-    
-    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} ${SANITIZER_FLAGS}")
-    set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} ${SANITIZER_FLAGS}")
 endif()
 
 # Restrict to Debug and Release only

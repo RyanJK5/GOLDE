@@ -3,7 +3,9 @@ add_executable(GOLTest ${SOURCES} "src/ThreadingTest.cpp" "src/EncodeTest.cpp")
 
 # Modern GTest discovery
 include(GoogleTest)
-gtest_discover_tests(GOLTest)
+gtest_discover_tests(GOLTest
+    WORKING_DIRECTORY $<TARGET_FILE_DIR:GOLTest>
+)
 
 target_link_libraries(GOLTest PRIVATE
     GOLCoreLib  
@@ -16,7 +18,7 @@ target_link_libraries(GOLTest PRIVATE
     glfw
     nfd
     OpenGL::GL
-    GTest::gtest_main
+    GTest::gtest
 )
 
 add_custom_command(TARGET GOLTest POST_BUILD
