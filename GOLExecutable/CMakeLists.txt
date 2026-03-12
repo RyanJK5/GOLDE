@@ -29,14 +29,24 @@ elseif(UNIX AND NOT APPLE)
     )
 endif()
 
+# 1. Set the Windows executable property only in Release
 set_target_properties(GOLExecutable PROPERTIES
     WIN32_EXECUTABLE $<CONFIG:Release>
 )
-if(MSVC)
-    # Allows using int main() even with WIN32_EXECUTABLE enabled
-    set_target_properties(GOLExecutable PROPERTIES 
-        LINK_FLAGS "/ENTRY:mainCRTStartup"
-    )
+
+# 2. Fix the Entry Point for Windows (MSVC and Clang-cl)
+if(WIN32)
+    # This tells the linker: "Even though I'm a Windows subsystem app, 
+    # look for 'main' instead of 'WinMain'."
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_link_options(GOLExecutable PRIVATE 
+            $<$<CONFIG:Release>:-Xlinker;/ENTRY:mainCRTStartup>
+        )
+    else()
+        target_link_options(GOLExecutable PRIVATE 
+            $<$<CONFIG:Release>:/ENTRY:mainCRTStartup>
+        )
+    endif()
 endif()
 
 # Copy resources

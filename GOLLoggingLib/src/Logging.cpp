@@ -78,20 +78,6 @@ std::string logimpl::SimplifyFunctionName(const std::string& funcName) {
     return result;
 }
 
-constexpr std::string logimpl::StringRepresentation(LogCode code) {
-    switch (code) {
-    case LogCode::GLError:
-        return "[GL ERROR]";
-    case LogCode::Error:
-        return "[ERROR]";
-    case LogCode::Warning:
-        return "[WARNING]";
-    case LogCode::Info:
-        return "[INFO]";
-    }
-    return "";
-}
-
 void LogGLErrors(const std::source_location& location) {
     while (GLenum error = glGetError()) {
         Log(LogCode::GLError, location, "Error Code {}", error);

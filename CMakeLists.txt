@@ -24,7 +24,20 @@ if(MSVC)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Werror)
     
-    set(SANITIZER_FLAGS "-fsanitize=address -fsanitize=undefined -fsanitize=memory -fsanitize=thread")
+    # Remove problematic flags that prevent C runtime linking on Windows
+    if(WIN32)
+        string(REPLACE "-nostartfiles" "" CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
+        string(REPLACE "-nostdlib" "" CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
+        # Also add proper linker flags for Windows subsystem
+        set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -Xlinker /subsystem:console")
+        set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Xlinker /subsystem:windows")
+    endif()
+    
+    set(SANITIZER_FLAGS "-fsanitize=address -fsanitize=undefined")
+    if(NOT WIN32)
+        list(APPEND SANITIZER_FLAGS "-fsanitize=thread" "-fsanitize=memory")
+    endif()
+
     set(CMAKE_CXX_FLAGS_DEBUG "-g3 -O0 -Wall -Wextra -Wpedantic -fno-omit-frame-pointer ${SANITIZER_FLAGS}")
     
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
