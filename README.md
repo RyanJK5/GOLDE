@@ -1,3 +1,3 @@
 ![GOLDE](docs/logo.gif)
 
-# Game of Life Engine and Designer
+# Game of Life Designer and Engine (GOLDE)

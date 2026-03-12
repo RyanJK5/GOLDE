@@ -1,2 +1,0 @@
-Checks: '-*,bugprone-*,cert-*,cppcoreguidelines-*,hicpp-*,modernize-*,-modernize-use-trailing-return-type,performance-*,readability-*,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-vararg,-fuschia-*,-google-*,-llvmlibc-*,-zircon-*'
-WarningsAsErrors: '*'
