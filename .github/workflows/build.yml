@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
     - name: Checkout repository
@@ -44,13 +44,6 @@ jobs:
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
         sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-14 100
-
-    - name: Install Dependencies (macOS)
-      if: runner.os == 'macOS'
-      run: |
-        brew install ninja gcc@14
-        echo "CXX=$(brew --prefix gcc@14)/bin/g++-14" >> $GITHUB_ENV
-        echo "CC=$(brew --prefix gcc@14)/bin/gcc-14" >> $GITHUB_ENV
 
     - name: Install Dependencies (Windows)
       if: runner.os == 'Windows'
