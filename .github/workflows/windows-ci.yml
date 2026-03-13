@@ -27,7 +27,7 @@ jobs:
         git diff --exit-code
 
     - name: Build
-      run: cmake --build build
+      run: cmake --build build --parallel
 
     - name: Test
       run: ctest --test-dir build --build-config Release --output-on-failure
