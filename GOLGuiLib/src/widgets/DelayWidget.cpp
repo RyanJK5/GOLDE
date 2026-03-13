@@ -1,5 +1,5 @@
 #include <algorithm>
-#include <imgui/imgui.h>
+#include <imgui.h>
 
 #include "DelayWidget.hpp"
 #include "GameEnums.hpp"

@@ -1,7 +1,7 @@
 #ifndef KeyShortcut_h_
 #define KeyShortcut_h_
 
-#include <imgui/imgui.h>
+#include <imgui.h>
 #include <ranges>
 #include <span>
 #include <string>

@@ -1,5 +1,5 @@
-#include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
+#include <imgui.h>
+#include <imgui_internal.h>
 
 #include "KeyShortcut.hpp"
 #include <span>

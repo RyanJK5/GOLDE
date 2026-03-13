@@ -2,8 +2,8 @@
 #define GameActionButton_h_
 
 #include <cstdint>
-#include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
+#include <imgui.h>
+#include <imgui_internal.h>
 #include <optional>
 #include <span>
 #include <string>

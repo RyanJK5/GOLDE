@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include <filesystem>
-#include <imgui/imgui.h>
+#include <imgui.h>
 #include <vector>
 
 #include "GameEnums.hpp"

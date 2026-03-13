@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <format>
 #include <glm/glm.hpp>
-#include <imgui/imgui.h>
+#include <imgui.h>
 #include <utility>
 
 namespace gol {

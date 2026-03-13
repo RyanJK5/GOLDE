@@ -1,8 +1,8 @@
 #include <algorithm>
 #include <cstdint>
 #include <font-awesome/IconsFontAwesome7.h>
-#include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
+#include <imgui.h>
+#include <imgui_internal.h>
 #include <string>
 #include <utility>
 

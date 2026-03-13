@@ -1,7 +1,7 @@
 #include <expected>
 #include <filesystem>
 #include <font-awesome/IconsFontAwesome7.h>
-#include <imgui/imgui.h>
+#include <imgui.h>
 #include <span>
 #include <string>
 

@@ -1,7 +1,7 @@
 #ifndef ResizeWidget_h_
 #define ResizeWidget_h_
 
-#include <imgui/imgui.h>
+#include <imgui.h>
 #include <span>
 
 #include "ActionButton.hpp"

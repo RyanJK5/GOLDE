@@ -7,8 +7,8 @@
 #include <format>
 #include <functional>
 #include <glm/fwd.hpp>
-#include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
+#include <imgui.h>
+#include <imgui_internal.h>
 #include <limits>
 #include <locale>
 #include <memory>
@@ -346,27 +346,13 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
 
     return std::visit(
         overloaded{
-            [this](const StartCommand&) {
-                return m_Model.HandleStart();
-            },
-            [this](const ClearCommand&) {
-                return m_Model.HandleClear();
-            },
-            [this](const ResetCommand&) {
-                return m_Model.HandleReset();
-            },
-            [this](const RestartCommand&) {
-                return m_Model.HandleRestart();
-            },
-            [this](const PauseCommand&) {
-                return m_Model.HandlePause();
-            },
-            [this](const ResumeCommand&) {
-                return m_Model.HandleResume();
-            },
-            [this](const StepCommand&) {
-                return m_Model.HandleStep();
-            },
+            [this](const StartCommand&) { return m_Model.HandleStart(); },
+            [this](const ClearCommand&) { return m_Model.HandleClear(); },
+            [this](const ResetCommand&) { return m_Model.HandleReset(); },
+            [this](const RestartCommand&) { return m_Model.HandleRestart(); },
+            [this](const PauseCommand&) { return m_Model.HandlePause(); },
+            [this](const ResumeCommand&) { return m_Model.HandleResume(); },
+            [this](const StepCommand&) { return m_Model.HandleStep(); },
             [this](const ResizeCommand& cmd) {
                 auto oldWidth = m_Model.Grid().Width();
                 auto oldHeight = m_Model.Grid().Height();
@@ -444,12 +430,8 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                 m_Model.MarkSaved();
                 return m_Model.State();
             },
-            [this](const NewFileCommand&) {
-                return m_Model.State();
-            },
-            [this](const CloseCommand&) {
-                return m_Model.State();
-            },
+            [this](const NewFileCommand&) { return m_Model.State(); },
+            [this](const CloseCommand&) { return m_Model.State(); },
             [this](const SelectionCommand& cmd) {
                 if (cmd.Action == SelectionAction::Paste) {
                     HandlePasteResult(m_Model.PasteSelection(CursorGridPos()));

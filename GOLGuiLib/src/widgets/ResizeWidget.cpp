@@ -1,5 +1,5 @@
 #include <cstdint>
-#include <imgui/imgui.h>
+#include <imgui.h>
 
 #include "GameEnums.hpp"
 #include "ResizeWidget.hpp"
