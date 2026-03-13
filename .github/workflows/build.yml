@@ -17,7 +17,7 @@ jobs:
     - name: Install clang-format
       run: |
         sudo apt-get update
-        sudo apt-get install -y clang-format
+        sudo apt-get install -y cmake clang-format
 
     - name: Run Formatting
       run: |
@@ -40,7 +40,10 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y ninja-build libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libext-dev libxfixes-dev libgl1-mesa-dev pkg-config
+        sudo apt-get install -y cmake ninja-build g++-14 libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxext-dev libxfixes-dev libgl1-mesa-dev libglu1-mesa-dev pkg-config libgtk-3-dev
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+        sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-14 100
 
     - name: Install Dependencies (macOS)
       if: runner.os == 'macOS'

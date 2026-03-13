@@ -18,7 +18,7 @@ if(MSVC)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(gol_compiler_options INTERFACE 
         -Werror 
-        -Wno-nontrivial-memcall
+        $<$<CXX_COMPILER_ID:GNU>:-Wno-nontrivial-memcall>
     )
 
     target_compile_options(gol_compiler_options INTERFACE
