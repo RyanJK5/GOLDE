@@ -346,28 +346,28 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
 
     return std::visit(
         overloaded{
-            [this](const StartCommand&) -> SimulationState {
+            [this](const StartCommand&) {
                 return m_Model.HandleStart();
             },
-            [this](const ClearCommand&) -> SimulationState {
+            [this](const ClearCommand&) {
                 return m_Model.HandleClear();
             },
-            [this](const ResetCommand&) -> SimulationState {
+            [this](const ResetCommand&) {
                 return m_Model.HandleReset();
             },
-            [this](const RestartCommand&) -> SimulationState {
+            [this](const RestartCommand&) {
                 return m_Model.HandleRestart();
             },
-            [this](const PauseCommand&) -> SimulationState {
+            [this](const PauseCommand&) {
                 return m_Model.HandlePause();
             },
-            [this](const ResumeCommand&) -> SimulationState {
+            [this](const ResumeCommand&) {
                 return m_Model.HandleResume();
             },
-            [this](const StepCommand&) -> SimulationState {
+            [this](const StepCommand&) {
                 return m_Model.HandleStep();
             },
-            [this](const ResizeCommand& cmd) -> SimulationState {
+            [this](const ResizeCommand& cmd) {
                 auto oldWidth = m_Model.Grid().Width();
                 auto oldHeight = m_Model.Grid().Height();
                 auto state = m_Model.HandleResize(cmd.NewDimensions);
@@ -379,20 +379,20 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                 }
                 return state;
             },
-            [this](const GenerateNoiseCommand& cmd) -> SimulationState {
+            [this](const GenerateNoiseCommand& cmd) {
                 return m_Model.HandleGenerateNoise(cmd.Density);
             },
-            [this](const UndoCommand&) -> SimulationState {
+            [this](const UndoCommand&) {
                 if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
                     return m_Model.State();
                 return m_Model.HandleUndo();
             },
-            [this](const RedoCommand&) -> SimulationState {
+            [this](const RedoCommand&) {
                 if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
                     return m_Model.State();
                 return m_Model.HandleRedo();
             },
-            [this](const SaveCommand& cmd) -> SimulationState {
+            [this](const SaveCommand& cmd) {
                 if (m_Model.Grid().Population() > 10'000'000) {
                     m_SaveWarning.SetCallback(
                         [this, path = cmd.FilePath](PopupWindowState state) {
@@ -413,7 +413,7 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                 SaveWithErrorHandling(cmd.FilePath, true);
                 return m_Model.State();
             },
-            [this](const SaveAsNewCommand& cmd) -> SimulationState {
+            [this](const SaveAsNewCommand& cmd) {
                 if (m_Model.Grid().Population() > 10'000'000) {
                     m_SaveWarning.SetCallback(
                         [this, path = cmd.FilePath](PopupWindowState state) {
@@ -434,7 +434,7 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                 SaveWithErrorHandling(cmd.FilePath, false);
                 return m_Model.State();
             },
-            [this](const LoadCommand& cmd) -> SimulationState {
+            [this](const LoadCommand& cmd) {
                 auto error = m_Model.LoadFile(cmd.FilePath);
                 if (error) {
                     m_FileErrorWindow.Activate();
@@ -444,13 +444,13 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                 m_Model.MarkSaved();
                 return m_Model.State();
             },
-            [this](const NewFileCommand&) -> SimulationState {
+            [this](const NewFileCommand&) {
                 return m_Model.State();
             },
-            [this](const CloseCommand&) -> SimulationState {
+            [this](const CloseCommand&) {
                 return m_Model.State();
             },
-            [this](const SelectionCommand& cmd) -> SimulationState {
+            [this](const SelectionCommand& cmd) {
                 if (cmd.Action == SelectionAction::Paste) {
                     HandlePasteResult(m_Model.PasteSelection(CursorGridPos()));
                     return m_Model.State();
