@@ -49,11 +49,15 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew install ninja gcc@14 llvm@18
-        echo "CXX=$(brew --prefix llvm@18)/bin/clang++" >> $GITHUB_ENV
-        echo "CC=$(brew --prefix llvm@18)/bin/clang" >> $GITHUB_ENV
-        echo "CXXFLAGS=--stdlib=libstdc++ --gcc-toolchain=$(brew --prefix gcc@14) -I$(brew --prefix gcc@14)/include/c++/14" >> $GITHUB_ENV
-        echo "LDFLAGS=-L$(brew --prefix gcc@14)/lib/gcc/14 -Wl,-rpath,$(brew --prefix gcc@14)/lib/gcc/14" >> $GITHUB_ENV
-
+        GCC_PREFIX=$(brew --prefix gcc@14)
+        LLVM_PREFIX=$(brew --prefix llvm@18)
+        GCC_INC=$GCC_PREFIX/include/c++/14
+        GCC_MULTIARCH=$(ls -d $GCC_INC/aarch64-apple-darwin*)
+        echo "CXX=$LLVM_PREFIX/bin/clang++" >> $GITHUB_ENV
+        echo "CC=$LLVM_PREFIX/bin/clang" >> $GITHUB_ENV
+        echo "CXXFLAGS=-stdlib=libstdc++ --gcc-toolchain=$GCC_PREFIX -I$GCC_INC -I$GCC_MULTIARCH" >> $GITHUB_ENV
+        echo "LDFLAGS=-L$GCC_PREFIX/lib/gcc/14 -Wl,-rpath,$GCC_PREFIX/lib/gcc/14" >> $GITHUB_ENV
+        
     - name: Install Dependencies (Windows)
       if: runner.os == 'Windows'
       run: choco install ninja
