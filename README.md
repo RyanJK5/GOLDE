@@ -11,13 +11,13 @@
 
 ## Overview
 
-GOLDE is a high-performance Conway's Game of Life simulator with an intuitive GUI and an implementation of HashLife for jumping billions of generations instantly.
+GOLDE is a high-performance Conway's Game of Life simulator with an intuitive GUI and an implementation of [HashLife](https://en.wikipedia.org/wiki/Hashlife) for jumping billions of generations instantly.
 
 ## Features
 
 - **Interactive GUI**: Full-featured ImGui-based interface with intuitive controls
 - **Simulation Control**: Play, pause, step, and adjust speed in real-time
-- **HashLife Stepping**: Jump any number of generations into the future using HashLife
+- **Hyper Speed**: Jump any number of generations into the future using HashLife
 - **Pattern Editor**: Create and edit patterns with all the quality of life features of a paint program
 - **Customizable Shortcuts**: Edit keyboard shortcuts in real-time through [shortcuts.yml](GOLExecutable/config/shortcuts.yml)
 - **Preset Library**: Pre-loaded classic Game of Life patterns
@@ -63,20 +63,16 @@ ctest --test-dir build -C Release --output-on-failure
 Start GOLDE and you'll be greeted with an interactive grid and control panel.
 
 ### Controls
-- **Play/Pause**: Start and stop the simulation
-- **Step**: Advance one generation at a time
-- **Speed Control**: Adjust simulation speed
-- **Zoom**: Use mouse wheel to zoom in/out
-- **Pan**: Click and drag to navigate the grid
-
-### Selecting Patterns
-- Access the **Preset Library** to load classic patterns (Glider, Blinker, Gosper Gun, etc.)
-- Use the **Editor** to create custom patterns
-- **Import/Export** patterns in a custom GOLDE format
-
-### Algorithm Selection
-- **HashLife**: For large patterns and exploring distant future states
-- **SparseLife**: For general use and everyday patterns
+- **Draw** cells to the screen by dragging the cursor
+- **Select** regions of the grid by holding shift and dragging.
+- **Edit** the selection by pressing copy, cut, rotate, flip, or any other command visible in the sidebar.
+- **Shortcuts** can be found by hovering over any button, and can be customized by editing [shortcuts.yml](GOLExecutable/config/shortcuts.yml).
+- **Open patterns** from the built-in library by selecting a preset from the bottom window.
+- **Select an algorithm** from the dropdown in the sidebar.
+- **Start** the simulation, and freely pause, restart, or stop your simulation.
+- **Step** billions of generations by inputting any value (<2^63) into the "Step Count" field.
+- **Save and Load** your universe for future use.
+- **Customize** your window setup using ImGUI's docking features
 
 ## Project Structure
 
