@@ -17,12 +17,6 @@ For Ninja, choose the build type at configure time:
 cmake -B build -G Ninja -D CMAKE_BUILD_TYPE=Release
 ```
 
-If you want AddressSanitizer enabled for a debug build, configure with:
-
-```sh
-cmake -B build -G Ninja -D CMAKE_BUILD_TYPE=Debug -D ENABLE_ASAN=ON
-```
-
 If you are using a multi-config generator instead of Ninja, do not set `CMAKE_BUILD_TYPE`. Configure with the generator you want and choose the configuration at build time with `--config`.
 
 Example:
