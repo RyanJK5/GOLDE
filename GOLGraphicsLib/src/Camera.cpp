@@ -7,18 +7,19 @@
 #include "Graphics2D.hpp"
 
 namespace gol {
-void GraphicsCamera::ZoomBy(Vec2F screenPos, RectF viewBounds,
-                            float zoom) {
+void GraphicsCamera::ZoomBy(Vec2F screenPos, RectF viewBounds, float zoom) {
     Zoom *= 1.f + zoom;
     if (Zoom < MaxZoom)
-        Center += (ScreenToWorldPos(screenPos, viewBounds) - Center) * static_cast<double>(zoom);
+        Center += (ScreenToWorldPos(screenPos, viewBounds) - Center) *
+                  static_cast<double>(zoom);
     Zoom = std::clamp(Zoom, MinZoom, MaxZoom);
 }
 
-void GraphicsCamera::Translate(glm::dvec2 delta) { Center -= delta / static_cast<double>(Zoom); }
+void GraphicsCamera::Translate(glm::dvec2 delta) {
+    Center -= delta / static_cast<double>(Zoom);
+}
 
-glm::dvec2 GraphicsCamera::ScreenToWorldPos(Vec2F pos,
-                                           Rect viewBounds) const {
+glm::dvec2 GraphicsCamera::ScreenToWorldPos(Vec2F pos, Rect viewBounds) const {
     auto vec = glm::dvec2{pos.X - viewBounds.X, pos.Y - viewBounds.Y};
     vec -= glm::dvec2{viewBounds.Width / 2.0, viewBounds.Height / 2.0};
     vec /= Zoom;
@@ -27,13 +28,13 @@ glm::dvec2 GraphicsCamera::ScreenToWorldPos(Vec2F pos,
 }
 
 glm::dvec2 GraphicsCamera::WorldToScreenPos(Vec2D pos, Rect viewBounds,
-                                           Size2F worldSize) const {
+                                            Size2F worldSize) const {
     auto vec = glm::dvec2(pos.X, pos.Y);
     vec.x -= Center.x;
     vec.y += Center.y;
     vec *= static_cast<double>(Zoom);
     vec += glm::dvec2{viewBounds.Width / 2.0,
-                     viewBounds.Height / 2.0 - worldSize.Height * Zoom};
+                      viewBounds.Height / 2.0 - worldSize.Height * Zoom};
     return vec;
 }
 

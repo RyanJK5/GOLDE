@@ -51,8 +51,7 @@ class GraphicsHandler {
     GraphicsHandler& operator=(GraphicsHandler&& other) noexcept = default;
     ~GraphicsHandler() = default;
 
-    void RescaleFrameBuffer(Rect windowBounds,
-                            Rect viewportBounds);
+    void RescaleFrameBuffer(Rect windowBounds, Rect viewportBounds);
 
     void DrawGrid(Vec2 offset, std::ranges::input_range auto&& grid,
                   const GraphicsHandlerArgs& args);
@@ -136,8 +135,10 @@ GraphicsHandler::GenerateGLBuffer(Vec2 offset,
         const double y = static_cast<double>(vec.Y + offset.Y);
         if (x < minCellX || x > maxCellX || y < minCellY || y > maxCellY)
             continue;
-        result.push_back(static_cast<float>(x - Camera.Center.x / args.CellSize.Width));
-        result.push_back(static_cast<float>(y - Camera.Center.y / args.CellSize.Height));
+        result.push_back(
+            static_cast<float>(x - Camera.Center.x / args.CellSize.Width));
+        result.push_back(
+            static_cast<float>(y - Camera.Center.y / args.CellSize.Height));
     }
 
     return result;

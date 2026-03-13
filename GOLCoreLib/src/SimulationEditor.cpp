@@ -297,7 +297,9 @@ SimulationEditor::DisplaySimulation(bool grabFocus) {
             const auto sentinel =
                 m_Model.Selection().SelectionBounds().LowerRight();
             text += std::format(" X ({}, {})", sentinel.X, sentinel.Y);
-            text += std::format(", width: {}, height: {}", std::abs(sentinel.X - pos.X), std::abs(sentinel.Y - pos.Y));
+            text += std::format(", width: {}, height: {}",
+                                std::abs(sentinel.X - pos.X),
+                                std::abs(sentinel.Y - pos.Y));
         }
         ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y -
                              ImGui::CalcTextSize(text.c_str()).y);

@@ -14,8 +14,7 @@
 #include "RLEEncoder.hpp"
 
 namespace gol::RLEEncoder {
-std::string EncodeRegion(const GameGrid& grid, Rect region,
-                         Vec2 offset) {
+std::string EncodeRegion(const GameGrid& grid, Rect region, Vec2 offset) {
     std::vector<char> result{'g', 'o', 'l', 'd', 'e'};
 
     const auto appendDim = [&](std::integral auto dim) {

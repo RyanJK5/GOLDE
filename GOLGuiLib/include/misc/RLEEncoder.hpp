@@ -108,8 +108,8 @@ constexpr int64_t DecodeNumber(std::string_view value) {
 }
 
 template <std::unsigned_integral StorageType>
-inline std::vector<StorageType> EncodeRegion(const GameGrid& grid,
-                                             Rect region, Vec2 offset) {
+inline std::vector<StorageType> EncodeRegion(const GameGrid& grid, Rect region,
+                                             Vec2 offset) {
     constexpr static StorageType largestValue =
         std::numeric_limits<StorageType>::max() >> (2 * sizeof(StorageType));
 

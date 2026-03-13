@@ -116,17 +116,22 @@ struct Vec2D : public GenericVec<double> {
     constexpr Vec2D() : GenericVec() {}
     constexpr explicit Vec2D(GenericVec<int32_t> vec)
         : GenericVec(static_cast<double>(vec.X), static_cast<double>(vec.Y)) {}
-    constexpr Vec2D(ImVec2 vec) : GenericVec(static_cast<double>(vec.x), static_cast<double>(vec.y)) {}
+    constexpr Vec2D(ImVec2 vec)
+        : GenericVec(static_cast<double>(vec.x), static_cast<double>(vec.y)) {}
     constexpr Vec2D(glm::dvec2 vec) : GenericVec(vec.x, vec.y) {}
-    constexpr Vec2D(float x, float y) : GenericVec(static_cast<double>(x), static_cast<double>(y)) {}
+    constexpr Vec2D(float x, float y)
+        : GenericVec(static_cast<double>(x), static_cast<double>(y)) {}
     constexpr Vec2D(double x, double y) : GenericVec(x, y) {}
 
     // Allow conversion from Vec2F
-    constexpr explicit Vec2D(GenericVec<float> vec) : GenericVec(static_cast<double>(vec.X), static_cast<double>(vec.Y)) {}
+    constexpr explicit Vec2D(GenericVec<float> vec)
+        : GenericVec(static_cast<double>(vec.X), static_cast<double>(vec.Y)) {}
 
     constexpr operator glm::dvec2() const { return {X, Y}; }
-    constexpr explicit operator Vec2F() const { return {static_cast<float>(X), static_cast<float>(Y)}; }
-    
+    constexpr explicit operator Vec2F() const {
+        return {static_cast<float>(X), static_cast<float>(Y)};
+    }
+
     double Magnitude() const { return std::sqrt(X * X + Y * Y); }
     Vec2D Normalized() const {
         return Magnitude() == 0 ? Vec2D{0.0, 0.0}
