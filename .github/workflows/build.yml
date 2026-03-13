@@ -49,8 +49,8 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew install ninja llvm@18 gcc@14
-        echo "CXX=$(brew --prefix llvm@18)/bin/clang++" >> $GITHUB_ENV
-        echo "CC=$(brew --prefix llvm@18)/bin/clang" >> $GITHUB_ENV
+        echo "CXX=$(brew --prefix llvm@18)/bin/clang++ --gcc-toolchain=$(brew --prefix gcc@14)" >> $GITHUB_ENV
+        echo "CC=$(brew --prefix llvm@18)/bin/clang --gcc-toolchain=$(brew --prefix gcc@14)" >> $GITHUB_ENV
         echo "CXXFLAGS=-stdlib=libstdc++" >> $GITHUB_ENV
 
     - name: Install Dependencies (Windows)
