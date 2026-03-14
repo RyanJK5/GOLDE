@@ -455,6 +455,7 @@ class HashQuadtree {
     // This is the transfer cache used for copying `s_Cache` between threads.
     std::unique_ptr<HashLifeCache> m_TransferCache{};
     const LifeNode* m_TransferRoot = nullptr;
+    std::thread::id m_TransferID{};
 
     const LifeNode* m_Root = FalseNode;
     Vec2L m_RootOffset;

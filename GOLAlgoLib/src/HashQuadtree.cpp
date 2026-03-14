@@ -317,15 +317,11 @@ void HashQuadtree::Copy(const HashQuadtree& other) {
         return;
     }
 
-    if (other.m_TransferCache) {
-        // Check if the transfer root is already owned by this thread's cache
-        if (s_Cache.NodeMap.contains(other.m_TransferRoot)) {
-            m_Root = other.m_TransferRoot;
-        } else {
-            TransferMap transferMap{};
-            m_Root = BuildCache(transferMap, s_Cache, other.m_TransferRoot);
-        }
-    } else { // Should ONLY occur if copying/moving in the same thread.
+    if (other.m_TransferCache &&
+        std::this_thread::get_id() != other.m_TransferID) {
+        TransferMap transferMap{};
+        m_Root = BuildCache(transferMap, s_Cache, other.m_TransferRoot);
+    } else {
         m_Root = other.m_Root;
     }
 }
@@ -334,6 +330,7 @@ void HashQuadtree::PrepareCopyBetweenThreads() {
     TransferMap transferMap{};
     m_TransferCache = std::make_unique<HashLifeCache>();
     m_TransferRoot = BuildCache(transferMap, *m_TransferCache, m_Root);
+    m_TransferID = std::this_thread::get_id();
 }
 
 int32_t HashQuadtree::CalculateDepth() const { return m_Depth; }
