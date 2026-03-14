@@ -21,6 +21,7 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
     - name: Install Dependencies (Linux)
       if: runner.os == 'Linux'
       run: |
@@ -29,23 +30,30 @@ jobs:
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
         sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-14 100
+
     - name: Install Dependencies (Windows)
       if: runner.os == 'Windows'
       run: choco install ninja
+
     - name: Install Dependencies (macOS)
       if: runner.os == 'macOS'
-      run: brew install ninja
+      run: brew install ninja llvm
+
     - name: Setup MSVC Developer Command Prompt (Windows)
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
+
     - name: Configure CMake (macOS)
       if: runner.os == 'macOS'
-      run: cmake -B build -G Ninja -D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_COMPILER=clang++
+      run: cmake -B build -G Ninja -D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_CXX_FLAGS="-stdlib=libc++"
+
     - name: Configure CMake
       if: runner.os != 'macOS'
       run: cmake -B build -G Ninja -D CMAKE_BUILD_TYPE=Release
+
     - name: Build
-      run: cmake --build build --parallel
+      run: cmake --build build --parallel\
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
