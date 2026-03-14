@@ -38,10 +38,13 @@ jobs:
     - name: Configure CMake (macOS)
       if: runner.os == 'macOS'
       run: |
+        brew install llvm ninja
         LLVM_PATH="$(brew --prefix llvm)"
         cmake -B build -G Ninja \
           -D CMAKE_BUILD_TYPE=Release \
-          -D CMAKE_CXX_FLAGS="-stdlib=libc++" \
+          -D CMAKE_C_COMPILER="$LLVM_PATH/bin/clang" \
+          -D CMAKE_CXX_COMPILER="$LLVM_PATH/bin/clang++" \
+          -D CMAKE_CXX_FLAGS="-stdlib=libc++"
 
     - name: Setup MSVC Developer Command Prompt (Windows)
       if: runner.os == 'Windows'
