@@ -123,10 +123,8 @@ ctest --test-dir build --verbose
 
 ## Gallery
 
-*Add GIF demonstrations here:*
-- ***HashLife Performance Demo*** — millions of generations advancing in seconds
-- ***Pattern Editor in Action*** — creating and modifying patterns
-- ***Interactive Navigation*** — zooming and panning across the grid
+![](docs/breeder.gif)
+A simple breeder pattern running at 2^32 generations per millisecond using HashLife.
 
 ## License
 
