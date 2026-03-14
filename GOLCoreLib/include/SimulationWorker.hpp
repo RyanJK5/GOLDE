@@ -1,8 +1,8 @@
 #ifndef SimulationWorker_h_
 #define SimulationWorker_h_
 
-#include <atomic>
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <thread>

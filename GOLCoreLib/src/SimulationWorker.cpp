@@ -14,9 +14,10 @@ void SimulationWorker::Start(GameGrid& initialGrid, bool oneStep,
 
     m_SnapshotIndex.store(0, std::memory_order_release);
 
-    m_Thread = std::jthread{[this, oneStep, onStop](std::stop_token stopToken) mutable {
-        auto workerIdx  = 1UZ;
-        auto backIdx    = 2UZ;
+    m_Thread = std::jthread{[this, oneStep,
+                             onStop](std::stop_token stopToken) mutable {
+        auto workerIdx = 1UZ;
+        auto backIdx = 2UZ;
 
         std::condition_variable_any sleepCondition{};
         std::mutex sleepMutex{};
@@ -33,12 +34,14 @@ void SimulationWorker::Start(GameGrid& initialGrid, bool oneStep,
 
             // Publish workerIdx as the new snapshot, get back the old one
             std::swap(workerIdx, backIdx);
-            backIdx = m_SnapshotIndex.exchange(workerIdx, std::memory_order_acq_rel);
+            backIdx =
+                m_SnapshotIndex.exchange(workerIdx, std::memory_order_acq_rel);
 
             if (oneStep)
                 break;
 
-            const auto tickDelayMs = m_TickDelayMs.load(std::memory_order_relaxed);
+            const auto tickDelayMs =
+                m_TickDelayMs.load(std::memory_order_relaxed);
             if (tickDelayMs > 0) {
                 nextFrame += std::chrono::milliseconds{tickDelayMs};
                 std::unique_lock lock{sleepMutex};
@@ -57,7 +60,7 @@ void SimulationWorker::Start(GameGrid& initialGrid, bool oneStep,
 }
 
 GameGrid SimulationWorker::Stop() {
-   if (m_Thread.joinable()) {
+    if (m_Thread.joinable()) {
         m_Thread.request_stop();
         m_Thread.join();
     }
