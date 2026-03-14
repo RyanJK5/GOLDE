@@ -1,0 +1,21 @@
+name: Format
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+jobs:
+  format:
+    name: Check Formatting
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Install clang-format
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake clang-format
+    - name: Run Formatting
+      run: |
+        cmake -DPROJECT_SOURCE_DIR="${{ github.workspace }}" -P cmake/RunFormat.cmake
+        git diff --exit-code

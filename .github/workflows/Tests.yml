@@ -1,0 +1,33 @@
+name: Tests
+on:
+  workflow_run:
+    workflows: [ "Build" ]
+    types: [ completed ]
+jobs:
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux-gcc
+          - os: windows-latest
+            name: windows-msvc
+          - os: macos-latest
+            name: macos-clang
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-${{ matrix.name }}
+        path: build/
+        run-id: ${{ github.event.workflow_run.id }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Fix artifact permissions (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: chmod -R u+x build/
+    - name: Test
+      run: ctest --test-dir build --build-config Release --output-on-failure --parallel

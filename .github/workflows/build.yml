@@ -1,41 +1,26 @@
 name: Build
-
 on:
   push:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
-
 jobs:
-  format:
-    name: Check Formatting
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Install clang-format
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y cmake clang-format
-
-    - name: Run Formatting
-      run: |
-        cmake -DPROJECT_SOURCE_DIR="${{ github.workspace }}" -P cmake/RunFormat.cmake
-        git diff --exit-code
-
   build:
-    name: Build & Test
+    name: Build
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
-
+        include:
+          - os: ubuntu-latest
+            name: linux-gcc
+          - os: windows-latest
+            name: windows-msvc
+          - os: macos-latest
+            name: macos-clang
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-
     - name: Install Dependencies (Linux)
       if: runner.os == 'Linux'
       run: |
@@ -44,20 +29,25 @@ jobs:
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
         sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-14 100
-
     - name: Install Dependencies (Windows)
       if: runner.os == 'Windows'
       run: choco install ninja
-
+    - name: Install Dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: brew install ninja
     - name: Setup MSVC Developer Command Prompt (Windows)
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
-
+    - name: Configure CMake (macOS)
+      if: runner.os == 'macOS'
+      run: cmake -B build -G Ninja -D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_CXX_FLAGS="-stdlib=libc++"
     - name: Configure CMake
+      if: runner.os != 'macOS'
       run: cmake -B build -G Ninja -D CMAKE_BUILD_TYPE=Release
-
     - name: Build
       run: cmake --build build --parallel
-
-    - name: Test
-      run: ctest --test-dir build --build-config Release --output-on-failure --parallel
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-${{ matrix.name }}
+        path: build/
