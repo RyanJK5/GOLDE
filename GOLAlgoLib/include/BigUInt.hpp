@@ -12,7 +12,7 @@
 namespace gol {
 
 class BigUInt {
-public:
+  public:
     BigUInt();
     explicit BigUInt(uint64_t v);
 
@@ -29,12 +29,13 @@ public:
     BigUInt operator<<(size_t shift);
 
     std::string ToString() const;
-private:
+
+  private:
     std::vector<uint32_t> m_Digits; // little-endian base-2^32
-    
+
     void Trim();
 };
 
-}
+} // namespace gol
 
 #endif
