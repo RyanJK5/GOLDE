@@ -4,6 +4,8 @@
 
 namespace gol {
 
+const BigUInt BigUInt::Zero{};
+
 void BigUInt::Trim() {
     while (m_Digits.size() > 1 && m_Digits.back() == 0) {
         m_Digits.pop_back();
@@ -81,6 +83,22 @@ BigUInt& BigUInt::operator<<=(size_t shift) {
     return *this;
 }
 
+BigUInt& BigUInt::operator++() { return *this += 1U; }
+
+BigUInt BigUInt::operator++(int) {
+    BigUInt ret{*this};
+    ++*this;
+    return ret;
+}
+
+BigUInt& BigUInt::operator--() { return *this -= 1U; }
+
+BigUInt BigUInt::operator--(int) {
+    BigUInt ret{*this};
+    ret -= 1U;
+    return ret;
+}
+
 BigUInt BigUInt::operator<<(size_t shift) const {
     BigUInt ret{*this};
     ret <<= shift;
@@ -116,6 +134,14 @@ std::string BigUInt::ToString() const {
     }
 
     std::ranges::reverse(result);
+    for (auto i = static_cast<int32_t>(result.size()) - 3; i > 0; i -= 3) {
+        result.insert(i, 1, ',');
+    }
     return result;
 }
+
+bool BigUInt::IsZero() const {
+    return m_Digits.size() == 1UZ && m_Digits[0] == 0;
+}
+
 } // namespace gol

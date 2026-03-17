@@ -371,8 +371,8 @@ bool HashQuadtree::empty() const {
     return m_Root == FalseNode || m_Root->IsEmpty();
 }
 
-uint64_t HashQuadtree::Population() const {
-    return m_Root ? m_Root->Population : 0ULL;
+const BigUInt& HashQuadtree::Population() const {
+    return m_Root ? m_Root->Population : BigUInt::Zero;
 }
 
 HashQuadtree::Iterator HashQuadtree::begin() {

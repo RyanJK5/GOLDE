@@ -18,6 +18,7 @@
 #include <utility>
 #include <vector>
 
+#include "BigUInt.hpp"
 #include "Graphics2D.hpp"
 #include "LifeHashSet.hpp"
 
@@ -42,17 +43,17 @@ struct LifeNode {
     const LifeNode* SouthWest;
     const LifeNode* SouthEast;
 
-    uint64_t Hash = 0ULL;       // Pre-computed hash
-    uint64_t Population = 0ULL; // Recursive population of all subnodes combined
+    uint64_t Hash{};      // Pre-computed hash
+    BigUInt Population{}; // Recursive population of all subnodes combined
 
-    constexpr bool IsEmpty() const { return Population == 0ULL; }
+    bool IsEmpty() const { return Population.IsZero(); }
 
-    constexpr LifeNode(const LifeNode* nw, const LifeNode* ne,
-                       const LifeNode* sw, const LifeNode* se)
+    LifeNode(const LifeNode* nw, const LifeNode* ne, const LifeNode* sw,
+             const LifeNode* se)
         : NorthWest(nw), NorthEast(ne), SouthWest(sw), SouthEast(se) {
 
-        Population = NodePopulation(nw) + NodePopulation(ne) +
-                     NodePopulation(sw) + NodePopulation(se);
+        Population = (NodePopulation(nw) + NodePopulation(ne)) +
+                     (NodePopulation(sw) + NodePopulation(se));
 
         if consteval {
         } else {
@@ -79,8 +80,8 @@ struct LifeNode {
     }
 
   private:
-    constexpr static uint64_t NodePopulation(const LifeNode* n) {
-        return n ? n->Population : 0ULL;
+    static BigUInt NodePopulation(const LifeNode* n) {
+        return n ? n->Population : BigUInt{};
     }
 };
 
@@ -142,19 +143,19 @@ struct LifeNodeHash {
 };
 
 // Underlying node for TrueNode.
-constexpr inline LifeNode StaticTrueNode = [] {
+inline LifeNode StaticTrueNode = [] {
     LifeNode ret{
         nullptr,
         nullptr,
         nullptr,
         nullptr,
     };
-    ret.Population = 1;
+    ret.Population = BigUInt{1};
     return ret;
 }();
 
-constexpr const LifeNode* TrueNode = &StaticTrueNode;
-constexpr const LifeNode* FalseNode = nullptr;
+inline const LifeNode* TrueNode = &StaticTrueNode;
+inline const LifeNode* FalseNode = nullptr;
 } // namespace gol
 
 namespace gol {
@@ -363,7 +364,7 @@ class HashQuadtree {
     // interaction and display of a small subsection of the universe.
     ConstIterator begin(Rect bounds) const;
 
-    uint64_t Population() const;
+    const BigUInt& Population() const;
 
     // Advances the simulation. Passing `maxAdvance = 0` indicates that hyper
     // speed should be used. If the stop token is called during advance, the

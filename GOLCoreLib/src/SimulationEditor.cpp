@@ -286,7 +286,7 @@ SimulationEditor::DisplaySimulation(bool grabFocus) {
         "%s",
         std::format(std::locale(""), "Generation: {:L}", generation).c_str());
     ImGui::Text(
-        "%s", std::format(std::locale(""), "Population: {:L}",
+        "%s", std::format("Population: {}",
                           population + m_Model.Selection().SelectedPopulation())
                   .c_str());
 
@@ -348,7 +348,7 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
         return m_Model.State();
 
     return std::visit(
-        overloaded{
+        Overloaded{
             [this](const StartCommand&) { return m_Model.HandleStart(); },
             [this](const ClearCommand&) { return m_Model.HandleClear(); },
             [this](const ResetCommand&) { return m_Model.HandleReset(); },
@@ -382,7 +382,8 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                 return m_Model.HandleRedo();
             },
             [this](const SaveCommand& cmd) {
-                if (m_Model.Grid().Population() > 10'000'000) {
+                const static BigUInt threshold{10'000'000U};
+                if (m_Model.Grid().Population() > threshold) {
                     m_SaveWarning.SetCallback(
                         [this, path = cmd.FilePath](PopupWindowState state) {
                             if (state != PopupWindowState::Success)
@@ -391,8 +392,7 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                         });
                     m_SaveWarning.Activate();
                     m_SaveWarning.Message = std::format(
-                        std::locale(""),
-                        "This file has {:L} total cells. The saved file will "
+                        "This file has {} total cells. The saved file will "
                         "be\n"
                         "large and may take a long time to save. Are you sure\n"
                         "you want to continue?",
@@ -403,7 +403,8 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                 return m_Model.State();
             },
             [this](const SaveAsNewCommand& cmd) {
-                if (m_Model.Grid().Population() > 10'000'000) {
+                const static BigUInt threshold{10'000'000U};
+                if (m_Model.Grid().Population() > threshold) {
                     m_SaveWarning.SetCallback(
                         [this, path = cmd.FilePath](PopupWindowState state) {
                             if (state != PopupWindowState::Success)
@@ -412,8 +413,7 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                         });
                     m_SaveWarning.Activate();
                     m_SaveWarning.Message = std::format(
-                        std::locale(""),
-                        "This file has {:L} total cells. The saved file will "
+                        "This file has {} total cells. The saved file will "
                         "be\n"
                         "large and may take a long time to save. Are you sure\n"
                         "you want to continue?",

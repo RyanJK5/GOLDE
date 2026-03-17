@@ -448,15 +448,15 @@ Rect SelectionManager::SelectionBounds() const {
 }
 
 bool SelectionManager::GridAlive() const {
-    return m_Selected && m_Selected->Population() > 0;
+    return m_Selected && !m_Selected->Population().IsZero();
 }
 
 const LifeHashSet& SelectionManager::GridData() const {
     return m_Selected->Data();
 }
 
-int64_t SelectionManager::SelectedPopulation() const {
-    return m_Selected ? m_Selected->Population() : 0;
+const BigUInt& SelectionManager::SelectedPopulation() const {
+    return m_Selected ? m_Selected->Population() : BigUInt::Zero;
 }
 
 bool SelectionManager::CanDrawSelection() const {

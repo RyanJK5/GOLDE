@@ -59,7 +59,7 @@ class GameGrid {
     }
 
     int64_t Generation() const { return m_Generation; }
-    int64_t Population() const { return m_Population; }
+    const BigUInt& Population() const { return m_Population; }
 
     // Indicates if the universe contains any live cells
     bool Dead() const;
@@ -138,7 +138,7 @@ class GameGrid {
     int32_t m_Width;
     int32_t m_Height;
 
-    int64_t m_Population = 0;
+    BigUInt m_Population{};
     int64_t m_Generation = 0;
 };
 } // namespace gol

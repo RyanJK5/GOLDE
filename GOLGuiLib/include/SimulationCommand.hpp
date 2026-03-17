@@ -11,7 +11,7 @@
 namespace gol {
 
 // Helper for std::visit with multiple lambdas
-template <class... Ts> struct overloaded : Ts... {
+template <class... Ts> struct Overloaded : Ts... {
     using Ts::operator()...;
 };
 
