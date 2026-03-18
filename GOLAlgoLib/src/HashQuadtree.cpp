@@ -26,14 +26,14 @@ template <std::integral T> constexpr static int64_t Pow2(T exponent) {
 }
 
 // Returns the greatest power of two less than `stepSize`.
-constexpr static int64_t MaxAdvanceOf(int64_t stepSize) {
+constexpr static int32_t Log2MaxAdvanceOf(int64_t stepSize) {
     if (stepSize == 0)
         return 0;
 
     auto power = 0LL;
     while (Pow2(power) <= stepSize)
         power++;
-    return Pow2(power - static_cast<int64_t>(1));
+    return power - 1;
 }
 
 thread_local HashLifeCache HashQuadtree::s_Cache{};
@@ -210,13 +210,13 @@ static const LifeNode* DecodeLevel2(uint16_t bits,
 int64_t HashLife(HashQuadtree& data, int64_t numSteps,
                  std::stop_token stopToken) {
     if (numSteps == 0) // Hyper speed
-        return data.Advance(0, stopToken);
+        return Pow2(data.Advance(-1, stopToken));
 
-    auto generation = static_cast<int64_t>(0);
+    int64_t generation{};
     while (generation < numSteps) {
-        const auto maxAdvance = MaxAdvanceOf(numSteps - generation);
+        const auto advanceLevel = Log2MaxAdvanceOf(numSteps - generation);
 
-        const auto gens = data.Advance(maxAdvance, stopToken);
+        const auto gens = Pow2(data.Advance(advanceLevel, stopToken));
         if (gens == 0)
             return generation;
         generation += gens;
@@ -234,17 +234,27 @@ size_t LifeNodeHash::operator()(const LifeNode* node) const {
 // Mixes the node's precomputed hash with MaxAdvance. The node hash is already
 // well-distributed via splitmix64, so a single round of xor-shift mixing with
 // the advance count is sufficient.
-size_t SlowHash::operator()(const SlowKey& key) const noexcept {
-    const auto nodeHash = key.Node ? key.Node->Hash : uint64_t{0};
-    const auto advanceHash = static_cast<uint64_t>(key.MaxAdvance);
+size_t SlowHash::operator()(SlowKey key) const noexcept {
+    // Use a non-zero seed to prevent (0,0) from hashing to 0
+    // This is a prime or a large constant like 0x9e3779b9
+    auto h = key.Node ? key.Node->Hash : 0xD3212C32483522FBULL;
 
-    // Combine using a single xor-shift mix (cheaper than full splitmix64
-    // since nodeHash is already finalized).
-    // Golden ratio constant (2^64 / phi) for multiplicative hashing.
-    constexpr uint64_t GoldenRatio = 0x9E3779B97F4A7C15ULL;
-    auto mixed = nodeHash ^ (advanceHash * GoldenRatio);
-    mixed ^= mixed >> 32;
-    return static_cast<size_t>(mixed);
+    const auto advanceHash = static_cast<uint64_t>(key.AdvanceLevel);
+
+    // 1. Multiplicative combine using the Golden Ratio
+    // We shift 'h' to ensure the nodeHash and advanceHash don't
+    // just sit in the same bit-lanes before the multiply.
+    constexpr static auto GoldenRatio = 0x9E3779B97F4A7C15ULL;
+    h ^= (advanceHash * GoldenRatio) + 0x9e3779b9 + (h << 6) + (h >> 2);
+
+    // 2. The "Avalanche": A faster, lighter version of Murmur's mixer.
+    // This ensures that changes in AdvanceLevel propagate
+    // across the entire 64-bit result.
+    h ^= h >> 33;
+    h *= 0xff51afd7ed558ccdULL;
+    h ^= h >> 33;
+
+    return static_cast<size_t>(h);
 }
 
 template class HashQuadtree::IteratorImpl<Vec2>;
@@ -379,7 +389,6 @@ BigInt HashQuadtree::PopulationOf(const LifeNode* node) const {
 
     if (auto it = s_Cache.PopulationCache.find(node);
         it != s_Cache.PopulationCache.end()) {
-        std::println("Reading cache");
         return it->second;
     }
 
@@ -632,25 +641,23 @@ const LifeNode* HashQuadtree::AdvanceBaseOneGen(const LifeNode* node) const {
 
 NodeUpdateInfo HashQuadtree::AdvanceNode(std::stop_token stopToken,
                                          const LifeNode* node, int32_t level,
-                                         int64_t maxAdvance) const {
+                                         int32_t advanceDepth) const {
     if (stopToken.stop_requested())
         return {node, 0};
     if (node == FalseNode || level < 3)
         return {node, 0};
 
-    // Currently GOLExecutable cannot handle depth >= 63, so we bound it here.
-    if (maxAdvance > 0 || m_Depth >= 63) {
-        const auto span = Pow2(level);
-        if ((span / 4) > maxAdvance)
-            return AdvanceSlow(stopToken, node, level, maxAdvance);
+    if (advanceDepth >= 0) {
+        if (level - 2 > advanceDepth)
+            return AdvanceSlow(stopToken, node, level, advanceDepth);
     }
-    return AdvanceFast(stopToken, node, level, maxAdvance);
+    return AdvanceFast(stopToken, node, level, advanceDepth);
 }
 
 // TODO: Refactor AdvanceSlow
 NodeUpdateInfo HashQuadtree::AdvanceSlow(std::stop_token stopToken,
                                          const LifeNode* node, int32_t level,
-                                         int64_t maxAdvance) const {
+                                         int32_t advanceLevel) const {
     // At a high level, AdvanceSlow will split `node` into an 8x8 grid of
     // subnodes. Then, we can use overlapping components to take the 4x4 grids
     // aligned with each corner, and then advance them into a 2x2 nodes.
@@ -661,21 +668,22 @@ NodeUpdateInfo HashQuadtree::AdvanceSlow(std::stop_token stopToken,
 
     if (node == FalseNode)
         return {FalseNode, 0};
+
+    // At the 8x8 base case, choose between 1-gen and 2-gen advancement.
+    const auto actualLevel = (advanceLevel >= 1) ? 1 : 0;
+
     if (level <= 3) {
-        // At the 8x8 base case, choose between 1-gen and 2-gen advancement.
-        const auto generations = (maxAdvance >= 2) ? int64_t{2} : int64_t{1};
         const auto* result =
-            (maxAdvance >= 2) ? AdvanceBase(node) : AdvanceBaseOneGen(node);
+            (advanceLevel >= 1) ? AdvanceBase(node) : AdvanceBaseOneGen(node);
         // Store under the requested maxAdvance so the same request hits.
-        s_Cache.SlowCache[{node, maxAdvance}] = result;
+        s_Cache.SlowCache[{node, advanceLevel}] = result;
         // Also store under the actual generations for cross-request reuse.
-        if (generations != maxAdvance)
-            s_Cache.SlowCache[{node, generations}] = result;
-        return {result, generations};
+        return {result, actualLevel};
     }
-    if (const auto it = s_Cache.SlowCache.find({node, maxAdvance});
-        it != s_Cache.SlowCache.end())
-        return {it->second, maxAdvance};
+    if (const auto it = s_Cache.SlowCache.find({node, advanceLevel});
+        it != s_Cache.SlowCache.end()) {
+        return {it->second, advanceLevel};
+    }
 
     constexpr static auto subdivisions = 8;
     constexpr static auto index = [](int32_t x, int32_t y) {
@@ -727,29 +735,26 @@ NodeUpdateInfo HashQuadtree::AdvanceSlow(std::stop_token stopToken,
     const auto* window11 = buildWindow(3, 3);
 
     const auto result00 =
-        AdvanceNode(stopToken, window00, level - 1, maxAdvance);
+        AdvanceNode(stopToken, window00, level - 1, advanceLevel);
     const auto result01 =
-        AdvanceNode(stopToken, window01, level - 1, maxAdvance);
+        AdvanceNode(stopToken, window01, level - 1, advanceLevel);
     const auto result10 =
-        AdvanceNode(stopToken, window10, level - 1, maxAdvance);
+        AdvanceNode(stopToken, window10, level - 1, advanceLevel);
     const auto result11 =
-        AdvanceNode(stopToken, window11, level - 1, maxAdvance);
+        AdvanceNode(stopToken, window11, level - 1, advanceLevel);
 
-    const auto generations = result00.Generations;
+    const auto newAdvanceLevel = result00.AdvanceLevel;
     const auto* combined = FindOrCreate(result00.Node, result01.Node,
                                         result10.Node, result11.Node);
 
     // Store under the requested maxAdvance so the same request hits next time.
-    s_Cache.SlowCache[{node, maxAdvance}] = combined;
-    // Also store under actual generations returned for cross-request reuse.
-    if (generations != maxAdvance)
-        s_Cache.SlowCache[{node, generations}] = combined;
-    return {combined, generations};
+    s_Cache.SlowCache[{node, advanceLevel}] = combined;
+    return {combined, newAdvanceLevel};
 }
 
 NodeUpdateInfo HashQuadtree::AdvanceFast(std::stop_token stopToken,
                                          const LifeNode* node, int32_t level,
-                                         int64_t maxAdvance) const {
+                                         int32_t advanceLevel) const {
     // At a high level, we want to assemble a node that is half the size of
     // `node`, but centered at the same point. By following this logic all the
     // way down the recursion, we are able to safely advance the entire universe
@@ -765,57 +770,55 @@ NodeUpdateInfo HashQuadtree::AdvanceFast(std::stop_token stopToken,
 
     if (const auto itr = s_Cache.NodeMap.find(node);
         itr != s_Cache.NodeMap.end() && itr->second != nullptr) {
-        const auto generations = Pow2(level - 2);
-        return {itr->second, generations};
+        return {itr->second, level - 2};
     }
 
     if (level == 3) {
         const auto* base = AdvanceBase(node);
         s_Cache.NodeMap[node] = base;
-        return {base, 2};
+        return {base, 1};
     }
 
     const auto n00 =
-        AdvanceNode(stopToken, node->NorthWest, level - 1, maxAdvance);
+        AdvanceNode(stopToken, node->NorthWest, level - 1, advanceLevel);
     const auto n01 = AdvanceNode(
         stopToken, CenteredHorizontal(*node->NorthWest, *node->NorthEast),
-        level - 1, maxAdvance);
+        level - 1, advanceLevel);
     const auto n02 =
-        AdvanceNode(stopToken, node->NorthEast, level - 1, maxAdvance);
+        AdvanceNode(stopToken, node->NorthEast, level - 1, advanceLevel);
     const auto n10 = AdvanceNode(
         stopToken, CenteredVertical(*node->NorthWest, *node->SouthWest),
-        level - 1, maxAdvance);
+        level - 1, advanceLevel);
     const auto n11 =
-        AdvanceNode(stopToken, CenteredSubNode(*node), level - 1, maxAdvance);
+        AdvanceNode(stopToken, CenteredSubNode(*node), level - 1, advanceLevel);
     const auto n12 = AdvanceNode(
         stopToken, CenteredVertical(*node->NorthEast, *node->SouthEast),
-        level - 1, maxAdvance);
+        level - 1, advanceLevel);
     const auto n20 =
-        AdvanceNode(stopToken, node->SouthWest, level - 1, maxAdvance);
+        AdvanceNode(stopToken, node->SouthWest, level - 1, advanceLevel);
     const auto n21 = AdvanceNode(
         stopToken, CenteredHorizontal(*node->SouthWest, *node->SouthEast),
-        level - 1, maxAdvance);
+        level - 1, advanceLevel);
     const auto n22 =
-        AdvanceNode(stopToken, node->SouthEast, level - 1, maxAdvance);
+        AdvanceNode(stopToken, node->SouthEast, level - 1, advanceLevel);
 
     const auto topLeft = AdvanceNode(
         stopToken, FindOrCreate(n00.Node, n01.Node, n10.Node, n11.Node),
-        level - 1, maxAdvance);
+        level - 1, advanceLevel);
     const auto topRight = AdvanceNode(
         stopToken, FindOrCreate(n01.Node, n02.Node, n11.Node, n12.Node),
-        level - 1, maxAdvance);
+        level - 1, advanceLevel);
     const auto bottomLeft = AdvanceNode(
         stopToken, FindOrCreate(n10.Node, n11.Node, n20.Node, n21.Node),
-        level - 1, maxAdvance);
+        level - 1, advanceLevel);
     const auto bottomRight = AdvanceNode(
         stopToken, FindOrCreate(n11.Node, n12.Node, n21.Node, n22.Node),
-        level - 1, maxAdvance);
+        level - 1, advanceLevel);
 
     const auto* result = FindOrCreate(topLeft.Node, topRight.Node,
                                       bottomLeft.Node, bottomRight.Node);
     s_Cache.NodeMap[node] = result;
-    const auto generations = Pow2(level - 2);
-    return {result, generations};
+    return {result, level - 2};
 }
 
 bool HashQuadtree::NeedsExpansion(const LifeNode* node, int32_t level) const {
@@ -908,7 +911,7 @@ const LifeNode* HashQuadtree::ExpandUniverse(const LifeNode* node,
     return FindOrCreate(expandedNW, expandedNE, expandedSW, expandedSE);
 }
 
-int64_t HashQuadtree::Advance(int64_t maxAdvance, std::stop_token stopToken) {
+int32_t HashQuadtree::Advance(int32_t advanceDepth, std::stop_token stopToken) {
     if (m_Root == FalseNode)
         return {};
 
@@ -927,7 +930,7 @@ int64_t HashQuadtree::Advance(int64_t maxAdvance, std::stop_token stopToken) {
     // hyperspeed on a 2x2 block will not cause it to advance particularly fast
     // since it exhibits no expansion, but if maxAdvance is specified to 2^32,
     // we can make it happen instantly.
-    while (NeedsExpansion(root, depth) || (size / 4 < maxAdvance)) {
+    while (NeedsExpansion(root, depth) || (depth - 2 < advanceDepth)) {
         root = ExpandUniverse(root, depth);
         const auto delta = std::max(static_cast<int64_t>(1), size / 2);
         offset.X -= delta;
@@ -939,7 +942,7 @@ int64_t HashQuadtree::Advance(int64_t maxAdvance, std::stop_token stopToken) {
     if (depth >= 63)
         return 0;
 
-    const auto advanced = AdvanceNode(stopToken, root, depth, maxAdvance);
+    const auto advanced = AdvanceNode(stopToken, root, depth, advanceDepth);
     const auto centerDelta = std::max(static_cast<int64_t>(1), size / 4);
     offset.X += centerDelta;
     offset.Y += centerDelta;
@@ -947,7 +950,7 @@ int64_t HashQuadtree::Advance(int64_t maxAdvance, std::stop_token stopToken) {
     m_Root = advanced.Node;
     m_RootOffset = offset;
     m_Depth = depth - 1; // AdvanceNode returns a node half the size
-    return advanced.Generations;
+    return advanced.AdvanceLevel;
 }
 
 const LifeNode* HashQuadtree::EmptyTree(int32_t level) {

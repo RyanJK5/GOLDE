@@ -78,7 +78,7 @@ struct LifeNode {
 // and returns the new node.
 struct NodeUpdateInfo {
     const LifeNode* Node;
-    int64_t Generations;
+    int32_t AdvanceLevel;
 };
 
 // Lightweight key for heterogeneous lookup into NodeMap.
@@ -142,12 +142,12 @@ namespace gol {
 // The key used for caching when HashLife has a bounded step size.
 struct SlowKey {
     const LifeNode* Node;
-    int64_t MaxAdvance = 0; // Max number of generations this node can advance
+    int32_t AdvanceLevel = 0; // Max number of generations this node can advance
     auto operator<=>(const SlowKey&) const = default;
 };
 
 struct SlowHash {
-    size_t operator()(const SlowKey& key) const noexcept;
+    size_t operator()(SlowKey key) const noexcept;
 };
 
 // Block-based arena for append-only LifeNode storage. Provides pointer
@@ -354,7 +354,7 @@ class HashQuadtree {
     // speed should be used. If the stop token is called during advance, the
     // function exits early, and `HashQuadtree` is left in a valid but
     // unspecified state (likely part-way through iteration).
-    int64_t Advance(int64_t maxAdvance = 0, std::stop_token stopToken = {});
+    int32_t Advance(int32_t advanceDepth = -1, std::stop_token stopToken = {});
 
     // Returns the number of levels in the current tree.
     int32_t CalculateDepth() const;
@@ -390,7 +390,7 @@ class HashQuadtree {
     // Advances a node at the specified level by `maxAdvance` generations. Early
     // exit is possible through `stopToken`.
     NodeUpdateInfo AdvanceNode(std::stop_token stopToken, const LifeNode* node,
-                               int32_t level, int64_t maxAdvance) const;
+                               int32_t level, int32_t advanceLevel) const;
 
     // This is the primary interface for interaction with HashLife's cache.
     static const LifeNode* FindOrCreate(const LifeNode* nw, const LifeNode* ne,
@@ -431,10 +431,10 @@ class HashQuadtree {
 
     // Handles bounded advancement.
     NodeUpdateInfo AdvanceSlow(std::stop_token stopToken, const LifeNode* node,
-                               int32_t level, int64_t maxAdvance) const;
+                               int32_t level, int32_t advanceDepth) const;
     // Handles unbounded advancement.
     NodeUpdateInfo AdvanceFast(std::stop_token stopToken, const LifeNode* node,
-                               int32_t level, int64_t maxAdvance) const;
+                               int32_t level, int32_t advanceDepth) const;
 
   private:
     // The rationale for storing HashLifeCache in static, thread_local storage

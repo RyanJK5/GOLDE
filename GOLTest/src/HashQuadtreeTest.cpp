@@ -41,7 +41,7 @@ static void CheckAgainstFile(const std::filesystem::path& unevolved,
 
     BigInt totalGenerations{};
     for (auto i = 0; i < numJumps; ++i) {
-        const auto genCount = current.Advance(stepSize);
+        const auto genCount = HashLife(current, stepSize);
         EXPECT_EQ(genCount, expectedGenerationsPerJump)
             << "HashLife should advance by " << expectedGenerationsPerJump
             << " generations per jump";
@@ -323,7 +323,7 @@ TEST(HashQuadtreeTest, CopyingBreeder) {
 
     HashQuadtree original{data->Grid.Data(), data->Offset};
 
-    original.Advance(1LL << 32LL);
+    original.Advance(32);
     HashQuadtree copy{original};
 
     ASSERT_TRUE(true);
