@@ -18,8 +18,8 @@ LifeHashSet SparseLife(std::span<const Vec2> data, Rect bounds,
 
 // The most efficient algorithm for Game of Life. Allows rapid single generation
 // advancement and allows travel into the distant future.
-int64_t HashLife(HashQuadtree& data, int64_t numSteps,
-                 std::stop_token stopToken = {});
+BigInt HashLife(HashQuadtree& data, const BigInt& numSteps,
+                std::stop_token stopToken = {});
 
 enum class LifeAlgorithm {
     HashLife,

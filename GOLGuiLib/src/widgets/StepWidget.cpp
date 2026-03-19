@@ -23,7 +23,8 @@ bool StepButton::Enabled(const EditorResult& state) const {
            state.Simulation.State == SimulationState::Paused;
 }
 
-template <std::integral T> constexpr static T IntPow(T base, T exponent) {
+template <std::integral T>
+constexpr static T IntPow(T base, T exponent) {
     T res = 1;
     while (exponent > 0) {
         if (exponent % 2 == 1)

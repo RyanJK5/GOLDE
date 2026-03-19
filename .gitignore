@@ -1,5 +1,6 @@
 # Build directories
 /*build*/
+out/
 /cmake-build-*/
 
 # In-source CMake and test artifacts

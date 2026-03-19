@@ -144,7 +144,7 @@ GameGrid::IterableData() const {
     return std::ref(m_Data);
 }
 
-int64_t GameGrid::Update(int64_t numSteps, std::stop_token stopToken) {
+BigInt GameGrid::Update(const BigInt& numSteps, std::stop_token stopToken) {
     m_CacheInvalidated = true;
 
     switch (m_Algorithm) {
@@ -167,12 +167,7 @@ int64_t GameGrid::Update(int64_t numSteps, std::stop_token stopToken) {
             m_SortedData.clear();
         }
         const auto generations = HashLife(*m_HashLifeData, numSteps, stopToken);
-
-        if (std::numeric_limits<int64_t>::max() - generations < m_Generation) {
-            m_Generation = std::numeric_limits<int64_t>::max();
-        } else {
-            m_Generation += generations;
-        }
+        m_Generation += generations;
         m_Population = m_HashLifeData->Population();
         return generations;
     }

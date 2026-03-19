@@ -18,7 +18,8 @@ template <typename T>
 concept GLDeleter = std::same_as<T, decltype(&glDeleteBuffers)> ||
                     std::same_as<T, decltype(&glDeleteTextures)>;
 
-template <auto Generator, auto Deleter> class GLWrapper {
+template <auto Generator, auto Deleter>
+class GLWrapper {
   public:
     static_assert(GLGenerator<decltype(Generator)>);
     static_assert(GLDeleter<decltype(Deleter)>);

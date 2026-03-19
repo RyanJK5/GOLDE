@@ -16,7 +16,8 @@
 #include "KeyShortcut.hpp"
 
 namespace gol {
-template <ActionType ActType> struct ActionButtonResult {
+template <ActionType ActType>
+struct ActionButtonResult {
     std::optional<ActType> Action;
     bool FromShortcut = false;
 };
@@ -24,7 +25,8 @@ template <ActionType ActType> struct ActionButtonResult {
 using ShortcutMap =
     std::unordered_map<ActionVariant, std::vector<ImGuiKeyChord>>;
 
-template <ActionType ActType, bool LineBreak> class MultiActionButton {
+template <ActionType ActType, bool LineBreak>
+class MultiActionButton {
   public:
     constexpr static int32_t DefaultButtonHeight = 50;
 

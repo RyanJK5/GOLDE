@@ -3,3 +3,4 @@ IndentWidth: 4
 UseTab: Never
 PointerAlignment: Left
 ReferenceAlignment: Left
+BreakTemplateDeclarations: Yes

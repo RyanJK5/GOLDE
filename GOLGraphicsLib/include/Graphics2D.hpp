@@ -21,7 +21,8 @@ struct Color {
         : Red(r), Green(g), Blue(b), Alpha(a) {}
 };
 
-template <std::totally_ordered T> struct GenericVec {
+template <std::totally_ordered T>
+struct GenericVec {
     T X;
     T Y;
 
@@ -32,26 +33,27 @@ template <std::totally_ordered T> struct GenericVec {
 
     constexpr GenericVec operator-() const { return {-X, -Y}; }
 
-    constexpr GenericVec operator+(GenericVec<T> other) const {
+    constexpr GenericVec operator+(const GenericVec<T>& other) const {
         return {X + other.X, Y + other.Y};
     }
-    constexpr GenericVec operator-(GenericVec<T> other) const {
+    constexpr GenericVec operator-(const GenericVec<T>& other) const {
         return {X - other.X, Y - other.Y};
     }
 
-    constexpr GenericVec& operator+=(GenericVec<T> other) {
+    constexpr GenericVec& operator+=(const GenericVec<T>& other) {
         X += other.X;
         Y += other.Y;
         return *this;
     }
-    constexpr GenericVec& operator-=(GenericVec<T> other) {
+    constexpr GenericVec& operator-=(const GenericVec<T>& other) {
         X -= other.X;
         Y -= other.Y;
         return *this;
     }
 };
 
-template <std::totally_ordered T> struct GenericSize {
+template <std::totally_ordered T>
+struct GenericSize {
     T Width;
     T Height;
 
@@ -59,7 +61,8 @@ template <std::totally_ordered T> struct GenericSize {
     constexpr GenericSize(T width, T height) : Width(width), Height(height) {}
 };
 
-template <std::totally_ordered T> struct GenericRect {
+template <std::totally_ordered T>
+struct GenericRect {
     T X;
     T Y;
     T Width;
@@ -179,7 +182,8 @@ using RectDouble = GenericRect<double>;
 } // namespace gol
 
 namespace std {
-template <std::totally_ordered T> struct formatter<gol::GenericVec<T>> {
+template <std::totally_ordered T>
+struct formatter<gol::GenericVec<T>> {
     constexpr auto parse(std::format_parse_context& context) {
         return context.begin();
     }

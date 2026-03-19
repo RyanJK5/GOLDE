@@ -54,7 +54,8 @@ class StyleLoaderException : public std::exception {
     std::string m_Error;
 };
 
-template <Vector4 Vec> struct StyleInfo {
+template <Vector4 Vec>
+struct StyleInfo {
     std::filesystem::path OriginPath{};
     std::unordered_map<StyleColor, Vec> StyleColors{};
     std::unordered_map<ImGuiCol_, StyleColor> AttributeColors{};

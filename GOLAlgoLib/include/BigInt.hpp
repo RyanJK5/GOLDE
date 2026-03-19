@@ -27,7 +27,8 @@ using BigVec2 = GenericVec<BigInt>;
 } // namespace gol
 
 namespace std {
-template <> struct formatter<gol::BigInt> {
+template <>
+struct formatter<gol::BigInt> {
     constexpr auto parse(std::format_parse_context& context) {
         return context.begin();
     }

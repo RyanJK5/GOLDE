@@ -29,9 +29,19 @@
 // also allows it to jump many generations in one step.
 
 namespace gol {
-template <int32_t Size> constexpr static int32_t Index2D(int32_t x, int32_t y) {
+template <int32_t Size>
+constexpr int32_t Index2D(int32_t x, int32_t y) {
     return y * Size + x;
 }
+
+template <std::integral T>
+constexpr int64_t Pow2(T exponent) {
+    // This file prefers static_cast<int64_t>(1) to 1LL for consistency across
+    // platforms.
+    return static_cast<int64_t>(1) << exponent;
+}
+
+constexpr BigInt BigPow2(int32_t exponent) { return BigOne << exponent; }
 
 // Represents one node of the quadtree structure.
 struct LifeNode {
@@ -156,7 +166,8 @@ struct SlowHash {
 // cleared.
 class LifeNodeArena {
   public:
-    template <typename... Args> LifeNode* emplace(Args&&... args) {
+    template <typename... Args>
+    LifeNode* emplace(Args&&... args) {
         if (m_Current == BlockCapacity) {
             auto* raw = static_cast<LifeNode*>(
                 ::operator new(BlockCapacity * sizeof(LifeNode)));
@@ -207,13 +218,14 @@ struct HashLifeCache {
 
     // Level-indexed cache for empty nodes. Index i holds the empty node for
     // size 2^i. At most 64 entries needed (levels 0..63).
-    std::array<const LifeNode*, 64> EmptyNodeCache{};
+    std::vector<const LifeNode*> EmptyNodeCache{};
 
     HashLifeCache() {
         NodeMap.reserve(
             1 << 20); // Reserve space for 1 million nodes to avoid rehashing
                       // during early stages of the simulation.
         SlowCache.reserve(1 << 20);
+        EmptyNodeCache.resize(64, nullptr);
     }
 };
 
@@ -226,39 +238,26 @@ class HashQuadtree {
     // Under the hood, a Vec2L is actually used for storage to allow for larger
     // universes. In practice, users will be restricted to only viewing the
     // cells that can be represented by Vec2.
-    template <typename T> class IteratorImpl {
+    template <typename T>
+    class IteratorImpl {
       private:
         // We keep track of what node we're on through a variety of factors.
         struct LifeNodeData {
-            const LifeNode* node; // The node we're looking at.
-            Vec2L position;       // Where this node is located, based on
+            const LifeNode* Node; // The node we're looking at.
+            Vec2 Position;        // Where this node is located, relative to
                                   // HashQuadtree's offset.
-            int64_t size;         // Useful for bounded iteration
-            uint8_t quadrant;     // The quadrant this iterator is looking at.
+            int32_t Level;        // Useful for bounded iteration
+            uint8_t Quadrant;     // The quadrant this iterator is looking at.
                                   // Useful for knowing where to look next.
         };
 
-        constexpr static Vec2 ConvertToVec2(Vec2L pos) {
-            return Vec2{static_cast<int32_t>(pos.X),
-                        static_cast<int32_t>(pos.Y)};
-        }
-
-        bool IsWithinBounds(Vec2L pos) const {
-            constexpr static auto maxInt32 =
-                static_cast<int64_t>(std::numeric_limits<int32_t>::max());
-            constexpr static auto minInt32 =
-                static_cast<int64_t>(std::numeric_limits<int32_t>::min());
-
-            if (pos.X < minInt32 || pos.X > maxInt32 || pos.Y < minInt32 ||
-                pos.Y > maxInt32) {
-                return false;
-            }
+        bool IsWithinBounds(Vec2 pos) const {
             if (!m_UseBounds) {
                 return true;
             }
 
-            const auto left = static_cast<int64_t>(m_Bounds.X);
-            const auto top = static_cast<int64_t>(m_Bounds.Y);
+            const auto left = m_Bounds.X;
+            const auto top = m_Bounds.Y;
             const auto right = left + m_Bounds.Width;
             const auto bottom = top + m_Bounds.Height;
             return pos.X >= left && pos.X < right && pos.Y >= top &&
@@ -267,15 +266,19 @@ class HashQuadtree {
 
         // Checks if a `size * size` square with its upper-left corner at `pos`
         // intersects with the bounds of this iterator
-        bool IntersectsBounds(Vec2L pos, int64_t size) const {
-            if (!m_UseBounds)
+        bool IntersectsBounds(Vec2 pos, int32_t level) const {
+            if (!m_UseBounds) {
                 return true;
+            }
+
+            const auto regionRight = pos.X + Pow2(level);
+            const auto regionBottom = pos.Y + Pow2(level);
+
             const auto left = static_cast<int64_t>(m_Bounds.X);
             const auto top = static_cast<int64_t>(m_Bounds.Y);
             const auto right = left + m_Bounds.Width;
             const auto bottom = top + m_Bounds.Height;
-            const auto regionRight = pos.X + size;
-            const auto regionBottom = pos.Y + size;
+
             return !(regionRight <= left || pos.X >= right ||
                      regionBottom <= top || pos.Y >= bottom);
         }
@@ -288,9 +291,7 @@ class HashQuadtree {
         using reference = const value_type&;
 
         friend HashQuadtree;
-
-        IteratorImpl()
-            : m_Current{}, m_IsEnd(true), m_UseBounds(false), m_Bounds{} {}
+        IteratorImpl() = default;
 
         IteratorImpl<T>& operator++();
         IteratorImpl<T> operator++(int);
@@ -298,21 +299,22 @@ class HashQuadtree {
         bool operator==(const IteratorImpl<T>& other) const;
         bool operator!=(const IteratorImpl<T>& other) const;
 
-        reference operator*() const;
+        value_type operator*() const;
         pointer operator->() const;
 
       private:
-        IteratorImpl(const LifeNode* root, Vec2L offset, int64_t size,
+        IteratorImpl(const LifeNode* root, Vec2 offset, int32_t level,
                      bool isEnd, const Rect* bounds = nullptr);
+
         void AdvanceToNext(); // Implementation for operator++
       private:
-        std::stack<LifeNodeData> m_Stack;
+        std::stack<LifeNodeData, std::vector<LifeNodeData>> m_Stack;
         // Note that because the iterator is looking at abstract data,
         // it is actually storing the Vec2 as a proxy object.
-        value_type m_Current;
-        bool m_IsEnd;
-        bool m_UseBounds;
         Rect m_Bounds;
+        value_type m_Current;
+        bool m_IsEnd = true;
+        bool m_UseBounds = false;
     };
 
   public:
@@ -436,19 +438,27 @@ class HashQuadtree {
     NodeUpdateInfo AdvanceFast(std::stop_token stopToken, const LifeNode* node,
                                int32_t level, int32_t advanceDepth) const;
 
+    struct CenteredNodeResult {
+        const LifeNode* Node;
+        Vec2 Offset;
+    };
+    CenteredNodeResult GetCenteredNode(int32_t level) const;
+
   private:
     // The rationale for storing HashLifeCache in static, thread_local storage
     // is provided above.
     static thread_local HashLifeCache s_Cache;
     // This is the transfer cache used for copying `s_Cache` between threads.
-    std::unique_ptr<HashLifeCache> m_TransferCache{};
+    mutable std::unique_ptr<HashLifeCache> m_TransferCache{};
     const LifeNode* m_TransferRoot = nullptr;
     std::thread::id m_TransferID{std::this_thread::get_id()};
 
     const LifeNode* m_Root = FalseNode;
-    Vec2L m_RootOffset;
-    int32_t m_Depth =
-        0; // Cached depth of the tree (number of levels from root to leaf)
+
+    // The offset when this tree was constructed, before applying expansions
+    Vec2L m_SeedOffset;
+    // Cached depth of the tree (number of levels from root to leaf)
+    int32_t m_Depth = 0;
 };
 
 // Slight build time optimization since we know the only two instantiations of
@@ -457,14 +467,14 @@ extern template class HashQuadtree::IteratorImpl<Vec2>;
 extern template class HashQuadtree::IteratorImpl<const Vec2>;
 
 template <typename T>
-HashQuadtree::IteratorImpl<T>::IteratorImpl(const LifeNode* root, Vec2L offset,
-                                            int64_t size, bool isEnd,
+HashQuadtree::IteratorImpl<T>::IteratorImpl(const LifeNode* root, Vec2 offset,
+                                            int32_t level, bool isEnd,
                                             const Rect* bounds)
-    : m_Current(), m_IsEnd(isEnd), m_UseBounds(bounds != nullptr),
-      m_Bounds(bounds ? *bounds : Rect{}) {
+    : m_Bounds(bounds ? *bounds : Rect{}), m_Current(), m_IsEnd(isEnd),
+      m_UseBounds(bounds != nullptr) {
     if (!isEnd && root != FalseNode) {
-        if (!m_UseBounds || IntersectsBounds(offset, size)) {
-            m_Stack.push({root, offset, size, 0});
+        if (!m_UseBounds || IntersectsBounds(offset, level)) {
+            m_Stack.push({root, offset, level, 0});
             AdvanceToNext();
         } else {
             m_IsEnd = true;
@@ -472,59 +482,58 @@ HashQuadtree::IteratorImpl<T>::IteratorImpl(const LifeNode* root, Vec2L offset,
     }
 }
 
-template <typename T> void HashQuadtree::IteratorImpl<T>::AdvanceToNext() {
+template <typename T>
+void HashQuadtree::IteratorImpl<T>::AdvanceToNext() {
     while (!m_Stack.empty()) {
         auto& frame = m_Stack.top();
 
         // If we're at a leaf (size == 1)
-        if (frame.size == 1) {
-            if (frame.node == TrueNode) {
-                if (IsWithinBounds(frame.position)) {
-                    m_Current = ConvertToVec2(frame.position);
+        if (frame.Level == 0) {
+            if (frame.Node == TrueNode) {
+                if (IsWithinBounds(frame.Position)) {
+                    m_Current = frame.Position;
                     m_Stack.pop();
                     return; // Found a live cell within bounds
                 }
-                m_Stack.pop();
-                continue;
             }
             m_Stack.pop();
             continue;
         }
 
         // Process next quadrant
-        if (frame.quadrant >= 4) {
+        if (frame.Quadrant >= 4) {
             m_Stack.pop();
             continue;
         }
 
-        const auto halfSize = frame.size / 2;
+        const auto childLevel = frame.Level - 1;
+        const auto halfSize = static_cast<int32_t>(Pow2(childLevel));
         const LifeNode* child = nullptr;
-        auto childPos = frame.position;
+        auto childPos = frame.Position;
 
-        switch (frame.quadrant++) {
+        switch (frame.Quadrant++) {
         case 0:
-            child = frame.node->NorthWest;
+            child = frame.Node->NorthWest;
             break;
         case 1:
-            child = frame.node->NorthEast;
+            child = frame.Node->NorthEast;
             childPos.X += halfSize;
             break;
         case 2:
-            child = frame.node->SouthWest;
+            child = frame.Node->SouthWest;
             childPos.Y += halfSize;
             break;
         case 3:
-            child = frame.node->SouthEast;
+            child = frame.Node->SouthEast;
             childPos.X += halfSize;
             childPos.Y += halfSize;
             break;
         }
-        m_Stack.top().quadrant = frame.quadrant;
+        m_Stack.top().Quadrant = frame.Quadrant;
 
-        if (child != HashQuadtree::EmptyTree(
-                         std::countr_zero(static_cast<uint64_t>(halfSize))) &&
-            IntersectsBounds(childPos, halfSize)) {
-            m_Stack.push({child, childPos, halfSize, 0});
+        if (child != HashQuadtree::EmptyTree(childLevel) &&
+            IntersectsBounds(childPos, childLevel)) {
+            m_Stack.push({child, childPos, childLevel, 0});
         }
     }
 
@@ -558,7 +567,7 @@ bool HashQuadtree::IteratorImpl<T>::operator!=(
 }
 
 template <typename T>
-typename HashQuadtree::IteratorImpl<T>::reference
+typename HashQuadtree::IteratorImpl<T>::value_type
 HashQuadtree::IteratorImpl<T>::operator*() const {
     return m_Current;
 }
