@@ -1,6 +1,8 @@
 set(SOURCES
     src/GameGrid.cpp
     src/HashQuadtree.cpp
+    src/HashQuadtreeIterator.cpp
+    src/LifeNode.cpp
     src/LifeHashSet.cpp
     src/SparseLife.cpp
 )

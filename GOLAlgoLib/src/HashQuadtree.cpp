@@ -19,12 +19,22 @@
 #include "LifeHashSet.hpp"
 
 namespace gol {
-// Returns the greatest power of two less than `stepSize`.
+// Returns the exponent of the greatest power of two less than `stepSize`.
 constexpr static int32_t Log2MaxAdvanceOf(const BigInt& stepSize) {
     if (stepSize.is_zero())
         return 0;
 
     return static_cast<int32_t>(boost::multiprecision::msb(stepSize));
+}
+
+constexpr BigInt BigPow2(int32_t exponent) { return BigOne << exponent; }
+
+HashLifeCache::HashLifeCache() {
+    NodeMap.reserve(
+        1 << 20); // Reserve space for 1 million nodes to avoid rehashing
+                  // during early stages of the simulation.
+    SlowCache.reserve(1 << 20);
+    EmptyNodeCache.resize(64, nullptr);
 }
 
 thread_local HashLifeCache HashQuadtree::s_Cache{};
@@ -216,12 +226,6 @@ BigInt HashLife(HashQuadtree& data, const BigInt& numSteps,
     return generation;
 }
 
-size_t LifeNodeHash::operator()(const LifeNode* node) const {
-    if (!node)
-        return std::hash<const void*>{}(nullptr);
-    return node->Hash;
-}
-
 // Mixes the node's precomputed hash with MaxAdvance. The node hash is already
 // well-distributed via splitmix64, so a single round of xor-shift mixing with
 // the advance count is sufficient.
@@ -247,9 +251,6 @@ size_t SlowHash::operator()(SlowKey key) const noexcept {
 
     return static_cast<size_t>(h);
 }
-
-template class HashQuadtree::IteratorImpl<Vec2>;
-template class HashQuadtree::IteratorImpl<const Vec2>;
 
 HashQuadtree::HashQuadtree(const LifeHashSet& data, Vec2 offset) {
     if (data.empty())
@@ -417,7 +418,7 @@ HashQuadtree::GetCenteredNode(int32_t level) const {
 
 BigInt HashQuadtree::Population() const { return PopulationOf(m_Root); }
 
-HashQuadtree::Iterator HashQuadtree::begin() {
+HashQuadtree::Iterator HashQuadtree::begin() const {
     if (m_Root == FalseNode) {
         return end();
     }
@@ -426,36 +427,14 @@ HashQuadtree::Iterator HashQuadtree::begin() {
     return Iterator{node, offset, std::min(m_Depth, 32), false, nullptr};
 }
 
-HashQuadtree::Iterator HashQuadtree::end() { return Iterator{}; }
+HashQuadtree::Iterator HashQuadtree::end() const { return Iterator{}; }
 
-HashQuadtree::ConstIterator HashQuadtree::begin() const {
-    if (m_Root == FalseNode) {
-        return end();
-    }
-
-    const auto [node, offset] = GetCenteredNode(32);
-    return ConstIterator{node, offset, std::min(m_Depth, 32), false, nullptr};
-}
-
-HashQuadtree::Iterator HashQuadtree::begin(Rect bounds) {
-    if (m_Root == FalseNode) {
-        return end();
-    }
-
-    const auto [node, offset] = GetCenteredNode(32);
-    return Iterator{node, offset, std::min(m_Depth, 32), false, &bounds};
-}
-
-HashQuadtree::ConstIterator HashQuadtree::begin(Rect bounds) const {
+HashQuadtree::Iterator HashQuadtree::begin(Rect bounds) const {
     if (m_Root == FalseNode)
         return end();
 
     const auto [node, offset] = GetCenteredNode(32);
-    return ConstIterator{node, offset, std::min(m_Depth, 32), false, &bounds};
-}
-
-HashQuadtree::ConstIterator HashQuadtree::end() const {
-    return ConstIterator{};
+    return Iterator{node, offset, std::min(m_Depth, 32), false, &bounds};
 }
 
 const LifeNode* HashQuadtree::FindOrCreate(const LifeNode* nw,

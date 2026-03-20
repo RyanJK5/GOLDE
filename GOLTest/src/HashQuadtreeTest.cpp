@@ -313,7 +313,7 @@ TEST(HashQuadtreeTest, ConstIteratorUsage) {
 
     // Explicitly check ConstIterator type
     static_assert(
-        std::is_same_v<HashQuadtree::ConstIterator, decltype(tree.begin())>);
+        std::is_same_v<HashQuadtree::Iterator, decltype(tree.begin())>);
 }
 
 TEST(HashQuadtreeTest, CopyingBreeder) {

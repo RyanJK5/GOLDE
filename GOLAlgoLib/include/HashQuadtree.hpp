@@ -21,134 +21,13 @@
 #include "BigInt.hpp"
 #include "Graphics2D.hpp"
 #include "LifeHashSet.hpp"
+#include "LifeNode.hpp"
 
 // HashQuadtree and its related free functions and structs contain all of the
 // necessary representations for the HashLife algorithm. At a high level,
 // HashLife uses a quadtree to represent the Game of Life universe, and
 // canonicalizes nodes in a hash table. The recursive nature of the algorithm
 // also allows it to jump many generations in one step.
-
-namespace gol {
-template <int32_t Size>
-constexpr int32_t Index2D(int32_t x, int32_t y) {
-    return y * Size + x;
-}
-
-template <std::integral T>
-constexpr int64_t Pow2(T exponent) {
-    // This file prefers static_cast<int64_t>(1) to 1LL for consistency across
-    // platforms.
-    return static_cast<int64_t>(1) << exponent;
-}
-
-constexpr BigInt BigPow2(int32_t exponent) { return BigOne << exponent; }
-
-// Represents one node of the quadtree structure.
-struct LifeNode {
-    // Raw pointers are used with care here. For cache efficiency, all nodes are
-    // stored in a block arena, which ensures these pointers remain valid (see
-    // below).
-    const LifeNode* NorthWest;
-    const LifeNode* NorthEast;
-    const LifeNode* SouthWest;
-    const LifeNode* SouthEast;
-
-    uint64_t Hash{}; // Pre-computed hash
-    bool IsEmpty = false;
-
-    constexpr LifeNode(const LifeNode* nw, const LifeNode* ne,
-                       const LifeNode* sw, const LifeNode* se)
-        : NorthWest(nw), NorthEast(ne), SouthWest(sw), SouthEast(se) {
-        if consteval {
-        } else {
-            IsEmpty = (nw ? nw->IsEmpty : true) && (ne ? ne->IsEmpty : true) &&
-                      (sw ? sw->IsEmpty : true) && (se ? se->IsEmpty : true);
-            Hash = ComputeHash(NorthWest, NorthEast, SouthWest, SouthEast);
-        }
-    }
-
-    // Computes a hash from 4 child pointers. Exposed so LifeNodeKey can reuse
-    // it without constructing a full LifeNode.
-    static uint64_t ComputeHash(const LifeNode* nw, const LifeNode* ne,
-                                const LifeNode* sw, const LifeNode* se) {
-        // Shift pointers right by 4 to discard alignment zeros, then mix.
-        auto a = std::bit_cast<uint64_t>(nw) >> 4;
-        auto b = std::bit_cast<uint64_t>(ne) >> 4;
-        auto c = std::bit_cast<uint64_t>(sw) >> 4;
-        auto d = std::bit_cast<uint64_t>(se) >> 4;
-
-        // Fast 4-to-1 mix using rotations + xor-fold + splitmix64 finalizer.
-        uint64_t h = a ^ std::rotl(b, 16) ^ std::rotl(c, 32) ^ std::rotl(d, 48);
-        h = (h ^ (h >> 30)) * 0xBF58476D1CE4E5B9ULL;
-        h = (h ^ (h >> 27)) * 0x94D049BB133111EBULL;
-        h = h ^ (h >> 31);
-        return h;
-    }
-};
-
-// The result of advancing a node. Tells us how many generations it advanced
-// and returns the new node.
-struct NodeUpdateInfo {
-    const LifeNode* Node;
-    int32_t AdvanceLevel;
-};
-
-// Lightweight key for heterogeneous lookup into NodeMap.
-// Avoids constructing a full LifeNode (which computes Population) on every
-// lookup.
-struct LifeNodeKey {
-    const LifeNode* NorthWest;
-    const LifeNode* NorthEast;
-    const LifeNode* SouthWest;
-    const LifeNode* SouthEast;
-    uint64_t Hash;
-
-    LifeNodeKey(const LifeNode* nw, const LifeNode* ne, const LifeNode* sw,
-                const LifeNode* se)
-        : NorthWest(nw), NorthEast(ne), SouthWest(sw), SouthEast(se),
-          Hash(LifeNode::ComputeHash(nw, ne, sw, se)) {}
-};
-
-struct LifeNodeEqual {
-    using is_transparent = void; // Flag for ankerl::unordered_dense
-    bool operator()(const LifeNode* lhs, const LifeNode* rhs) const {
-        if (lhs == rhs)
-            return true;
-        if (!lhs || !rhs)
-            return false;
-        return lhs->NorthWest == rhs->NorthWest &&
-               lhs->NorthEast == rhs->NorthEast &&
-               lhs->SouthWest == rhs->SouthWest &&
-               lhs->SouthEast == rhs->SouthEast;
-    }
-    // Heterogeneous overload: compare LifeNode* against LifeNodeKey
-    bool operator()(const LifeNode* lhs, const LifeNodeKey& rhs) const {
-        if (!lhs)
-            return false;
-        return lhs->NorthWest == rhs.NorthWest &&
-               lhs->NorthEast == rhs.NorthEast &&
-               lhs->SouthWest == rhs.SouthWest &&
-               lhs->SouthEast == rhs.SouthEast;
-    }
-    bool operator()(const LifeNodeKey& lhs, const LifeNode* rhs) const {
-        return operator()(rhs, lhs);
-    }
-};
-
-struct LifeNodeHash {
-    using is_transparent = void;
-    size_t operator()(const LifeNode* node) const;
-    size_t operator()(const LifeNodeKey& key) const {
-        return static_cast<size_t>(key.Hash);
-    }
-};
-
-// Underlying node for TrueNode.
-constexpr inline LifeNode StaticTrueNode{nullptr, nullptr, nullptr, nullptr};
-
-constexpr inline const LifeNode* TrueNode = &StaticTrueNode;
-constexpr inline const LifeNode* FalseNode = nullptr;
-} // namespace gol
 
 namespace gol {
 // The key used for caching when HashLife has a bounded step size.
@@ -160,43 +39,6 @@ struct SlowKey {
 
 struct SlowHash {
     size_t operator()(SlowKey key) const noexcept;
-};
-
-// Block-based arena for append-only LifeNode storage. Provides pointer
-// stability (blocks never move once allocated) and fast bump-pointer
-// allocation. All nodes are freed in bulk when the arena is destroyed or
-// cleared.
-class LifeNodeArena {
-  public:
-    template <typename... Args>
-    LifeNode* emplace(Args&&... args) {
-        if (m_Current == BlockCapacity) {
-            auto* raw = static_cast<LifeNode*>(
-                ::operator new(BlockCapacity * sizeof(LifeNode)));
-            m_Blocks.emplace_back(raw);
-            m_Current = 0;
-        }
-        auto* node = m_Blocks.back().get() + m_Current++;
-        std::construct_at(node, std::forward<Args>(args)...);
-        return node;
-    }
-
-    // Returns the most recently emplaced node.
-    LifeNode* last() const { return m_Blocks.back().get() + (m_Current - 1); }
-
-    void clear() {
-        m_Blocks.clear();
-        m_Current = BlockCapacity;
-    }
-
-  private:
-    static constexpr size_t BlockCapacity = 65536 / sizeof(LifeNode);
-
-    struct BlockDeleter {
-        void operator()(LifeNode* p) const { ::operator delete(p); }
-    };
-    std::vector<std::unique_ptr<LifeNode, BlockDeleter>> m_Blocks;
-    size_t m_Current = BlockCapacity; // Force first allocation
 };
 
 // The cache used for the HashLife algorithm.
@@ -222,26 +64,15 @@ struct HashLifeCache {
     // size 2^i. At most 64 entries needed (levels 0..63).
     std::vector<const LifeNode*> EmptyNodeCache{};
 
-    HashLifeCache() {
-        NodeMap.reserve(
-            1 << 20); // Reserve space for 1 million nodes to avoid rehashing
-                      // during early stages of the simulation.
-        SlowCache.reserve(1 << 20);
-        EmptyNodeCache.resize(64, nullptr);
-    }
+    HashLifeCache();
 };
 
 // This is the primary data structure for executing the HashLife algorithm. It
 // satisfies the requirements of `std::ranges::input_range` and can be used in
 // many STL algorithms.
 class HashQuadtree {
-  private:
-    // IteratorImpl is templated to support both `Vec2` and `const Vec2`.
-    // Under the hood, a Vec2L is actually used for storage to allow for larger
-    // universes. In practice, users will be restricted to only viewing the
-    // cells that can be represented by Vec2.
-    template <typename T>
-    class IteratorImpl {
+  public:
+    class Iterator {
       private:
         // We keep track of what node we're on through a variety of factors.
         struct LifeNodeData {
@@ -253,69 +84,34 @@ class HashQuadtree {
                                   // Useful for knowing where to look next.
         };
 
-        bool IsWithinBounds(Vec2L pos) const {
-            if (!m_UseBounds) {
-                return true;
-            }
-
-            const auto left = static_cast<int64_t>(m_Bounds.X);
-            const auto top = static_cast<int64_t>(m_Bounds.Y);
-            const auto right = left + m_Bounds.Width;
-            const auto bottom = top + m_Bounds.Height;
-            return pos.X >= left && pos.X < right && pos.Y >= top &&
-                   pos.Y < bottom;
-        }
+        bool IsWithinBounds(Vec2L pos) const;
 
         // Checks if a `size * size` square with its upper-left corner at `pos`
         // intersects with the bounds of this iterator
-        bool IntersectsBounds(Vec2L pos, int32_t level) const {
-            constexpr static auto minBound =
-                std::numeric_limits<int32_t>::min();
-            constexpr static auto maxBound =
-                std::numeric_limits<int32_t>::max();
-
-            if (pos.X < minBound || pos.X > maxBound || pos.Y < minBound ||
-                pos.Y > maxBound) {
-                return false;
-            }
-            if (!m_UseBounds) {
-                return true;
-            }
-
-            const auto regionRight = pos.X + Pow2(level);
-            const auto regionBottom = pos.Y + Pow2(level);
-
-            const auto left = static_cast<int64_t>(m_Bounds.X);
-            const auto top = static_cast<int64_t>(m_Bounds.Y);
-            const auto right = left + m_Bounds.Width;
-            const auto bottom = top + m_Bounds.Height;
-
-            return !(regionRight <= left || pos.X >= right ||
-                     regionBottom <= top || pos.Y >= bottom);
-        }
+        bool IntersectsBounds(Vec2L pos, int32_t level) const;
 
       public:
         using iterator_category = std::input_iterator_tag;
         using difference_type = std::ptrdiff_t;
-        using value_type = std::remove_const_t<T>;
+        using value_type = Vec2;
         using pointer = const value_type*;
         using reference = const value_type&;
 
         friend HashQuadtree;
-        IteratorImpl() = default;
+        Iterator() = default;
 
-        IteratorImpl<T>& operator++();
-        IteratorImpl<T> operator++(int);
+        Iterator& operator++();
+        Iterator operator++(int);
 
-        bool operator==(const IteratorImpl<T>& other) const;
-        bool operator!=(const IteratorImpl<T>& other) const;
+        bool operator==(const Iterator& other) const;
+        bool operator!=(const Iterator& other) const;
 
         value_type operator*() const;
         pointer operator->() const;
 
       private:
-        IteratorImpl(const LifeNode* root, Vec2L offset, int32_t level,
-                     bool isEnd, const Rect* bounds);
+        Iterator(const LifeNode* root, Vec2L offset, int32_t level, bool isEnd,
+                 const Rect* bounds);
 
         void AdvanceToNext(); // Implementation for operator++
       private:
@@ -343,23 +139,14 @@ class HashQuadtree {
     ~HashQuadtree() = default;
 
   public:
-    using Iterator = IteratorImpl<Vec2>;
-    using ConstIterator = IteratorImpl<const Vec2>;
-
     bool empty() const;
 
-    Iterator begin();
-    Iterator end();
-
-    ConstIterator begin() const;
-    ConstIterator end() const;
+    Iterator begin() const;
+    Iterator end() const;
 
     // Returns an iterator over one region of space. This is useful for allowing
     // interaction and display of a small subsection of the universe.
-    Iterator begin(Rect bounds);
-    // Returns an iterator over one region of space. This is useful for allowing
-    // interaction and display of a small subsection of the universe.
-    ConstIterator begin(Rect bounds) const;
+    Iterator begin(Rect bounds) const;
 
     BigInt Population() const;
 
@@ -472,122 +259,14 @@ class HashQuadtree {
     int32_t m_Depth = 0;
 };
 
-// Slight build time optimization since we know the only two instantiations of
-// IteratorImpl.
-extern template class HashQuadtree::IteratorImpl<Vec2>;
-extern template class HashQuadtree::IteratorImpl<const Vec2>;
-
-template <typename T>
-HashQuadtree::IteratorImpl<T>::IteratorImpl(const LifeNode* root, Vec2L offset,
-                                            int32_t level, bool isEnd,
-                                            const Rect* bounds)
-    : m_Bounds(bounds ? *bounds : Rect{}), m_Current(), m_IsEnd(isEnd),
-      m_UseBounds(bounds != nullptr) {
-    if (!isEnd && root != FalseNode) {
-        if (!m_UseBounds || IntersectsBounds(offset, level)) {
-            m_Stack.push({root, offset, level, 0});
-            AdvanceToNext();
-        } else {
-            m_IsEnd = true;
-        }
-    }
+template <std::integral T>
+constexpr int64_t Pow2(T exponent) {
+    return int64_t{1} << exponent;
 }
 
-template <typename T>
-void HashQuadtree::IteratorImpl<T>::AdvanceToNext() {
-    while (!m_Stack.empty()) {
-        auto& frame = m_Stack.top();
-
-        // If we're at a leaf (size == 1)
-        if (frame.Level == 0) {
-            if (frame.Node == TrueNode) {
-                if (IsWithinBounds(frame.Position)) {
-                    m_Current = Vec2{static_cast<int32_t>(frame.Position.X),
-                                     static_cast<int32_t>(frame.Position.Y)};
-                    m_Stack.pop();
-                    return; // Found a live cell within bounds
-                }
-            }
-            m_Stack.pop();
-            continue;
-        }
-
-        // Process next quadrant
-        if (frame.Quadrant >= 4) {
-            m_Stack.pop();
-            continue;
-        }
-
-        const auto childLevel = frame.Level - 1;
-        const auto halfSize = Pow2(childLevel);
-        const LifeNode* child = nullptr;
-        auto childPos = frame.Position;
-
-        switch (frame.Quadrant++) {
-        case 0:
-            child = frame.Node->NorthWest;
-            break;
-        case 1:
-            child = frame.Node->NorthEast;
-            childPos.X += halfSize;
-            break;
-        case 2:
-            child = frame.Node->SouthWest;
-            childPos.Y += halfSize;
-            break;
-        case 3:
-            child = frame.Node->SouthEast;
-            childPos.X += halfSize;
-            childPos.Y += halfSize;
-            break;
-        }
-        m_Stack.top().Quadrant = frame.Quadrant;
-
-        if (child != FalseNode && !child->IsEmpty &&
-            IntersectsBounds(childPos, childLevel)) {
-            m_Stack.push({child, childPos, childLevel, 0});
-        }
-    }
-
-    m_IsEnd = true; // No more live cells
-}
-
-template <typename T>
-HashQuadtree::IteratorImpl<T>& HashQuadtree::IteratorImpl<T>::operator++() {
-    AdvanceToNext();
-    return *this;
-}
-
-template <typename T>
-HashQuadtree::IteratorImpl<T> HashQuadtree::IteratorImpl<T>::operator++(int) {
-    auto copy = *this;
-    AdvanceToNext();
-    return copy;
-}
-
-template <typename T>
-bool HashQuadtree::IteratorImpl<T>::operator==(
-    const IteratorImpl<T>& other) const {
-    return m_IsEnd == other.m_IsEnd &&
-           (m_IsEnd || m_Current == other.m_Current);
-}
-
-template <typename T>
-bool HashQuadtree::IteratorImpl<T>::operator!=(
-    const IteratorImpl<T>& other) const {
-    return !(*this == other);
-}
-
-template <typename T>
-typename HashQuadtree::IteratorImpl<T>::value_type
-HashQuadtree::IteratorImpl<T>::operator*() const {
-    return m_Current;
-}
-
-template <typename T>
-typename HashQuadtree::IteratorImpl<T>::pointer
-HashQuadtree::IteratorImpl<T>::operator->() const {
-    return &m_Current;
+template <int32_t Size>
+constexpr int32_t Index2D(int32_t x, int32_t y) {
+    return y * Size + x;
 }
 
 template <int32_t Size, typename T>
@@ -611,7 +290,6 @@ const LifeNode* HashQuadtree::Combine2x2(const T& nodes, int32_t topLeftX,
                             nodes[Index2D<Size>(topLeftX + 1, topLeftY + 1)]);
     }
 }
-
 } // namespace gol
 
 #endif
