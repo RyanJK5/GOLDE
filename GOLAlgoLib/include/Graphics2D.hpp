@@ -98,7 +98,7 @@ struct GenericRect {
     constexpr GenericRect(GenericVec<T> pos, GenericSize<T> size)
         : X(pos.X), Y(pos.Y), Width(size.Width), Height(size.Height) {}
 
-    constexpr bool InBounds(T x, T y) const {
+    constexpr bool InBounds(std::totally_ordered auto x, std::totally_ordered auto y) const {
         return x >= X && x < X + Width && y >= Y && y < Y + Height;
     }
 
