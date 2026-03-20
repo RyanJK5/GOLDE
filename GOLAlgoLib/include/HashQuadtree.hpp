@@ -54,13 +54,15 @@ struct LifeNode {
     const LifeNode* SouthEast;
 
     uint64_t Hash{}; // Pre-computed hash
+    bool IsEmpty = false;
 
     constexpr LifeNode(const LifeNode* nw, const LifeNode* ne,
                        const LifeNode* sw, const LifeNode* se)
         : NorthWest(nw), NorthEast(ne), SouthWest(sw), SouthEast(se) {
-
         if consteval {
         } else {
+            IsEmpty = (nw ? nw->IsEmpty : true) && (ne ? ne->IsEmpty : true) &&
+                      (sw ? sw->IsEmpty : true) && (se ? se->IsEmpty : true);
             Hash = ComputeHash(NorthWest, NorthEast, SouthWest, SouthEast);
         }
     }
@@ -244,20 +246,20 @@ class HashQuadtree {
         // We keep track of what node we're on through a variety of factors.
         struct LifeNodeData {
             const LifeNode* Node; // The node we're looking at.
-            Vec2 Position;        // Where this node is located, relative to
+            Vec2L Position;       // Where this node is located, relative to
                                   // HashQuadtree's offset.
             int32_t Level;        // Useful for bounded iteration
             uint8_t Quadrant;     // The quadrant this iterator is looking at.
                                   // Useful for knowing where to look next.
         };
 
-        bool IsWithinBounds(Vec2 pos) const {
+        bool IsWithinBounds(Vec2L pos) const {
             if (!m_UseBounds) {
                 return true;
             }
 
-            const auto left = m_Bounds.X;
-            const auto top = m_Bounds.Y;
+            const auto left = static_cast<int64_t>(m_Bounds.X);
+            const auto top = static_cast<int64_t>(m_Bounds.Y);
             const auto right = left + m_Bounds.Width;
             const auto bottom = top + m_Bounds.Height;
             return pos.X >= left && pos.X < right && pos.Y >= top &&
@@ -266,7 +268,16 @@ class HashQuadtree {
 
         // Checks if a `size * size` square with its upper-left corner at `pos`
         // intersects with the bounds of this iterator
-        bool IntersectsBounds(Vec2 pos, int32_t level) const {
+        bool IntersectsBounds(Vec2L pos, int32_t level) const {
+            constexpr static auto minBound =
+                std::numeric_limits<int32_t>::min();
+            constexpr static auto maxBound =
+                std::numeric_limits<int32_t>::max();
+
+            if (pos.X < minBound || pos.X > maxBound || pos.Y < minBound ||
+                pos.Y > maxBound) {
+                return false;
+            }
             if (!m_UseBounds) {
                 return true;
             }
@@ -303,15 +314,15 @@ class HashQuadtree {
         pointer operator->() const;
 
       private:
-        IteratorImpl(const LifeNode* root, Vec2 offset, int32_t level,
-                     bool isEnd, const Rect* bounds = nullptr);
+        IteratorImpl(const LifeNode* root, Vec2L offset, int32_t level,
+                     bool isEnd, const Rect* bounds);
 
         void AdvanceToNext(); // Implementation for operator++
       private:
         std::stack<LifeNodeData, std::vector<LifeNodeData>> m_Stack;
+        Rect m_Bounds;
         // Note that because the iterator is looking at abstract data,
         // it is actually storing the Vec2 as a proxy object.
-        Rect m_Bounds;
         value_type m_Current;
         bool m_IsEnd = true;
         bool m_UseBounds = false;
@@ -376,7 +387,7 @@ class HashQuadtree {
     bool operator!=(const HashQuadtree& other) const;
 
   private:
-    BigInt PopulationOf(const LifeNode* node) const;
+    static BigInt PopulationOf(const LifeNode* node);
 
     // Implementation for copy constructor / copy assignment
     void Copy(const HashQuadtree& other);
@@ -440,7 +451,7 @@ class HashQuadtree {
 
     struct CenteredNodeResult {
         const LifeNode* Node;
-        Vec2 Offset;
+        Vec2L Offset;
     };
     CenteredNodeResult GetCenteredNode(int32_t level) const;
 
@@ -467,7 +478,7 @@ extern template class HashQuadtree::IteratorImpl<Vec2>;
 extern template class HashQuadtree::IteratorImpl<const Vec2>;
 
 template <typename T>
-HashQuadtree::IteratorImpl<T>::IteratorImpl(const LifeNode* root, Vec2 offset,
+HashQuadtree::IteratorImpl<T>::IteratorImpl(const LifeNode* root, Vec2L offset,
                                             int32_t level, bool isEnd,
                                             const Rect* bounds)
     : m_Bounds(bounds ? *bounds : Rect{}), m_Current(), m_IsEnd(isEnd),
@@ -491,7 +502,8 @@ void HashQuadtree::IteratorImpl<T>::AdvanceToNext() {
         if (frame.Level == 0) {
             if (frame.Node == TrueNode) {
                 if (IsWithinBounds(frame.Position)) {
-                    m_Current = frame.Position;
+                    m_Current = Vec2{static_cast<int32_t>(frame.Position.X),
+                                     static_cast<int32_t>(frame.Position.Y)};
                     m_Stack.pop();
                     return; // Found a live cell within bounds
                 }
@@ -507,7 +519,7 @@ void HashQuadtree::IteratorImpl<T>::AdvanceToNext() {
         }
 
         const auto childLevel = frame.Level - 1;
-        const auto halfSize = static_cast<int32_t>(Pow2(childLevel));
+        const auto halfSize = Pow2(childLevel);
         const LifeNode* child = nullptr;
         auto childPos = frame.Position;
 
@@ -531,7 +543,7 @@ void HashQuadtree::IteratorImpl<T>::AdvanceToNext() {
         }
         m_Stack.top().Quadrant = frame.Quadrant;
 
-        if (child != HashQuadtree::EmptyTree(childLevel) &&
+        if (child != FalseNode && !child->IsEmpty &&
             IntersectsBounds(childPos, childLevel)) {
             m_Stack.push({child, childPos, childLevel, 0});
         }

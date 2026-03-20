@@ -208,7 +208,7 @@ BigInt HashLife(HashQuadtree& data, const BigInt& numSteps,
         const auto advanceLevel = Log2MaxAdvanceOf(numSteps - generation);
 
         const auto gens = BigPow2(data.Advance(advanceLevel, stopToken));
-        if (gens == 0)
+        if (stopToken.stop_requested())
             return generation;
         generation += gens;
     }
@@ -371,7 +371,7 @@ int64_t HashQuadtree::CalculateTreeSize() const {
 
 bool HashQuadtree::empty() const { return m_Root == EmptyTree(m_Depth); }
 
-BigInt HashQuadtree::PopulationOf(const LifeNode* node) const {
+BigInt HashQuadtree::PopulationOf(const LifeNode* node) {
     if (node == FalseNode) {
         return BigZero;
     }
@@ -396,8 +396,7 @@ HashQuadtree::GetCenteredNode(int32_t level) const {
         // Tree already fits, return root directly at its own offset
         const auto half = (m_Depth == 0 ? 0 : Pow2(m_Depth - 1));
         return {.Node = m_Root,
-                .Offset = Vec2{static_cast<int32_t>(m_SeedOffset.X - half),
-                               static_cast<int32_t>(m_SeedOffset.Y - half)}};
+                .Offset = {m_SeedOffset.X - half, m_SeedOffset.Y - half}};
     }
 
     const LifeNode* northwest = m_Root->NorthWest;
@@ -413,8 +412,7 @@ HashQuadtree::GetCenteredNode(int32_t level) const {
 
     const auto size = Pow2(level - 1);
     return {.Node = FindOrCreate(northwest, northeast, southwest, southeast),
-            .Offset = Vec2{static_cast<int32_t>(m_SeedOffset.X - size),
-                           static_cast<int32_t>(m_SeedOffset.Y - size)}};
+            .Offset = {m_SeedOffset.X - size, m_SeedOffset.Y - size}};
 }
 
 BigInt HashQuadtree::Population() const { return PopulationOf(m_Root); }
@@ -425,7 +423,7 @@ HashQuadtree::Iterator HashQuadtree::begin() {
     }
 
     const auto [node, offset] = GetCenteredNode(32);
-    return Iterator{node, offset, std::min(m_Depth, 32), false};
+    return Iterator{node, offset, std::min(m_Depth, 32), false, nullptr};
 }
 
 HashQuadtree::Iterator HashQuadtree::end() { return Iterator{}; }
@@ -436,7 +434,7 @@ HashQuadtree::ConstIterator HashQuadtree::begin() const {
     }
 
     const auto [node, offset] = GetCenteredNode(32);
-    return ConstIterator{node, offset, std::min(m_Depth, 32), false};
+    return ConstIterator{node, offset, std::min(m_Depth, 32), false, nullptr};
 }
 
 HashQuadtree::Iterator HashQuadtree::begin(Rect bounds) {
@@ -846,67 +844,64 @@ bool HashQuadtree::NeedsExpansion(const LifeNode* node, int32_t level) const {
     if (level <= 3)
         return true;
 
-    const auto notEmpty = [&](const LifeNode* n, int32_t nodeLevel) {
-        return n != FalseNode && n != EmptyTree(nodeLevel);
+    const auto notEmpty = [&](const LifeNode* n) {
+        return n != FalseNode && !n->IsEmpty;
     };
 
     // We simply want to consider if the outer rim of cells is completely empty,
     // and if the next level down is completely empty. This may sometimes cause
     // unnecessary expansion, but it is a fairly low-overhead procedure that may
     // actually result in better performance when hyper speed is enabled.
-    const auto l1 = level - 1;
-    const auto l2 = level - 2;
-    const auto l3 = level - 3;
 
     const auto* nw = node->NorthWest;
-    if (notEmpty(nw, l1)) {
-        if (notEmpty(nw->NorthWest, l2) || notEmpty(nw->NorthEast, l2) ||
-            notEmpty(nw->SouthWest, l2))
+    if (notEmpty(nw)) {
+        if (notEmpty(nw->NorthWest) || notEmpty(nw->NorthEast) ||
+            notEmpty(nw->SouthWest))
             return true;
 
         const auto* nwSe = nw->SouthEast;
-        if (notEmpty(nwSe, l2) &&
-            (notEmpty(nwSe->NorthWest, l3) || notEmpty(nwSe->NorthEast, l3) ||
-             notEmpty(nwSe->SouthWest, l3)))
+        if (notEmpty(nwSe) &&
+            (notEmpty(nwSe->NorthWest) || notEmpty(nwSe->NorthEast) ||
+             notEmpty(nwSe->SouthWest)))
             return true;
     }
 
     const auto* ne = node->NorthEast;
-    if (notEmpty(ne, l1)) {
-        if (notEmpty(ne->NorthWest, l2) || notEmpty(ne->NorthEast, l2) ||
-            notEmpty(ne->SouthEast, l2))
+    if (notEmpty(ne)) {
+        if (notEmpty(ne->NorthWest) || notEmpty(ne->NorthEast) ||
+            notEmpty(ne->SouthEast))
             return true;
 
         const auto* ne_sw = ne->SouthWest;
-        if (notEmpty(ne_sw, l2) &&
-            (notEmpty(ne_sw->NorthWest, l3) || notEmpty(ne_sw->NorthEast, l3) ||
-             notEmpty(ne_sw->SouthEast, l3)))
+        if (notEmpty(ne_sw) &&
+            (notEmpty(ne_sw->NorthWest) || notEmpty(ne_sw->NorthEast) ||
+             notEmpty(ne_sw->SouthEast)))
             return true;
     }
 
     const auto* sw = node->SouthWest;
-    if (notEmpty(sw, l1)) {
-        if (notEmpty(sw->NorthWest, l2) || notEmpty(sw->SouthWest, l2) ||
-            notEmpty(sw->SouthEast, l2))
+    if (notEmpty(sw)) {
+        if (notEmpty(sw->NorthWest) || notEmpty(sw->SouthWest) ||
+            notEmpty(sw->SouthEast))
             return true;
 
         const auto* sw_ne = sw->NorthEast;
-        if (notEmpty(sw_ne, l2) &&
-            (notEmpty(sw_ne->NorthWest, l3) || notEmpty(sw_ne->SouthWest, l3) ||
-             notEmpty(sw_ne->SouthEast, l3)))
+        if (notEmpty(sw_ne) &&
+            (notEmpty(sw_ne->NorthWest) || notEmpty(sw_ne->SouthWest) ||
+             notEmpty(sw_ne->SouthEast)))
             return true;
     }
 
     const auto* se = node->SouthEast;
-    if (notEmpty(se, l1)) {
-        if (notEmpty(se->NorthEast, l2) || notEmpty(se->SouthWest, l2) ||
-            notEmpty(se->SouthEast, l2))
+    if (notEmpty(se)) {
+        if (notEmpty(se->NorthEast) || notEmpty(se->SouthWest) ||
+            notEmpty(se->SouthEast))
             return true;
 
         const auto* se_nw = se->NorthWest;
-        if (notEmpty(se_nw, l2) &&
-            (notEmpty(se_nw->NorthEast, l3) || notEmpty(se_nw->SouthWest, l3) ||
-             notEmpty(se_nw->SouthEast, l3)))
+        if (notEmpty(se_nw) &&
+            (notEmpty(se_nw->NorthEast) || notEmpty(se_nw->SouthWest) ||
+             notEmpty(se_nw->SouthEast)))
             return true;
     }
 
@@ -960,8 +955,9 @@ int32_t HashQuadtree::Advance(int32_t advanceDepth, std::stop_token stopToken) {
 }
 
 const LifeNode* HashQuadtree::EmptyTree(int32_t level) {
-    if (level <= 0)
+    if (level <= 0) {
         return FalseNode;
+    }
 
     if (level >= static_cast<int32_t>(s_Cache.EmptyNodeCache.size())) {
         s_Cache.EmptyNodeCache.resize(level + 1, nullptr);
@@ -1054,6 +1050,8 @@ const LifeNode* HashQuadtree::BuildTree(const LifeHashSet& cells) {
         cellVec.emplace_back(static_cast<int64_t>(cell.X),
                              static_cast<int64_t>(cell.Y));
 
-    return BuildTreeRegion(cellVec, offset, gridExponent);
+    const auto* result = BuildTreeRegion(cellVec, offset, gridExponent);
+    EmptyTree(32);
+    return result;
 }
 } // namespace gol
