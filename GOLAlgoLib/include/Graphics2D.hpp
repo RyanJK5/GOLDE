@@ -31,24 +31,35 @@ struct GenericVec {
 
     constexpr auto operator<=>(const GenericVec<T>&) const = default;
 
-    constexpr GenericVec operator-() const { return {-X, -Y}; }
-
-    constexpr GenericVec operator+(const GenericVec<T>& other) const {
-        return {X + other.X, Y + other.Y};
-    }
-    constexpr GenericVec operator-(const GenericVec<T>& other) const {
-        return {X - other.X, Y - other.Y};
+    template <typename Self>
+    constexpr auto operator-(this const Self& self) {
+        return Self{-self.X, -self.Y};
     }
 
-    constexpr GenericVec& operator+=(const GenericVec<T>& other) {
-        X += other.X;
-        Y += other.Y;
-        return *this;
+    template <typename Self>
+    constexpr auto operator+(this const Self& self,
+                             const GenericVec<T>& other) {
+        return Self{self.X + other.X, self.Y + other.Y};
     }
-    constexpr GenericVec& operator-=(const GenericVec<T>& other) {
-        X -= other.X;
-        Y -= other.Y;
-        return *this;
+
+    template <typename Self>
+    constexpr auto operator-(this const Self& self,
+                             const GenericVec<T>& other) {
+        return Self{self.X - other.X, self.Y - other.Y};
+    }
+
+    template <typename Self>
+    constexpr auto& operator+=(this Self& self, const GenericVec<T>& other) {
+        self.X += other.X;
+        self.Y += other.Y;
+        return self;
+    }
+
+    template <typename Self>
+    constexpr auto& operator-=(this Self& self, const GenericVec<T>& other) {
+        self.X -= other.X;
+        self.Y -= other.Y;
+        return self;
     }
 };
 
@@ -87,8 +98,7 @@ struct GenericRect {
     constexpr GenericRect(GenericVec<T> pos, GenericSize<T> size)
         : X(pos.X), Y(pos.Y), Width(size.Width), Height(size.Height) {}
 
-    constexpr bool InBounds(std::totally_ordered auto x,
-                            std::totally_ordered auto y) const {
+    constexpr bool InBounds(T x, T y) const {
         return x >= X && x < X + Width && y >= Y && y < Y + Height;
     }
 
