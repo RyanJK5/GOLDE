@@ -47,8 +47,9 @@ class MultiActionButton {
         auto result = [this, state]() {
             bool active = false;
             if (Enabled(state))
-                for (auto& shortcut : m_Shortcuts.at(Action(state)))
+                for (auto& shortcut : m_Shortcuts.at(Action(state))) {
                     active = shortcut.Active() || active;
+                }
 
             if (ImGui::Button(Label(state).c_str(), Dimensions()) || active)
                 return ActionButtonResult<ActType>{Action(state), active};

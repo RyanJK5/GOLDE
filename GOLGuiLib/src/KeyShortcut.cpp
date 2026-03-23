@@ -25,6 +25,11 @@ KeyShortcut::StringRepresentation(std::span<const KeyShortcut> shortcuts) {
 }
 
 bool KeyShortcut::Active() {
+    if (ImGui::GetIO().WantTextInput) {
+        m_Down = false;
+        return m_Down;
+    }
+
     bool keyCombo = ImGui::IsKeyChordPressed(
         m_Shortcut,
         m_AllowRepeats ? ImGuiInputFlags_Repeat : ImGuiInputFlags_None);
