@@ -11,7 +11,6 @@
 #include "EditorResult.hpp"
 #include "GameEnums.hpp"
 #include "Graphics2D.hpp"
-#include "InputString.hpp"
 #include "LifeAlgorithm.hpp"
 #include "Widget.hpp"
 #include "WidgetResult.hpp"

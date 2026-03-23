@@ -13,7 +13,6 @@ set(SOURCES
     src/widgets/ResizeWidget.cpp
     src/widgets/StepWidget.cpp
     src/GameEnums.cpp
-    src/InputString.cpp
     src/KeyShortcut.cpp
     src/SelectionManager.cpp
     src/VersionManager.cpp
@@ -38,7 +37,6 @@ set(HEADERS
     include/widgets/Widget.hpp
     include/EditorResult.hpp
     include/GameEnums.hpp
-    include/InputString.hpp
     include/KeyShortcut.hpp
     include/PresetSelectionResult.hpp
     include/SelectionManager.hpp

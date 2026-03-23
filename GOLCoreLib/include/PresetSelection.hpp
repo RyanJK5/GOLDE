@@ -10,7 +10,6 @@
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
 #include "GraphicsHandler.hpp"
-#include "InputString.hpp"
 #include "PresetSelectionResult.hpp"
 
 namespace gol {
@@ -39,8 +38,7 @@ class PresetSelection {
     std::filesystem::path m_DefaultPath;
     Size2 m_WindowSize;
 
-    InputString m_SearchText;
-    size_t m_MaxFileName = 0;
+    std::string m_SearchText;
 
     std::vector<PresetDisplay> m_Library;
     Size2F m_MaxGridDimensions;

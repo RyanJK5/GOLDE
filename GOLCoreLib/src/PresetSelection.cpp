@@ -3,6 +3,7 @@
 #include <font-awesome/IconsFontAwesome7.h>
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <imgui_stdlib.h>
 #include <string>
 #include <utility>
 
@@ -12,7 +13,6 @@
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
 #include "GraphicsHandler.hpp"
-#include "InputString.hpp"
 #include "Logging.hpp"
 #include "PresetSelection.hpp"
 #include "PresetSelectionResult.hpp"
@@ -29,7 +29,6 @@ PresetSelection::PresetSelection(const std::filesystem::path& defaultPath,
                                  Size2 windowSize)
     : m_DefaultPath(defaultPath), m_WindowSize(windowSize) {
     ReadFiles(m_DefaultPath);
-    m_SearchText = InputString{m_MaxFileName};
 }
 
 PresetSelectionResult PresetSelection::Update(const EditorResult& info) {
@@ -37,14 +36,14 @@ PresetSelectionResult PresetSelection::Update(const EditorResult& info) {
 
     ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, 10.f);
 
-    ImGui::SetNextItemWidth(m_MaxFileName * 20.f);
-    ImGui::InputTextWithHint("##search", "Search...", m_SearchText.Data,
-                             m_SearchText.Length + 1);
+    ImGui::SetNextItemWidth(400.f);
+
+    ImGui::InputTextWithHint("##search", "Search...", &m_SearchText);
 
     ImGui::SameLine();
     if (ImGui::Button(ICON_FA_FOLDER_OPEN)) {
-        auto result = FileDialog::SelectFolderDialog(m_DefaultPath.string());
-        if (result) {
+        if (const auto result =
+                FileDialog::SelectFolderDialog(m_DefaultPath.string())) {
             m_Library.clear();
             m_DefaultPath = *result;
             ReadFiles(*result);
@@ -86,7 +85,7 @@ PresetSelectionResult PresetSelection::Update(const EditorResult& info) {
                             ImGui::GetStyle().Alpha * 0.5f);
     }
     for (auto i = 0UZ; i < m_Library.size(); i++) {
-        if (!m_Library[i].FileName.contains(m_SearchText.Data))
+        if (!m_Library[i].FileName.contains(m_SearchText))
             continue;
 
         auto graphicsArgs =
@@ -160,7 +159,6 @@ void PresetSelection::ReadFiles(const std::filesystem::path& path) {
 
         std::string name = file.path().filename().string();
         name = name.substr(0, name.find_last_of('.'));
-        m_MaxFileName = std::max(m_MaxFileName, name.length());
         m_Library.emplace_back(std::move(result->Grid), std::move(name),
                                m_WindowSize);
     }
