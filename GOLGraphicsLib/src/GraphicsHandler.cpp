@@ -269,16 +269,13 @@ void GraphicsHandler::DrawSelection(Rect region,
     GL_DEBUG(glUseProgram(m_SelectionShader.Program()));
 
     auto matrix = Camera.OrthographicProjection(args.ViewportBounds.Size());
-    m_SelectionShader.AttachUniformVec4("u_Color", {1.f, 1.f, 1.f, 1.f});
     m_SelectionShader.AttachUniformMatrix4("u_MVP", matrix);
 
     const auto rect = GridToScreenBounds(region, args);
-    std::array positions{rect.UpperLeft().X,  rect.UpperLeft().Y,
+    const std::array positions{rect.UpperLeft().X,  rect.UpperLeft().Y,
                          rect.LowerLeft().X,  rect.LowerLeft().Y,
                          rect.LowerRight().X, rect.LowerRight().Y,
                          rect.UpperRight().X, rect.UpperRight().Y};
-
-    constexpr static std::array<uint8_t, 8> indices{0, 1, 1, 2, 2, 3, 3, 0};
 
     GL_DEBUG(glBindBuffer(GL_ARRAY_BUFFER, m_SelectionBuffer.ID()));
     GL_DEBUG(glBufferData(GL_ARRAY_BUFFER, 2 * 4 * sizeof(float),
@@ -287,12 +284,25 @@ void GraphicsHandler::DrawSelection(Rect region,
     GL_DEBUG(
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0));
 
-    GL_DEBUG(
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_SelectionIndexBuffer.ID()));
-    GL_DEBUG(glBufferData(GL_ELEMENT_ARRAY_BUFFER, 2 * 4 * sizeof(uint8_t),
-                          indices.data(), GL_DYNAMIC_DRAW));
+    GL_DEBUG(glEnable(GL_BLEND));
+    GL_DEBUG(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
+    GL_DEBUG(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_SelectionIndexBuffer.ID()));
+
+    // Draw translucent blue fill
+    constexpr static std::array<uint8_t, 6> fillIndices{0, 1, 2, 0, 2, 3};
+    m_SelectionShader.AttachUniformVec4("u_Color", {0.2f, 0.5f, 1.0f, 0.25f});
+    GL_DEBUG(glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(uint8_t),
+                          fillIndices.data(), GL_DYNAMIC_DRAW));
+    GL_DEBUG(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, nullptr));
+
+    // Draw opaque blue border
+    constexpr static std::array<uint8_t, 8> borderIndices{0, 1, 1, 2, 2, 3, 3, 0};
+    m_SelectionShader.AttachUniformVec4("u_Color", {0.2f, 0.5f, 1.0f, 1.0f});
+    GL_DEBUG(glBufferData(GL_ELEMENT_ARRAY_BUFFER, 8 * sizeof(uint8_t),
+                          borderIndices.data(), GL_DYNAMIC_DRAW));
     GL_DEBUG(glDrawElements(GL_LINES, 8, GL_UNSIGNED_BYTE, nullptr));
+    GL_DEBUG(glDisable(GL_BLEND));
 }
 
 void GraphicsHandler::CenterCamera(const GraphicsHandlerArgs& args) {

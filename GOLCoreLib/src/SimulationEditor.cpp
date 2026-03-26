@@ -147,13 +147,10 @@ SimulationState SimulationEditor::PaintUpdate(const GraphicsHandlerArgs& args) {
     if (m_Model.Selection().CanDrawGrid())
         m_Graphics.DrawGrid(m_Model.Selection().SelectionBounds().UpperLeft(),
                             m_Model.Selection().GridData(), args);
-    if (m_Model.Selection().CanDrawGrid())
+    if (m_Model.Selection().CanDrawSelection())
         m_Graphics.DrawSelection(m_Model.Selection().SelectionBounds(), args);
 
     if (gridPos) {
-        if (m_Model.Selection().CanDrawSelection())
-            m_Graphics.DrawSelection(m_Model.Selection().SelectionBounds(),
-                                     args);
         UpdateMouseState(*gridPos);
     } else {
         m_Model.TryResetSelection();
@@ -209,6 +206,8 @@ SimulationEditor::DisplaySimulation(bool grabFocus) {
         return {.Visible = false, .Closing = !stayOpen};
     }
     bool windowFocused = ImGui::IsWindowFocused();
+
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1.0f);
     ImGui::BeginChild("Render");
 
     ImDrawListSplitter splitter{};
@@ -219,7 +218,7 @@ SimulationEditor::DisplaySimulation(bool grabFocus) {
                       Size2F(ImGui::GetContentRegionAvail())};
 
     ImGui::Image(static_cast<ImTextureID>(m_Graphics.TextureID()),
-                 ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
+                 ImGui::GetContentRegionAvail(), {0, 1}, {1, 0});
     ImGui::SetCursorPosY(0);
     ImGui::InvisibleButton("##SimulationViewport",
                            ImGui::GetContentRegionAvail());
@@ -280,6 +279,7 @@ SimulationEditor::DisplaySimulation(bool grabFocus) {
 
     splitter.Merge(ImGui::GetWindowDrawList());
     ImGui::EndChild();
+    ImGui::PopStyleVar();
     ImGui::End();
 
     return {
