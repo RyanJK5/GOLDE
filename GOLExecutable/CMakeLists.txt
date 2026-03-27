@@ -56,6 +56,6 @@ add_custom_command(TARGET GOLExecutable POST_BUILD
 
 add_custom_command(TARGET GOLExecutable POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_CURRENT_SOURCE_DIR}/templates
-        $<TARGET_FILE_DIR:GOLExecutable>/templates
+        ${CMAKE_CURRENT_SOURCE_DIR}/presets
+        $<TARGET_FILE_DIR:GOLExecutable>/presets
 )

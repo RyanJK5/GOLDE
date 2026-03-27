@@ -74,7 +74,7 @@ Game::Game()
                        std::bind_front(&Game::HandleWindowClose, this)),
       m_Control(ConfigLoader::LoadYAML<ImVec4>(std::filesystem::path{"config"} /
                                                "shortcuts.yml")),
-      m_PresetSelection(std::filesystem::current_path() / "templates") {
+      m_PresetSelection(std::filesystem::current_path() / "presets") {
     m_Editors.emplace_back(m_EditorCounter++, std::filesystem::path{},
                            Size2{DefaultWindowWidth, DefaultWindowHeight},
                            Size2{DefaultGridWidth, DefaultGridHeight});

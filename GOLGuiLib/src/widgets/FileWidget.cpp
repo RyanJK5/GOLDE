@@ -123,7 +123,7 @@ WidgetResult FileWidget::UpdateImpl(const EditorResult& state) {
             return FileDialog::SaveFileDialog(
                 "gol", state.File.CurrentFilePath.string());
         case Load:
-            return FileDialog::OpenFileDialog("gol", "");
+            return FileDialog::OpenFileDialog("gol,rle", "");
         default:
             return std::unexpected{
                 FileDialogFailure{FileFailureType::Error, "Unknown action"}};

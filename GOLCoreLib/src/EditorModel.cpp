@@ -187,9 +187,10 @@ bool EditorModel::SaveToFile(const std::filesystem::path& path,
 }
 
 PasteResult EditorModel::PasteSelection(std::optional<Vec2> cursorPos) {
-    if (cursorPos)
+    if (cursorPos) {
         m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid));
-    auto pasteResult = m_SelectionManager.Paste(cursorPos, 100000000U);
+    }
+    auto pasteResult = m_SelectionManager.Paste(cursorPos, 100'000'000U);
     if (pasteResult) {
         m_VersionManager.PushChange(*pasteResult);
         return {.Value = PasteResult::Status::Success};

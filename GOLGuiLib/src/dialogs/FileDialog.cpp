@@ -11,7 +11,7 @@ namespace gol {
 std::expected<std::filesystem::path, FileDialogFailure>
 FileDialog::OpenFileDialog(const std::string& filters,
                            const std::string& defaultPath) {
-    const nfdfilteritem_t filterItem[]{{"Game of Life files", filters.c_str()}};
+    const nfdfilteritem_t filterItem[]{{"GOLDE files", filters.c_str()}};
 
     NFD::UniquePathU8 outPath{};
     const auto result =
@@ -21,11 +21,12 @@ FileDialog::OpenFileDialog(const std::string& filters,
 
     if (result == NFD_OKAY) {
         auto ret = std::filesystem::path{outPath.get()};
-        if (ret.extension().string() != ".gol") {
+        const auto extension = ret.extension().string();
+        if (extension != ".gol" && extension != ".rle") {
             return std::unexpected<FileDialogFailure>{
                 {.Type = FileFailureType::Error,
                  .Message =
-                     "Invalid file type selected. Please select a .gol file."}};
+                     "Invalid file type selected. Please select a .gol or .rle file."}};
         }
         return ret;
     } else if (result == NFD_CANCEL) {

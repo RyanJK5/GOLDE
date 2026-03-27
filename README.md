@@ -52,7 +52,7 @@ ctest --test-dir build --output-on-failure
 
 For **multi-config generators** (Visual Studio, Xcode):
 ```sh
-cmake -B build -G "Visual Studio 17 2022"
+cmake -B build -G "Visual Studio 18 2026"
 cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure
 ./build/GOLExecutable/Release/GOLExecutable.exe
@@ -70,7 +70,7 @@ Start GOLDE and you'll be greeted with an interactive grid and control panel.
 - **Open patterns** from the built-in library by selecting a preset from the bottom window.
 - **Select an algorithm** from the dropdown in the sidebar.
 - **Start** the simulation, and freely pause, restart, or stop your simulation.
-- **Step** billions of generations by inputting any value (<2^63) into the "Step Count" field.
+- **Step** billions of generations by inputting any value into the "Step Count" field.
 - **Save and Load** your universe for future use.
 - **Customize** your window setup using ImGUI's docking features
 
@@ -103,7 +103,7 @@ GameOfLife/
 ## Gallery
 
 ![](docs/breeder.gif)
-A simple breeder pattern running at 2^32 generations per millisecond using HashLife.
+A simple breeder pattern running for over 10^1000 using HashLife.
 
 ## License
 
