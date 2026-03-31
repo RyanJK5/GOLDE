@@ -91,6 +91,11 @@ A turing machine in GOLDE.
 
 A demonstration of basic GOLDE editing features.
 
+![](docs/life_in_life.gif)
+
+
+Game of Life simulating itself.
+
 ## License
 
 This project is licensed under the terms of the [MIT license](LICENSE).
