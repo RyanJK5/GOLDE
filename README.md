@@ -74,36 +74,20 @@ Start GOLDE and you'll be greeted with an interactive grid and control panel.
 - **Save and Load** your universe for future use.
 - **Customize** your window setup using ImGUI's docking features
 
-## Project Structure
-
-```
-GameOfLife/
-├── GOLAlgoLib/          # Core algorithms (HashLife, SparseLife)
-├── GOLCoreLib/          # Game state & orchestration
-├── GOLExecutable/       # Application entry point
-├── GOLGraphicsLib/      # OpenGL rendering engine
-├── GOLGuiLib/           # ImGui-based UI
-├── GOLLoggingLib/       # Logging system
-├── GOLTest/             # Unit and integration tests
-├── Dependencies/        # Third-party libraries (ImGui, FontAwesome)
-├── cmake/               # CMake utilities and compiler options
-└── docs/                # Documentation and assets
-```
-
-### Dependencies
-- [OpenGL 4.5+](https://www.opengl.org/)
-- [ImGui](https://github.com/ocornut/imgui)
-- [GLFW](https://www.glfw.org/)
-- [GLEW](https://glew.sourceforge.net/)
-- [GLM](https://github.com/g-truc/glm)
-- [GoogleTest](https://github.com/google/googletest)
-- [unordered_dense](https://github.com/martinus/unordered_dense/)
-- [Native File Dialog Extended](https://github.com/btzy/nativefiledialog-extended)
-
 ## Gallery
 
 ![](docs/breeder.gif)
 A simple breeder pattern running for over 10^1000 using HashLife.
+
+![](docs/turing_machine.png)
+A turing machine in GOLDE.
+
+<video width="1600" height="1000" controls>
+  <source src="docs/editor.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
+A demonstration of basic GOLDE editing features.
 
 ## License
 
