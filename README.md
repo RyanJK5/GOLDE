@@ -86,10 +86,7 @@ A simple breeder pattern running for over 10^1000 using HashLife.
 
 A turing machine in GOLDE.
 
-<video width="1600" height="1000" controls muted style="max-width: 100%;">
-  <source src="https://github.com/RyanJK5/GOLDE/blob/master/docs/editor.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+![](docs/editor.gif)
 
 
 A demonstration of basic GOLDE editing features.
