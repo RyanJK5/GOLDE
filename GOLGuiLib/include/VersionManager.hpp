@@ -24,11 +24,12 @@ struct VersionChange {
 
 class VersionManager {
   public:
-    void BeginPaintChange(Vec2 pos, bool insert);
-    void AddPaintChange(Vec2 pos);
+    void BeginPaintChange(Vec2 pos, bool insert, SimulationState state);
+    void AddPaintChange(Vec2 pos, SimulationState state);
 
     void PushChange(const VersionChange& change);
-    void TryPushChange(std::optional<VersionChange> change);
+    void TryPushChange(const std::optional<VersionChange>& change,
+                       SimulationState state);
 
     std::optional<VersionChange> Undo();
     std::optional<VersionChange> Redo();

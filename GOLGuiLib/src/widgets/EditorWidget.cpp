@@ -38,8 +38,7 @@ std::string CutButton::Label(const EditorResult&) const {
 
 bool CutButton::Enabled(const EditorResult& state) const {
     return state.Editing.SelectionActive &&
-           (state.Simulation.State == SimulationState::Paint ||
-            state.Simulation.State == SimulationState::Empty);
+           Actions::Editable(state.Simulation.State);
 }
 
 PasteButton::PasteButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -56,8 +55,7 @@ std::string PasteButton::Label(const EditorResult&) const {
 
 bool PasteButton::Enabled(const EditorResult& state) const {
     return ImGui::GetClipboardText() &&
-           (state.Simulation.State == SimulationState::Paint ||
-            state.Simulation.State == SimulationState::Empty);
+           Actions::Editable(state.Simulation.State);
 }
 
 DeleteButton::DeleteButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -74,8 +72,7 @@ std::string DeleteButton::Label(const EditorResult&) const {
 
 bool DeleteButton::Enabled(const EditorResult& state) const {
     return state.Editing.SelectionActive &&
-           (state.Simulation.State == SimulationState::Paint ||
-            state.Simulation.State == SimulationState::Empty);
+           Actions::Editable(state.Simulation.State);
 }
 
 DeselectButton::DeselectButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -108,8 +105,7 @@ std::string RotateButton::Label(const EditorResult&) const {
 
 bool RotateButton::Enabled(const EditorResult& state) const {
     return state.Editing.SelectionActive &&
-           (state.Simulation.State == SimulationState::Paint ||
-            state.Simulation.State == SimulationState::Empty);
+           Actions::Editable(state.Simulation.State);
 }
 
 FlipVerticalButton::FlipVerticalButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -126,8 +122,7 @@ std::string FlipVerticalButton::Label(const EditorResult&) const {
 
 bool FlipVerticalButton::Enabled(const EditorResult& state) const {
     return state.Editing.SelectionActive &&
-           (state.Simulation.State == SimulationState::Paint ||
-            state.Simulation.State == SimulationState::Empty);
+           Actions::Editable(state.Simulation.State);
 }
 
 FlipHorizontalButton::FlipHorizontalButton(
@@ -145,8 +140,7 @@ std::string FlipHorizontalButton::Label(const EditorResult&) const {
 
 bool FlipHorizontalButton::Enabled(const EditorResult& state) const {
     return state.Editing.SelectionActive &&
-           (state.Simulation.State == SimulationState::Paint ||
-            state.Simulation.State == SimulationState::Empty);
+           Actions::Editable(state.Simulation.State);
 }
 
 SelectAllButton::SelectAllButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -162,8 +156,7 @@ std::string SelectAllButton::Label(const EditorResult&) const {
 }
 
 bool SelectAllButton::Enabled(const EditorResult& state) const {
-    return state.Simulation.State == SimulationState::Paint ||
-           state.Simulation.State == SimulationState::Paused;
+    return Actions::Editable(state.Simulation.State);
 }
 
 UndoButton::UndoButton(std::span<const ImGuiKeyChord> shortcuts)
@@ -197,7 +190,7 @@ std::string RedoButton::Label(const EditorResult&) const {
 }
 
 bool RedoButton::Enabled(const EditorResult& state) const {
-    return state.Editing.RedosAvailable &&
+    return state.Editing.UndosAvailable &&
            (state.Simulation.State == SimulationState::Paint ||
             state.Simulation.State == SimulationState::Empty);
 }

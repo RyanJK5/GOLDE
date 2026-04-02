@@ -253,7 +253,7 @@ size_t SlowHash::operator()(SlowKey key) const noexcept {
     return static_cast<size_t>(h);
 }
 
-HashQuadtree::HashQuadtree(const LifeHashSet& data, Vec2 offset) {
+HashQuadtree::HashQuadtree(std::span<const Vec2> data, Vec2 offset) {
     if (data.empty())
         return;
 
@@ -310,6 +310,187 @@ bool HashQuadtree::operator==(const HashQuadtree& other) const {
 
 bool HashQuadtree::operator!=(const HashQuadtree& other) const {
     return !(*this == other);
+}
+
+void HashQuadtree::Set(Vec2 targetPos, bool alive) {
+    const auto expansionNeeded = [&] {
+        if (m_Depth == 0) {
+            return true;
+        }
+
+        const auto half = Pow2(m_Depth - 1);
+        const auto minX = m_SeedOffset.X - half;
+        const auto minY = m_SeedOffset.Y - half;
+        const auto maxX = minX + Pow2(m_Depth) - 1;
+        const auto maxY = minY + Pow2(m_Depth) - 1;
+        return targetPos.X < minX || targetPos.X > maxX || targetPos.Y < minY ||
+               targetPos.Y > maxY;
+    };
+
+    while (expansionNeeded()) {
+        m_Root = ExpandUniverse(m_Root, m_Depth);
+        m_Depth++;
+    }
+
+    const auto [node, offset] = GetCenteredNode(32);
+    m_Root = SetImpl(node, offset, targetPos, std::min(m_Depth, 32), alive);
+}
+
+const LifeNode* HashQuadtree::SetImpl(const LifeNode* node, Vec2L pos,
+                                      Vec2 targetPos, int32_t level,
+                                      bool alive) {
+    if (level == 0) {
+        return alive ? TrueNode : FalseNode;
+    }
+
+    const auto halfSize = Pow2(level - 1);
+
+    const Vec2L northeastCorner{pos.X + halfSize, pos.Y};
+    const Vec2L southwestCorner{pos.X, pos.Y + halfSize};
+    const Vec2L southeastCorner{pos.X + halfSize, pos.Y + halfSize};
+    const Size2L size{halfSize, halfSize};
+
+    if (RectL{pos, size}.InBounds(targetPos)) {
+        return FindOrCreate(
+            SetImpl(node->NorthWest, pos, targetPos, level - 1, alive),
+            node->NorthEast, node->SouthWest, node->SouthEast);
+    } else if (RectL{northeastCorner, size}.InBounds(targetPos)) {
+        return FindOrCreate(node->NorthWest,
+                            SetImpl(node->NorthEast, northeastCorner, targetPos,
+                                    level - 1, alive),
+                            node->SouthWest, node->SouthEast);
+    } else if (RectL{southwestCorner, size}.InBounds(targetPos)) {
+        return FindOrCreate(node->NorthWest, node->NorthEast,
+                            SetImpl(node->SouthWest, southwestCorner, targetPos,
+                                    level - 1, alive),
+                            node->SouthEast);
+    } else {
+        return FindOrCreate(node->NorthWest, node->NorthEast, node->SouthWest,
+                            SetImpl(node->SouthEast, southeastCorner, targetPos,
+                                    level - 1, alive));
+    }
+}
+
+void HashQuadtree::Clear(Rect region) {
+    const auto [node, offset] = GetCenteredNode(32);
+    m_Root = ClearImpl(node, offset, region, std::min(m_Depth, 32));
+}
+
+const LifeNode* HashQuadtree::ClearImpl(const LifeNode* node, Vec2L pos,
+                                        Rect region, int32_t level) {
+    if (level == 0) {
+        return FalseNode;
+    }
+    if (node->IsEmpty) {
+        return node;
+    }
+
+    const auto size = Pow2(level);
+    const RectL nodeRect{pos.X, pos.Y, size, size};
+
+    // If this node is fully contained, wipe it entirely
+    if (region.Contains(nodeRect)) {
+        return EmptyTree(level);
+    }
+
+    // If there's no overlap at all, nothing to do
+    if (!region.Intersects(nodeRect)) {
+        return node;
+    }
+
+    const auto halfSize = Pow2(level - 1);
+    const auto* nw = node->NorthWest;
+    const auto* ne = node->NorthEast;
+    const auto* sw = node->SouthWest;
+    const auto* se = node->SouthEast;
+
+    return FindOrCreate(
+        ClearImpl(nw, {pos.X, pos.Y}, region, level - 1),
+        ClearImpl(ne, {pos.X + halfSize, pos.Y}, region, level - 1),
+        ClearImpl(sw, {pos.X, pos.Y + halfSize}, region, level - 1),
+        ClearImpl(se, {pos.X + halfSize, pos.Y + halfSize}, region, level - 1));
+}
+
+HashQuadtree HashQuadtree::Extract(Rect region) const {
+    HashQuadtree result{};
+    result.m_SeedOffset = m_SeedOffset;
+    result.m_Depth = m_Depth;
+
+    if (m_Root == FalseNode)
+        return result;
+
+    const auto [node, offset] = GetCenteredNode(32);
+    result.m_Root = ExtractImpl(node, offset, region, std::min(m_Depth, 32));
+    result.m_SeedOffset -= Vec2L{region.X, region.Y};
+    return result;
+}
+
+const LifeNode* HashQuadtree::ExtractImpl(const LifeNode* node, Vec2L pos,
+                                          Rect region, int32_t level) const {
+    if (node == FalseNode || node->IsEmpty) {
+        return EmptyTree(level);
+    }
+
+    const auto size = Pow2(level);
+    const RectL nodeRect{pos.X, pos.Y, size, size};
+
+    // No overlap — return empty
+    if (!region.Intersects(nodeRect)) {
+        return EmptyTree(level);
+    }
+
+    // Fully contained — keep as-is
+    if (region.Contains(nodeRect)) {
+        return node;
+    }
+
+    if (level == 0) {
+        return node;
+    }
+
+    const auto half = Pow2(level - 1);
+
+    return FindOrCreate(
+        ExtractImpl(node->NorthWest, {pos.X, pos.Y}, region, level - 1),
+        ExtractImpl(node->NorthEast, {pos.X + half, pos.Y}, region, level - 1),
+        ExtractImpl(node->SouthWest, {pos.X, pos.Y + half}, region, level - 1),
+        ExtractImpl(node->SouthEast, {pos.X + half, pos.Y + half}, region,
+                    level - 1));
+}
+
+bool HashQuadtree::Get(Vec2 targetPos) const {
+    const auto [node, offset] = GetCenteredNode(32);
+    return GetImpl(node, offset, targetPos, std::min(m_Depth, 32));
+}
+
+bool HashQuadtree::GetImpl(const LifeNode* node, Vec2L pos, Vec2 targetPos,
+                           int32_t level) const {
+    if (level == 0) {
+        return node == TrueNode;
+    }
+
+    if (node->IsEmpty) {
+        return false;
+    }
+
+    const auto halfSize = Pow2(level - 1);
+
+    const Vec2L northeastCorner{pos.X + halfSize, pos.Y};
+    const Vec2L southwestCorner{pos.X, pos.Y + halfSize};
+    const Vec2L southeastCorner{pos.X + halfSize, pos.Y + halfSize};
+    const Size2L quadrantSize{halfSize, halfSize};
+
+    if (RectL{pos, quadrantSize}.InBounds(targetPos)) {
+        return GetImpl(node->NorthWest, pos, targetPos, level - 1);
+    } else if (RectL{northeastCorner, quadrantSize}.InBounds(targetPos)) {
+        return GetImpl(node->NorthEast, northeastCorner, targetPos, level - 1);
+    } else if (RectL{southwestCorner, quadrantSize}.InBounds(targetPos)) {
+        return GetImpl(node->SouthWest, southwestCorner, targetPos, level - 1);
+    } else if (RectL{southeastCorner, quadrantSize}.InBounds(targetPos)) {
+        return GetImpl(node->SouthEast, southeastCorner, targetPos, level - 1);
+    } else {
+        return false;
+    }
 }
 
 int64_t HashQuadtree::CalculateTreeSize() const {
@@ -967,7 +1148,7 @@ const LifeNode* HashQuadtree::BuildTreeRegion(std::span<Vec2L> cells, Vec2L pos,
                         level - 1));
 }
 
-const LifeNode* HashQuadtree::BuildTree(const LifeHashSet& cells) {
+const LifeNode* HashQuadtree::BuildTree(std::span<const Vec2> cells) {
     if (cells.empty()) {
         m_SeedOffset = {0, 0};
         return FalseNode;

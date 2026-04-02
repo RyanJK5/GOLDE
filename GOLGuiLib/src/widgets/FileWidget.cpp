@@ -118,12 +118,12 @@ WidgetResult FileWidget::UpdateImpl(const EditorResult& state) {
         case Save:
             if (!state.File.CurrentFilePath.empty())
                 return state.File.CurrentFilePath;
-            return FileDialog::SaveFileDialog("gol", "");
+            return FileDialog::SaveFileDialog("rle", "");
         case SaveAsNew:
             return FileDialog::SaveFileDialog(
-                "gol", state.File.CurrentFilePath.string());
+                "rle", state.File.CurrentFilePath.string());
         case Load:
-            return FileDialog::OpenFileDialog("gol,rle", "");
+            return FileDialog::OpenFileDialog("rle", "");
         default:
             return std::unexpected{
                 FileDialogFailure{FileFailureType::Error, "Unknown action"}};

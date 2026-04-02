@@ -100,13 +100,27 @@ struct GenericRect {
     constexpr GenericRect(GenericVec<T> pos, GenericSize<T> size)
         : X(pos.X), Y(pos.Y), Width(size.Width), Height(size.Height) {}
 
-    constexpr bool InBounds(std::totally_ordered auto x,
-                            std::totally_ordered auto y) const {
+    template <std::totally_ordered U>
+    constexpr bool InBounds(U x, U y) const {
         return x >= X && x < X + Width && y >= Y && y < Y + Height;
     }
 
-    constexpr bool InBounds(GenericVec<T> pos) const {
+    template <std::totally_ordered U>
+    constexpr bool InBounds(const GenericVec<U>& pos) const {
         return InBounds(pos.X, pos.Y);
+    }
+
+    template <std::totally_ordered U>
+    constexpr bool Contains(const GenericRect<U>& other) const {
+        return (other.X >= X) && (other.Y >= Y) &&
+               (other.X + other.Width <= X + Width) &&
+               (other.Y + other.Height <= Y + Height);
+    }
+
+    template <std::totally_ordered U>
+    constexpr bool Intersects(const GenericRect<U>& other) const {
+        return !(other.X >= X + Width || other.X + other.Width <= X ||
+                 other.Y >= Y + Height || other.Y + other.Height <= Y);
     }
 
     constexpr auto operator<=>(const GenericRect&) const = default;
@@ -190,6 +204,7 @@ using Vec2 = GenericVec<int32_t>;
 using Vec2L = GenericVec<int64_t>;
 
 using Size2 = GenericSize<int32_t>;
+using Size2L = GenericSize<int64_t>;
 
 using Rect = GenericRect<int32_t>;
 using RectL = GenericRect<int64_t>;

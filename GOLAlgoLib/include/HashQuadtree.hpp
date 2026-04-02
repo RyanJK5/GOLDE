@@ -129,7 +129,7 @@ class HashQuadtree {
 
   public:
     HashQuadtree() = default;
-    HashQuadtree(const LifeHashSet& data, Vec2 offset = {});
+    HashQuadtree(std::span<const Vec2> data, Vec2 offset = {});
 
     HashQuadtree(const HashQuadtree& other);
     HashQuadtree& operator=(const HashQuadtree& other);
@@ -172,7 +172,27 @@ class HashQuadtree {
     bool operator==(const HashQuadtree& other) const;
     bool operator!=(const HashQuadtree& other) const;
 
+    void Set(Vec2 pos, bool alive);
+
+    bool Get(Vec2 pos) const;
+
+    void Clear(Rect region);
+
+    HashQuadtree Extract(Rect region) const;
+
   private:
+    const LifeNode* SetImpl(const LifeNode* node, Vec2L pos, Vec2 targetPos,
+                            int32_t level, bool alive);
+
+    bool GetImpl(const LifeNode* node, Vec2L pos, Vec2 targetPos,
+                 int32_t level) const;
+
+    const LifeNode* ClearImpl(const LifeNode* node, Vec2L pos, Rect region,
+                              int32_t level);
+
+    const LifeNode* ExtractImpl(const LifeNode* node, Vec2L pos, Rect region,
+                                int32_t level) const;
+
     template <std::invocable<Vec2, int64_t> Func>
     static void ForEachImpl(const Func& func, const LifeNode* node, Vec2L pos,
                             int32_t level, int32_t minLevel, Rect bounds);
@@ -207,7 +227,7 @@ class HashQuadtree {
     // Returns an empty tree at the given level (size 2^level).
     static const LifeNode* EmptyTree(int32_t level);
 
-    const LifeNode* BuildTree(const LifeHashSet& data);
+    const LifeNode* BuildTree(std::span<const Vec2> data);
 
     // Takes the inner portions from the east and west node and constructs a new
     // node.

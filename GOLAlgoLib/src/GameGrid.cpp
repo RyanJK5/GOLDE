@@ -75,6 +75,10 @@ GameGrid::GameGrid(const GameGrid& other, Size2 size) : GameGrid(size) {
              std::ranges::to<LifeHashSet>();
 }
 
+GameGrid::GameGrid(const HashQuadtree& data, Size2 size)
+    : m_Width(size.Width), m_Height(size.Height), m_HashLifeData(data),
+      m_Population(data.Population()), m_Algorithm(LifeAlgorithm::HashLife) {}
+
 void GameGrid::SetAlgorithm(LifeAlgorithm algorithm) {
     if (algorithm == LifeAlgorithm::SparseLife && m_HashLifeData) {
         m_Data = *m_HashLifeData | std::ranges::to<LifeHashSet>();
@@ -108,25 +112,19 @@ Rect GameGrid::BoundingBox() const {
                     most.Y - least.Y + 1};
     };
 
-    if (m_CacheInvalidated && m_HashLifeData) {
+    if (m_HashLifeData) {
         return findBox(*m_HashLifeData);
     }
     return findBox(m_Data);
 }
 
-const std::set<Vec2, RowMajorEqual>& GameGrid::SortedData() const {
-    if (m_CacheInvalidated) {
-        ValidateCache(true);
-    }
-    return m_SortedData;
+std::span<Vec2> GameGrid::SortedData() const {
+    ValidateSortedCache();
+    return std::span{m_SortedData};
 }
 
 const LifeHashSet& GameGrid::Data() const {
-    if (m_CacheInvalidated && m_HashLifeData) {
-        ValidateCache(false);
-        std::cerr << "Doing this\n";
-    }
-    m_CacheInvalidated = false;
+    ValidateUnsortedCache();
     return m_Data;
 }
 
@@ -140,7 +138,7 @@ GameGrid::IterableData() const {
 }
 
 BigInt GameGrid::Update(const BigInt& numSteps, std::stop_token stopToken) {
-    m_CacheInvalidated = true;
+    m_SortedCacheInvalidated = true;
 
     switch (m_Algorithm) {
     case LifeAlgorithm::SparseLife:
@@ -161,6 +159,7 @@ BigInt GameGrid::Update(const BigInt& numSteps, std::stop_token stopToken) {
             m_Data.clear();
             m_SortedData.clear();
         }
+        m_UnsortedCacheInvalidated = true;
         const auto generations = HashLife(*m_HashLifeData, numSteps, stopToken);
         m_Generation += generations;
         m_Population = m_HashLifeData->Population();
@@ -182,96 +181,91 @@ bool GameGrid::Set(int32_t x, int32_t y, bool active) {
     if (!InBounds(x, y)) {
         return false;
     }
+    m_SortedCacheInvalidated = true;
 
-    auto itr = m_Data.find({x, y});
-    if (itr == m_Data.end() && active) {
-        m_Population++;
-        m_Data.insert({x, y});
-        m_SortedData.insert({x, y});
-    } else if (itr != m_Data.end() && !active) {
-        m_Population--;
-        m_Data.erase(itr);
-        m_SortedData.erase({x, y});
+    if (m_HashLifeData) {
+        m_UnsortedCacheInvalidated = true;
+        m_HashLifeData->Set({x, y}, active);
+    } else {
+        auto itr = m_Data.find({x, y});
+        if (itr == m_Data.end() && active) {
+            m_Population++;
+            m_Data.insert({x, y});
+        } else if (itr != m_Data.end() && !active) {
+            m_Population--;
+            m_Data.erase(itr);
+        }
     }
 
     m_Generation = 0;
     return true;
 }
 
-void GameGrid::TranslateRegion(Rect region, Vec2 translation) {
-    std::vector<Vec2> newCells{};
-    auto it = m_Data.begin();
-    while (it != m_Data.end()) {
-        if (region.InBounds(*it)) {
-            newCells.push_back(*it + translation);
-            m_Data.erase(it++);
+GameGrid GameGrid::SubRegion(Rect region) const {
+    if (m_HashLifeData) {
+        GameGrid result{m_HashLifeData->Extract(region), region.Size()};
+        return result;
+    }
+
+    GameGrid grid{region.Width, region.Height};
+    for (const auto pos : m_Data) {
+        if (!region.InBounds(pos)) {
             continue;
         }
-        ++it;
+        grid.m_Population++;
+        grid.m_Data.insert(pos - region.Pos());
     }
-    for (const auto pos : newCells) {
-        m_Data.insert(pos);
-    }
-}
-
-GameGrid GameGrid::SubRegion(Rect region) const {
-    // TODO: Clunky lambda, abstract into static helper function
-    const auto fillGrid =
-        // We only have to check bounds when copying from m_Data, so we can
-        // control at compile time whether to check or not
-        [region]<bool CheckBounds>(GameGrid& grid,
-                                   std::ranges::input_range auto&& range) {
-            for (const auto pos : range) {
-                if constexpr (CheckBounds) {
-                    if (!region.InBounds(pos)) {
-                        continue;
-                    }
-                }
-                grid.m_Population++;
-                grid.m_Data.insert(pos - region.Pos());
-                grid.m_SortedData.insert(pos - region.Pos());
-            }
-            return grid;
-        };
-
-    if (m_CacheInvalidated && m_HashLifeData) {
-        GameGrid result{region.Width, region.Height};
-        // Because we're using the bounded iterator here, we can disable bounds
-        // check
-        return fillGrid.operator()<false>(
-            result, std::ranges::subrange(m_HashLifeData->begin(region),
-                                          m_HashLifeData->end()));
-    }
-    auto result = GameGrid{region.Width, region.Height};
-    return fillGrid.operator()<true>(result, m_Data);
+    return grid;
 }
 
 // TODO: Unsafe if running hash life & cache is invalidated
 LifeHashSet GameGrid::ReadRegion(Rect region) const {
-    LifeHashSet result{};
-    for (const auto pos : m_Data) {
-        if (region.InBounds(pos)) {
+    if (m_HashLifeData) {
+        LifeHashSet result{};
+        for (const auto pos : std::ranges::subrange(
+                 m_HashLifeData->begin(region), m_HashLifeData->end())) {
             result.insert(pos);
         }
+        return result;
+    }
+    LifeHashSet result{};
+    for (const auto pos : m_Data) {
+        if (region.InBounds(pos))
+            result.insert(pos);
     }
     return result;
 }
 
 void GameGrid::ClearRegion(Rect region) {
+    if (m_HashLifeData) {
+        m_UnsortedCacheInvalidated = true;
+        m_HashLifeData->Clear(region);
+        m_Population = m_HashLifeData->Population();
+        return;
+    }
+
     m_Population -= std::erase_if(
         m_Data, [region](Vec2 pos) { return region.InBounds(pos); });
-    m_CacheInvalidated = true;
-}
-
-void GameGrid::ClearData(const std::vector<Vec2>& data, Vec2 offset) {
-    for (const auto vec : data) {
-        m_Population -= m_Data.erase({vec.X + offset.X, vec.Y + offset.Y});
-    }
-    m_CacheInvalidated = true;
+    m_SortedCacheInvalidated = true;
 }
 
 LifeHashSet GameGrid::InsertGrid(const GameGrid& region, Vec2 pos) {
-    ValidateCache(true); // HashQuadtree does not support insertion
+    if (m_HashLifeData && region.m_HashLifeData) {
+        // Merge directly at the node level, no materialization needed
+        // For now, iterate the source quadtree and Set each cell
+        LifeHashSet inserted{};
+        for (const auto cell : *region.m_HashLifeData) {
+            const Vec2 offsetPos{pos.X + cell.X, pos.Y + cell.Y};
+            if (!m_HashLifeData->Get(offsetPos)) {
+                m_HashLifeData->Set(offsetPos, true);
+                inserted.insert(offsetPos);
+                m_Population++;
+            }
+        }
+        return inserted;
+    }
+
+    ValidateUnsortedCache(); // HashQuadtree does not support insertion
     m_HashLifeData.reset();
 
     LifeHashSet result{};
@@ -281,7 +275,6 @@ LifeHashSet GameGrid::InsertGrid(const GameGrid& region, Vec2 pos) {
             continue;
         }
         m_Data.insert(offsetPos);
-        m_SortedData.insert(offsetPos);
         result.insert(offsetPos);
         m_Population++;
     }
@@ -304,8 +297,14 @@ void GameGrid::RotateGrid(bool clockwise) {
                            static_cast<int32_t>(result.Y)});
     }
     std::swap(m_Width, m_Height);
-    m_CacheInvalidated = true;
-    m_Data = std::move(newSet);
+    m_SortedCacheInvalidated = true;
+
+    if (m_HashLifeData) {
+        m_UnsortedCacheInvalidated = true;
+        m_HashLifeData = HashQuadtree{std::move(newSet)};
+    } else {
+        m_Data = std::move(newSet);
+    }
 }
 
 void GameGrid::FlipGrid(bool vertical) {
@@ -327,8 +326,14 @@ void GameGrid::FlipGrid(bool vertical) {
             }
         }
     }
-    m_CacheInvalidated = true;
-    m_Data = std::move(newData);
+    m_SortedCacheInvalidated = true;
+
+    if (m_HashLifeData) {
+        m_HashLifeData = HashQuadtree{std::move(newData)};
+        m_UnsortedCacheInvalidated = true;
+    } else {
+        m_Data = std::move(newData);
+    }
 }
 
 std::optional<bool> GameGrid::Get(int32_t x, int32_t y) const {
@@ -339,16 +344,26 @@ std::optional<bool> GameGrid::Get(Vec2 pos) const {
     if (!InBounds(pos)) {
         return std::nullopt;
     }
+    if (m_HashLifeData) {
+        return m_HashLifeData->Get(pos);
+    }
     return m_Data.contains(pos);
 }
 
-void GameGrid::ValidateCache(bool validateSorted) const {
+void GameGrid::ValidateUnsortedCache() const {
     if (m_HashLifeData) {
         m_Data = *m_HashLifeData | std::ranges::to<LifeHashSet>();
     }
-    if (validateSorted) {
-        m_SortedData =
-            m_Data | std::ranges::to<std::set<Vec2, RowMajorEqual>>();
+    m_UnsortedCacheInvalidated = false;
+}
+
+void GameGrid::ValidateSortedCache() const {
+    if (m_HashLifeData) {
+        m_SortedData = *m_HashLifeData | std::ranges::to<std::vector<Vec2>>();
+    } else {
+        m_SortedData = m_Data | std::ranges::to<std::vector<Vec2>>();
     }
+    m_SortedCacheInvalidated = false;
+    std::ranges::sort(m_SortedData, RowMajorEqual{});
 }
 } // namespace gol

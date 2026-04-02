@@ -36,7 +36,7 @@ WidgetResult ButtonlessShortcuts::UpdateImpl(const EditorResult& state) {
     for (auto&& [action, actionShortcuts] : Shortcuts) {
         auto* selectionAction = std::get_if<SelectionAction>(&action);
         if (selectionAction && *selectionAction != SelectionAction::Deselect &&
-            state.Simulation.State != SimulationState::Paint)
+            !Actions::Editable(state.Simulation.State))
             continue;
 
         bool resultActive = false;

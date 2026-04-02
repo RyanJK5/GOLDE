@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "Graphics2D.hpp"
+#include "HashQuadtree.hpp"
 #include "LifeAlgorithm.hpp"
 #include "LifeHashSet.hpp"
 
@@ -28,6 +29,8 @@ class GameGrid {
     GameGrid(Size2 size);
 
     GameGrid(const GameGrid& other, Size2 size);
+
+    GameGrid(const HashQuadtree& data, Size2 size);
 
     LifeAlgorithm GetAlgorithm() const { return m_Algorithm; }
 
@@ -62,8 +65,6 @@ class GameGrid {
     bool Set(int32_t x, int32_t y, bool active);
     bool Toggle(int32_t x, int32_t y);
 
-    void TranslateRegion(Rect region, Vec2 translation);
-
     // Copies provided region to a new GameGrid.
     GameGrid SubRegion(Rect region) const;
 
@@ -72,10 +73,6 @@ class GameGrid {
 
     // Kills all cells in `region`.
     void ClearRegion(Rect region);
-
-    // Removes any cells present in `data`. `offset` is added to
-    // each value in `data`.
-    void ClearData(const std::vector<Vec2>& data, Vec2 offset);
 
     // Adds all cells from `grid` to this object, with each cell
     // offset by `offset`. Returns the set of all sells that were
@@ -98,7 +95,7 @@ class GameGrid {
     std::optional<bool> Get(Vec2 pos) const;
 
     // Returns a sorted set of the universe's data.
-    const std::set<Vec2, RowMajorEqual>& SortedData() const;
+    std::span<Vec2> SortedData() const;
     // Returns an unordered set of the universe's data.
     const LifeHashSet& Data() const;
 
@@ -111,9 +108,8 @@ class GameGrid {
     IterableData() const;
 
   private:
-    // Used to validate `m_Data` and optionally `m_SortedData` based on
-    // `validateSorted`.
-    void ValidateCache(bool validateSorted) const;
+    void ValidateUnsortedCache() const;
+    void ValidateSortedCache() const;
 
   private:
     LifeAlgorithm m_Algorithm;
@@ -123,12 +119,11 @@ class GameGrid {
     std::optional<HashQuadtree>
         m_HashLifeData; // Empty if the algorithm is not HashLife
 
-    mutable std::set<Vec2, RowMajorEqual>
+    mutable std::vector<Vec2>
         m_SortedData; // Declared mutable due to hidden cache validation
 
-    // TODO: Determine if this is actually functioning correctly
-    mutable bool m_CacheInvalidated =
-        true; // Declared mutable due to hidden cache validation
+    mutable bool m_UnsortedCacheInvalidated = true;
+    mutable bool m_SortedCacheInvalidated = true;
 
     int32_t m_Width;
     int32_t m_Height;

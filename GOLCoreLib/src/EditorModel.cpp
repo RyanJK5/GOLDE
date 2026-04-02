@@ -65,11 +65,14 @@ SimulationState EditorModel::HandleStart() {
 
 SimulationState EditorModel::HandleClear() {
     StopSimulation(false);
-    m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid));
-    m_VersionManager.PushChange({.Action = GameAction::Clear,
-                                 .SelectionBounds = m_InitialGrid.BoundingBox(),
-                                 .CellsInserted = {},
-                                 .CellsDeleted = m_InitialGrid.Data()});
+    m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
+                                   m_State);
+    m_VersionManager.TryPushChange(
+        VersionChange{.Action = GameAction::Clear,
+                      .SelectionBounds = m_InitialGrid.BoundingBox(),
+                      .CellsInserted = {},
+                      .CellsDeleted = m_InitialGrid.Data()},
+        m_State);
     m_Grid = GameGrid{m_Grid.Size()};
     return SimulationState::Paint;
 }
@@ -114,8 +117,10 @@ SimulationState EditorModel::HandleResize(Size2 newDimensions) {
         (m_Grid.Width() == 0 || m_Grid.Height() == 0))
         return SimulationState::Paint;
 
-    m_VersionManager.PushChange({.Action = EditorAction::Resize,
-                                 .GridResize = {{m_Grid, newDimensions}}});
+    m_VersionManager.TryPushChange(
+        VersionChange{.Action = EditorAction::Resize,
+                      .GridResize = {{m_Grid, newDimensions}}},
+        m_State);
 
     m_Grid = GameGrid{std::move(m_Grid), newDimensions};
     if (m_SelectionManager.CanDrawSelection()) {
@@ -124,7 +129,8 @@ SimulationState EditorModel::HandleResize(Size2 newDimensions) {
             !m_Grid.InBounds(selection.UpperRight()) ||
             !m_Grid.InBounds(selection.LowerLeft()) ||
             !m_Grid.InBounds(selection.LowerRight()))
-            m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid));
+            m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
+                                           m_State);
     }
     return SimulationState::Paint;
 }
@@ -133,9 +139,10 @@ SimulationState EditorModel::HandleGenerateNoise(float density) {
     if (!m_SelectionManager.CanDrawGrid())
         return m_State;
     const auto selectionBounds = m_SelectionManager.SelectionBounds();
-    m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid));
+    m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
+                                   m_State);
     m_VersionManager.TryPushChange(
-        m_SelectionManager.InsertNoise(selectionBounds, density));
+        m_SelectionManager.InsertNoise(selectionBounds, density), m_State);
     return m_State;
 }
 
@@ -158,17 +165,19 @@ SimulationState EditorModel::HandleRedo() {
 void EditorModel::HandleSelectionAction(SelectionAction action,
                                         int32_t nudgeSize) {
     if (action == SelectionAction::SelectAll)
-        m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid));
+        m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
+                                       m_State);
     m_VersionManager.TryPushChange(
-        m_SelectionManager.HandleAction(action, m_Grid, nudgeSize));
+        m_SelectionManager.HandleAction(action, m_Grid, nudgeSize), m_State);
 }
 
 std::optional<std::string>
 EditorModel::LoadFile(const std::filesystem::path& path) {
-    m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid));
+    m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
+                                   m_State);
     auto loadResult = m_SelectionManager.Load(path);
     if (loadResult) {
-        m_VersionManager.PushChange(*loadResult);
+        m_VersionManager.TryPushChange(*loadResult, m_State);
         return std::nullopt;
     }
     return loadResult.error().Message;
@@ -189,11 +198,12 @@ bool EditorModel::SaveToFile(const std::filesystem::path& path,
 std::expected<void, RLEEncoder::DecodeError>
 EditorModel::PasteSelection(std::optional<Vec2> cursorPos) {
     if (cursorPos || m_SelectionManager.CanDrawGrid()) {
-        m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid));
+        m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
+                                       m_State);
     }
     auto pasteResult = m_SelectionManager.Paste(cursorPos, 100'000'000U);
     if (pasteResult) {
-        m_VersionManager.PushChange(*pasteResult);
+        m_VersionManager.TryPushChange(*pasteResult, m_State);
         return {};
     }
     return std::unexpected{pasteResult.error()};
@@ -203,29 +213,30 @@ void EditorModel::ForcePaste(std::optional<Vec2> cursorPos) {
     auto pasteResult = m_SelectionManager.Paste(
         cursorPos, std::numeric_limits<uint32_t>::max());
     if (pasteResult)
-        m_VersionManager.PushChange(*pasteResult);
+        m_VersionManager.TryPushChange(*pasteResult, m_State);
 }
 
 void EditorModel::InsertFromClipboard(Vec2 position) {
-    m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid));
+    m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
+                                   m_State);
     auto result = m_SelectionManager.Paste(
         position, std::numeric_limits<uint32_t>::max(), true);
     if (result)
-        m_VersionManager.PushChange(*result);
+        m_VersionManager.TryPushChange(*result, m_State);
 }
 
 SimulationState EditorModel::SetSelectionBounds(Rect bounds) {
     auto [change1, change2] =
         m_SelectionManager.ModifySelectionBounds(m_Grid, bounds);
-    m_VersionManager.TryPushChange(change1);
-    m_VersionManager.TryPushChange(change2);
+    m_VersionManager.TryPushChange(change1, m_State);
+    m_VersionManager.TryPushChange(change2, m_State);
 
     return m_State;
 }
 
 bool EditorModel::UpdateSelectionAreaTracked(Vec2 gridPos) {
     auto result = m_SelectionManager.UpdateSelectionArea(m_Grid, gridPos);
-    m_VersionManager.TryPushChange(result.Change);
+    m_VersionManager.TryPushChange(result.Change, m_State);
     return result.BeginSelection;
 }
 
@@ -234,12 +245,12 @@ void EditorModel::TryResetSelection() {
 }
 
 void EditorModel::BeginPaintChange(Vec2 pos, bool insert) {
-    m_VersionManager.BeginPaintChange(pos, insert);
+    m_VersionManager.BeginPaintChange(pos, insert, m_State);
 }
 
 void EditorModel::PaintCell(Vec2 pos, bool value) {
     if (*m_Grid.Get(pos.X, pos.Y) != value)
-        m_VersionManager.AddPaintChange(pos);
+        m_VersionManager.AddPaintChange(pos, m_State);
     m_Grid.Set(pos.X, pos.Y, value);
 }
 

@@ -146,7 +146,18 @@ SimulationEditor::SimulationUpdate(const GraphicsHandlerArgs& args) {
 SimulationState SimulationEditor::PaintUpdate(const GraphicsHandlerArgs& args) {
     auto gridPos = CursorGridPos();
 
-    m_Graphics.DrawGrid({0, 0}, m_Model.Grid().Data(), args);
+    const auto data = m_Model.Grid().IterableData();
+    if (std::holds_alternative<std::reference_wrapper<const LifeHashSet>>(data))
+        m_Graphics.DrawGrid(
+            {0, 0},
+            std::get<std::reference_wrapper<const LifeHashSet>>(data).get(),
+            args);
+    else
+        m_Graphics.DrawGrid(
+            {0, 0},
+            std::get<std::reference_wrapper<const HashQuadtree>>(data).get(),
+            args);
+
     if (m_Model.Selection().CanDrawGrid())
         m_Graphics.DrawGrid(m_Model.Selection().SelectionBounds().UpperLeft(),
                             m_Model.Selection().GridData(), args);
@@ -166,27 +177,41 @@ SimulationState SimulationEditor::PaintUpdate(const GraphicsHandlerArgs& args) {
 }
 
 SimulationState SimulationEditor::PauseUpdate(const GraphicsHandlerArgs& args) {
-    auto gridPos = CursorGridPos();
+    const auto gridPos = CursorGridPos();
     if (gridPos)
         m_Model.UpdateSelectionAreaTracked(*gridPos);
 
     const auto data = m_Model.Grid().IterableData();
-    if (std::holds_alternative<std::reference_wrapper<const LifeHashSet>>(data))
+    if (std::holds_alternative<std::reference_wrapper<const LifeHashSet>>(
+            data)) {
         m_Graphics.DrawGrid(
             {0, 0},
             std::get<std::reference_wrapper<const LifeHashSet>>(data).get(),
             args);
-    else
+    } else {
         m_Graphics.DrawGrid(
             {0, 0},
             std::get<std::reference_wrapper<const HashQuadtree>>(data).get(),
             args);
+    }
 
-    if (m_Model.Selection().CanDrawSelection())
+    if (m_Model.Selection().CanDrawSelection()) {
         m_Graphics.DrawSelection(m_Model.Selection().SelectionBounds(), args);
-    if (m_Model.Selection().CanDrawGrid())
+    }
+    if (m_Model.Selection().CanDrawGrid()) {
         m_Graphics.DrawGrid(m_Model.Selection().SelectionBounds().UpperLeft(),
                             m_Model.Selection().GridData(), args);
+    }
+
+    if (m_Model.State() == SimulationState::Paused) {
+        if (gridPos) {
+            UpdateMouseState(*gridPos);
+        } else {
+            m_Model.TryResetSelection();
+        }
+    }
+    m_LeftDeltaLast = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
+
     return m_Model.State();
 }
 

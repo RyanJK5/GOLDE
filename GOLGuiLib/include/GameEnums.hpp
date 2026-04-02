@@ -80,6 +80,22 @@ inline const std::unordered_map<std::string_view, SelectionAction>
         {"select_all", SelectionAction::SelectAll}};
 
 std::string ToString(ActionVariant action);
+
+inline bool Editable(SimulationState state) {
+    switch (state) {
+        using enum SimulationState;
+    case None:
+    case Simulation:
+    case Stepping:
+        return false;
+    case Paint:
+    case Paused:
+    case Empty:
+        return true;
+    default:
+        return false;
+    }
+}
 }; // namespace Actions
 
 template <typename T>

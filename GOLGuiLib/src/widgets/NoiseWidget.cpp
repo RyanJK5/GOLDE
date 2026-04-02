@@ -13,8 +13,7 @@ std::string GenerateNoiseButton::Label(const EditorResult&) const {
 }
 
 bool GenerateNoiseButton::Enabled(const EditorResult& state) const {
-    return (state.Simulation.State == SimulationState::Empty ||
-            state.Simulation.State == SimulationState::Paint) &&
+    return Actions::Editable(state.Simulation.State) &&
            state.Editing.SelectionActive;
 }
 
