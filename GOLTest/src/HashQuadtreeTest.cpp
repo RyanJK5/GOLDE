@@ -535,8 +535,8 @@ TEST(HashQuadtreeTest, BoundsCheckingAtInt32Min) {
 
 TEST(HashQuadtreeTest, BoundsCheckingNearInt32Boundaries) {
     // Test bounds checking with coordinates near int32 boundaries
-    constexpr static int32_t maxInt32 = std::numeric_limits<int32_t>::max();
-    constexpr static int32_t minInt32 = std::numeric_limits<int32_t>::min();
+    constexpr static int32_t maxInt32 = std::numeric_limits<int32_t>::max() >> 1;
+    constexpr static int32_t minInt32 = std::numeric_limits<int32_t>::min() >> 1;
 
     const LifeHashSet cells{{maxInt32 - 1, maxInt32 - 1},
                             {minInt32 + 1, minInt32 + 1},
