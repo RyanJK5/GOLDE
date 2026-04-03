@@ -68,7 +68,6 @@ Start GOLDE and you'll be greeted with an interactive grid and control panel.
 - **Edit** the selection by pressing copy, cut, rotate, flip, or any other command visible in the sidebar.
 - **Shortcuts** can be found by hovering over any button, and can be customized by editing [shortcuts.yml](GOLExecutable/config/shortcuts.yml).
 - **Open patterns** from the built-in library by selecting a preset from the bottom window.
-- **Select an algorithm** from the dropdown in the sidebar.
 - **Start** the simulation, and freely pause, restart, or stop your simulation.
 - **Step** billions of generations by inputting any value into the "Step Count" field.
 - **Save and Load** your universe for future use.

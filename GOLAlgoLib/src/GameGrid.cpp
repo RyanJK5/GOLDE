@@ -132,8 +132,8 @@ BigInt GameGrid::Update(const BigInt& numSteps, std::stop_token stopToken) {
 
     switch (m_Algorithm) {
     case LifeAlgorithm::SparseLife:
-        // SparseLife is intentionally disabled during the HashQuadtree-only
-        // storage migration.
+        // SparseLife is currently disabled with the intention of replacing it
+        // long-term with a more efficient algorithm.
         return BigInt{};
     case LifeAlgorithm::HashLife:
         const auto generations = HashLife(m_HashLifeData, numSteps, stopToken);

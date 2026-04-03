@@ -132,32 +132,7 @@ WidgetResult StepWidget::UpdateImpl(const EditorResult& state) {
                                  : std::nullopt,
         .FromShortcut = result.FromShortcut};
 
-    const auto algo = [&] {
-        const bool showAlgoDropbox =
-            state.Simulation.State != SimulationState::Empty &&
-            state.Simulation.State != SimulationState::Paint &&
-            state.Simulation.State != SimulationState::Paused;
-        DisabledScope disableIf{showAlgoDropbox};
-
-        auto algoID = std::to_underlying(m_Algorithm);
-        ImGui::Combo("Algorithm", &algoID, "HashLife\0SparseLife\0");
-        return static_cast<LifeAlgorithm>(algoID);
-    }();
-
-    if (algo == LifeAlgorithm::HashLife)
-        ImGui::SetItemTooltip(
-            "HashLife is an optimized algorithm that can quickly compute "
-            "generations for large\n"
-            "patterns. It may be slower for small or chaotic patterns.");
-    else if (algo == LifeAlgorithm::SparseLife)
-        ImGui::SetItemTooltip(
-            "SparseLife is a straightforward algorithm that "
-            "computes each generation iteratively.\n"
-            "It may be faster for small or chaotic patterns, but "
-            "slower for larger ones.");
-
     retValue.FromShortcut = retValue.FromShortcut || result.FromShortcut;
-    m_Algorithm = algo;
 
     {
         const bool hideHyperSpeedOption =
