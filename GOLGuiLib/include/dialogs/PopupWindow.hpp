@@ -25,6 +25,8 @@ class PopupWindow {
   protected:
     virtual std::optional<PopupWindowState> ShowButtons() const = 0;
 
+    ~PopupWindow() = default;
+
   private:
     std::function<void(PopupWindowState)> m_UpdateCallback;
 

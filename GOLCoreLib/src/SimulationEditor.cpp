@@ -43,6 +43,7 @@ SimulationEditor::SimulationEditor(uint32_t id,
       m_Graphics(std::filesystem::path("resources") / "shader",
                  windowSize.Width, windowSize.Height, {0.1f, 0.1f, 0.1f, 1.f}),
       m_FileErrorWindow("File Error", [](auto) {}),
+      m_CopyErrorWindow("Copy Error", [](auto) {}),
       m_PasteWarning(
           "Paste Warning",
           std::bind_front(&SimulationEditor::PasteWarnUpdated, this)),
@@ -74,6 +75,7 @@ SimulationEditor::Update(std::optional<bool> activeOverride,
     m_Graphics.ClearBackground(graphicsArgs);
 
     m_PasteWarning.Update();
+    m_CopyErrorWindow.Update();
     m_FileErrorWindow.Update();
     m_SaveWarning.Update();
 
@@ -226,7 +228,7 @@ SimulationEditor::DisplaySimulation(bool grabFocus) {
 
     if ((m_Model.State() == SimulationState::Simulation ||
          m_Model.State() == SimulationState::Stepping) &&
-        m_Model.Worker().GetTimeSinceLastUpdate() > std::chrono::seconds{5}) {
+        m_Model.Worker().GetTimeSinceLastUpdate() >= std::chrono::seconds{3}) {
         constexpr static auto radius = 30.f;
         constexpr static auto thickness = 12.f;
         ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - radius * 2 -
@@ -424,7 +426,13 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
 
                     return m_Model.State();
                 }
-                m_Model.HandleSelectionAction(cmd.Action, cmd.NudgeSize);
+
+                if (!m_Model.HandleSelectionAction(cmd.Action, cmd.NudgeSize)) {
+                    m_CopyErrorWindow.Activate();
+                    m_CopyErrorWindow.Message = std::format(
+                        std::locale{""}, "Tried copying too many cells ({:L})",
+                        m_Model.Selection().SelectedPopulation());
+                }
                 return m_Model.State();
             }},
         *result.Command);

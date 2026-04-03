@@ -158,13 +158,22 @@ SimulationState EditorModel::HandleRedo() {
     return m_State;
 }
 
-void EditorModel::HandleSelectionAction(SelectionAction action,
+bool EditorModel::HandleSelectionAction(SelectionAction action,
                                         int32_t nudgeSize) {
     if (action == SelectionAction::SelectAll)
         m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
                                        m_State);
-    m_VersionManager.TryPushChange(
-        m_SelectionManager.HandleAction(action, m_Grid, nudgeSize), m_State);
+
+    const auto actionResult =
+        m_SelectionManager.HandleAction(action, m_Grid, nudgeSize);
+    m_VersionManager.TryPushChange(actionResult, m_State);
+
+    if (!actionResult &&
+        (action == SelectionAction::Copy || action == SelectionAction::Cut)) {
+        return false;
+    } else {
+        return true;
+    }
 }
 
 std::optional<std::string>

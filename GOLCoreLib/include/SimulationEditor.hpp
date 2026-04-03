@@ -81,6 +81,7 @@ class SimulationEditor {
     GraphicsHandler m_Graphics;
 
     ErrorWindow m_FileErrorWindow;
+    ErrorWindow m_CopyErrorWindow;
     WarnWindow m_PasteWarning;
     WarnWindow m_SaveWarning;
 

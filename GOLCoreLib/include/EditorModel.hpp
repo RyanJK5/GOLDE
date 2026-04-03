@@ -45,7 +45,7 @@ class EditorModel {
     SimulationState HandleGenerateNoise(float density);
     SimulationState HandleUndo();
     SimulationState HandleRedo();
-    void HandleSelectionAction(SelectionAction action, int32_t nudgeSize);
+    bool HandleSelectionAction(SelectionAction action, int32_t nudgeSize);
 
     // File operations
     std::optional<std::string> LoadFile(const std::filesystem::path& path);
