@@ -21,6 +21,8 @@ WidgetResult ResizeWidget::UpdateImpl(const EditorResult& state) {
 
     int32_t wrapper[2] = {m_Dimensions.Width, m_Dimensions.Height};
     ImGui::InputInt2("##label", wrapper);
+    m_Dimensions.Width = wrapper[0];
+    m_Dimensions.Height = wrapper[1];
     ImGui::SetItemTooltip("If either width or height is set to zero, the "
                           "universe will be unbounded.");
 

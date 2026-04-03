@@ -131,9 +131,6 @@ class HashQuadtree {
     HashQuadtree() = default;
     HashQuadtree(std::span<const Vec2> data, Vec2 offset = {});
 
-    HashQuadtree(const HashQuadtree& other);
-    HashQuadtree& operator=(const HashQuadtree& other);
-
     // The move constructor and move assignment are left intentionally
     // unspecified. Copying within a thread is essentially a move because
     // all quadtrees within the same thread use the same node storage.
@@ -200,9 +197,6 @@ class HashQuadtree {
     static BigInt PopulationOf(const LifeNode* node);
     static int64_t PopulationOf(const LifeNode* node, bool);
 
-    // Implementation for copy constructor / copy assignment
-    void Copy(const HashQuadtree& other);
-
     // AdvanceNode always returns a node that is one half the size.
     // ExpandUniverse is necessary to ensure that no data is lost when HashLife
     // is executed.
@@ -264,7 +258,17 @@ class HashQuadtree {
         const LifeNode* Node;
         Vec2L Offset;
     };
+
+    enum class Quadrant { NW, NE, SW, SE };
+
     CenteredNodeResult GetCenteredNode(int32_t level) const;
+
+    const LifeNode* ReplaceAlongPath(const LifeNode* node, int32_t level,
+                                     Quadrant sdir, const LifeNode* value,
+                                     int32_t targetLevel) const;
+    const LifeNode* SetCenteredNode(const LifeNode* outer, int32_t currentLevel,
+                                    const LifeNode* toInsert,
+                                    int32_t level) const;
 
   private:
     // The rationale for storing HashLifeCache in static, thread_local storage

@@ -15,7 +15,7 @@
 
 namespace gol {
 struct SelectionUpdateResult {
-    std::optional<VersionChange> Change{};
+    std::optional<VersionState> Change{};
     bool BeginSelection = false;
 };
 
@@ -25,47 +25,48 @@ class SelectionManager {
 
     bool TryResetSelection();
 
-    std::optional<VersionChange> Deselect(GameGrid& grid);
+    std::optional<VersionState> Deselect(GameGrid& grid);
 
-    std::optional<VersionChange> SelectAll(GameGrid& grid);
+    std::optional<VersionState> SelectAll(GameGrid& grid);
 
-    std::optional<VersionChange> Copy(GameGrid& grid);
+    std::optional<VersionState> Copy(GameGrid& grid);
 
-    std::optional<VersionChange> Cut();
+    std::optional<VersionState> Cut(const GameGrid& grid);
 
-    std::expected<VersionChange, RLEEncoder::DecodeError>
-    Paste(std::optional<Vec2> gridPos, uint32_t warnThreshold,
-          bool unlock = false);
+    std::expected<VersionState, RLEEncoder::DecodeError>
+    Paste(const GameGrid& grid, std::optional<Vec2> gridPos,
+          uint32_t warnThreshold, bool unlock = false);
 
-    std::optional<VersionChange> Delete();
+    std::optional<VersionState> Delete(const GameGrid& grid);
 
-    std::optional<VersionChange> Rotate(bool clockwise);
+    std::optional<VersionState> Rotate(bool clockwise, const GameGrid& grid);
 
-    std::optional<VersionChange> Flip(SelectionAction direction);
+    std::optional<VersionState> Flip(SelectionAction direction,
+                                     const GameGrid& grid);
 
-    std::optional<VersionChange> Nudge(Vec2 translation);
+    std::optional<VersionState> Nudge(Vec2 translation, const GameGrid& grid);
 
-    std::optional<VersionChange> InsertNoise(Rect selectionBounds,
-                                             float density);
+    std::optional<VersionState>
+    InsertNoise(const GameGrid& grid, Rect selectionBounds, float density);
 
-    std::pair<std::optional<VersionChange>, std::optional<VersionChange>>
+    std::pair<std::optional<VersionState>, std::optional<VersionState>>
     ModifySelectionBounds(GameGrid& grid, Rect bounds);
 
-    std::expected<VersionChange, RLEEncoder::DecodeError>
-    Load(const std::filesystem::path& filePath);
+    std::expected<VersionState, RLEEncoder::DecodeError>
+    Load(const GameGrid& grid, const std::filesystem::path& filePath);
 
     bool Save(const GameGrid& grid,
               const std::filesystem::path& filePath) const;
 
-    std::optional<VersionChange>
-    HandleAction(SelectionAction action, GameGrid& grid, int32_t nudgeSize);
+    std::optional<VersionState> HandleAction(SelectionAction action,
+                                             GameGrid& grid, int32_t nudgeSize);
     void HandleVersionChange(EditorAction undoRedo, GameGrid& grid,
-                             const VersionChange& change);
+                             const VersionState& state);
 
     Rect SelectionBounds() const;
 
     bool GridAlive() const;
-    const LifeHashSet& GridData() const;
+    const HashQuadtree& GridData() const;
     const BigInt& SelectedPopulation() const;
 
     bool CanDrawSelection() const;
@@ -73,12 +74,14 @@ class SelectionManager {
     bool CanDrawGrid() const;
 
   private:
-    VersionChange Select(GameGrid& grid);
+    std::optional<VersionState> Select(GameGrid& grid);
 
-    SelectionUpdateResult UpdateUnlockedSelection(Vec2 gridPos);
+    SelectionUpdateResult UpdateUnlockedSelection(GameGrid& grid, Vec2 gridPos);
 
     void RestoreGridVersion(EditorAction undoRedo, GameGrid& grid,
-                            const VersionChange& change);
+                            const VersionState& state);
+
+    VersionState CaptureState(const GameGrid& grid) const;
 
     void SetSelectionBounds(Rect bounds);
 

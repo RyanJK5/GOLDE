@@ -16,7 +16,11 @@ namespace gol {
 EditorModel::EditorModel(uint32_t id, const std::filesystem::path& path,
                          Size2 gridSize)
     : m_Grid(gridSize), m_Worker(std::make_unique<SimulationWorker>()),
-      m_CurrentFilePath(path), m_EditorID(id) {}
+      m_CurrentFilePath(path), m_EditorID(id) {
+    // Seed history with the initial state so first undo restores correctly.
+    m_VersionManager.PushChange(VersionState{.Universe = m_Grid});
+    m_VersionManager.Save();
+}
 
 bool EditorModel::operator==(const EditorModel& other) const {
     return m_EditorID == other.m_EditorID;
@@ -67,13 +71,8 @@ SimulationState EditorModel::HandleClear() {
     StopSimulation(false);
     m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
                                    m_State);
-    m_VersionManager.TryPushChange(
-        VersionChange{.Action = GameAction::Clear,
-                      .SelectionBounds = m_InitialGrid.BoundingBox(),
-                      .CellsInserted = {},
-                      .CellsDeleted = m_InitialGrid.Data()},
-        m_State);
     m_Grid = GameGrid{m_Grid.Size()};
+    m_VersionManager.TryPushChange(VersionState{.Universe = m_Grid}, m_State);
     return SimulationState::Paint;
 }
 
@@ -117,12 +116,8 @@ SimulationState EditorModel::HandleResize(Size2 newDimensions) {
         (m_Grid.Width() == 0 || m_Grid.Height() == 0))
         return SimulationState::Paint;
 
-    m_VersionManager.TryPushChange(
-        VersionChange{.Action = EditorAction::Resize,
-                      .GridResize = {{m_Grid, newDimensions}}},
-        m_State);
-
     m_Grid = GameGrid{std::move(m_Grid), newDimensions};
+    m_VersionManager.TryPushChange(VersionState{.Universe = m_Grid}, m_State);
     if (m_SelectionManager.CanDrawSelection()) {
         auto selection = m_SelectionManager.SelectionBounds();
         if (!m_Grid.InBounds(selection.UpperLeft()) ||
@@ -142,7 +137,8 @@ SimulationState EditorModel::HandleGenerateNoise(float density) {
     m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
                                    m_State);
     m_VersionManager.TryPushChange(
-        m_SelectionManager.InsertNoise(selectionBounds, density), m_State);
+        m_SelectionManager.InsertNoise(m_Grid, selectionBounds, density),
+        m_State);
     return m_State;
 }
 
@@ -175,7 +171,7 @@ std::optional<std::string>
 EditorModel::LoadFile(const std::filesystem::path& path) {
     m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
                                    m_State);
-    auto loadResult = m_SelectionManager.Load(path);
+    auto loadResult = m_SelectionManager.Load(m_Grid, path);
     if (loadResult) {
         m_VersionManager.TryPushChange(*loadResult, m_State);
         return std::nullopt;
@@ -201,7 +197,8 @@ EditorModel::PasteSelection(std::optional<Vec2> cursorPos) {
         m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
                                        m_State);
     }
-    auto pasteResult = m_SelectionManager.Paste(cursorPos, 100'000'000U);
+    auto pasteResult =
+        m_SelectionManager.Paste(m_Grid, cursorPos, 100'000'000U);
     if (pasteResult) {
         m_VersionManager.TryPushChange(*pasteResult, m_State);
         return {};
@@ -211,7 +208,7 @@ EditorModel::PasteSelection(std::optional<Vec2> cursorPos) {
 
 void EditorModel::ForcePaste(std::optional<Vec2> cursorPos) {
     auto pasteResult = m_SelectionManager.Paste(
-        cursorPos, std::numeric_limits<uint32_t>::max());
+        m_Grid, cursorPos, std::numeric_limits<uint32_t>::max());
     if (pasteResult)
         m_VersionManager.TryPushChange(*pasteResult, m_State);
 }
@@ -220,7 +217,7 @@ void EditorModel::InsertFromClipboard(Vec2 position) {
     m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
                                    m_State);
     auto result = m_SelectionManager.Paste(
-        position, std::numeric_limits<uint32_t>::max(), true);
+        m_Grid, position, std::numeric_limits<uint32_t>::max(), true);
     if (result)
         m_VersionManager.TryPushChange(*result, m_State);
 }
@@ -244,14 +241,18 @@ void EditorModel::TryResetSelection() {
     m_SelectionManager.TryResetSelection();
 }
 
+// TODO: Make sure this works
 void EditorModel::BeginPaintChange(Vec2 pos, bool insert) {
-    m_VersionManager.BeginPaintChange(pos, insert, m_State);
+    m_VersionManager.BeginPaintChange(m_Grid, m_State);
 }
 
 void EditorModel::PaintCell(Vec2 pos, bool value) {
-    if (*m_Grid.Get(pos.X, pos.Y) != value)
-        m_VersionManager.AddPaintChange(pos, m_State);
+    if (*m_Grid.Get(pos.X, pos.Y) == value) {
+        return;
+    }
+
     m_Grid.Set(pos.X, pos.Y, value);
+    m_VersionManager.AddPaintChange(m_Grid, m_State);
 }
 
 void EditorModel::MarkSaved() { m_VersionManager.Save(); }

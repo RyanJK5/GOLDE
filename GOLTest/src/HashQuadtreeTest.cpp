@@ -36,8 +36,16 @@ static void CheckAgainstFile(const std::filesystem::path& unevolved,
 
     const auto data1 = RLEEncoder::ReadRegion(unevolved);
     const auto data2 = RLEEncoder::ReadRegion(evolved);
-    HashQuadtree current{data1->Grid.Data(), data1->Offset};
-    const HashQuadtree expected{data2->Grid.Data(), data2->Offset};
+    const auto shifted = [](const HashQuadtree& tree, Vec2 offset) {
+        std::vector<Vec2> result{};
+        for (const auto cell : tree) {
+            result.emplace_back(cell + offset);
+        }
+        return result;
+    };
+
+    HashQuadtree current{shifted(data1->Grid.Data(), data1->Offset)};
+    const HashQuadtree expected{shifted(data2->Grid.Data(), data2->Offset)};
 
     BigInt totalGenerations{};
     for (auto i = 0; i < numJumps; ++i) {
@@ -321,7 +329,8 @@ TEST(HashQuadtreeTest, CopyingBreeder) {
 
     const auto data = RLEEncoder::ReadRegion(directory / "glider_gun.rle");
 
-    HashQuadtree original{data->Grid.Data(), data->Offset};
+    HashQuadtree original{data->Grid.Data() | std::ranges::to<LifeHashSet>(),
+                          data->Offset};
 
     original.Advance(32);
     HashQuadtree copy{original};

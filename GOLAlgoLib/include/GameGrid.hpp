@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
-#include <set>
 #include <stop_token>
 #include <vector>
 
@@ -97,32 +96,24 @@ class GameGrid {
     // Returns a sorted set of the universe's data.
     std::span<Vec2> SortedData() const;
     // Returns an unordered set of the universe's data.
-    const LifeHashSet& Data() const;
+    const HashQuadtree& Data() const;
 
-    // Returns the underlying data that the universe is currently
-    // using. Typically, when simulating using the HashLife algorithm,
-    // this will return a `const HashQuadtree&`, and will otherwise
-    // return a `LifeHashSet`.
-    std::variant<std::reference_wrapper<const LifeHashSet>,
-                 std::reference_wrapper<const HashQuadtree>>
-    IterableData() const;
+    // Returns the underlying universe representation.
+    const HashQuadtree& IterableData() const;
+
+    bool ShouldValidateCache() const;
 
   private:
-    void ValidateUnsortedCache() const;
     void ValidateSortedCache() const;
 
   private:
     LifeAlgorithm m_Algorithm;
 
-    mutable LifeHashSet
-        m_Data; // Declared mutable due to hidden cache validation
-    std::optional<HashQuadtree>
-        m_HashLifeData; // Empty if the algorithm is not HashLife
+    HashQuadtree m_HashLifeData;
 
     mutable std::vector<Vec2>
         m_SortedData; // Declared mutable due to hidden cache validation
 
-    mutable bool m_UnsortedCacheInvalidated = true;
     mutable bool m_SortedCacheInvalidated = true;
 
     int32_t m_Width;

@@ -12,13 +12,17 @@ TEST(SparseLifeTest, SquigglesTest) {
     EXPECT_TRUE(std::filesystem::exists(directory));
 
     auto data1 =
-        RLEEncoder::ReadRegion(directory / "squiggles1.rle")->Grid.Data();
+        RLEEncoder::ReadRegion(directory / "squiggles1.rle")->Grid.Data() |
+        std::ranges::to<std::vector<Vec2>>();
     auto data2 =
-        RLEEncoder::ReadRegion(directory / "squiggles2.rle")->Grid.Data();
+        RLEEncoder::ReadRegion(directory / "squiggles2.rle")->Grid.Data() |
+        std::ranges::to<LifeHashSet>();
     auto data3 =
-        RLEEncoder::ReadRegion(directory / "squiggles3.rle")->Grid.Data();
+        RLEEncoder::ReadRegion(directory / "squiggles3.rle")->Grid.Data() |
+        std::ranges::to<LifeHashSet>();
     auto data4 =
-        RLEEncoder::ReadRegion(directory / "squiggles4.rle")->Grid.Data();
+        RLEEncoder::ReadRegion(directory / "squiggles4.rle")->Grid.Data() |
+        std::ranges::to<LifeHashSet>();
     const Rect bounds{};
 
     constexpr static auto DataEqual = [](const LifeHashSet& a,
@@ -32,18 +36,20 @@ TEST(SparseLifeTest, SquigglesTest) {
         return true;
     };
 
-    data1 = SparseLife(data1, bounds);
-    EXPECT_TRUE(DataEqual(data1, data2));
+    auto sparse1 = SparseLife(data1, bounds);
+    EXPECT_TRUE(DataEqual(sparse1, data2));
 
-    data1 = SparseLife(data1, bounds);
-    data2 = SparseLife(data2, bounds);
-    EXPECT_TRUE(DataEqual(data1, data3));
+    sparse1 =
+        SparseLife(std::vector<Vec2>{sparse1.begin(), sparse1.end()}, bounds);
+    data2 = SparseLife(std::vector<Vec2>{data2.begin(), data2.end()}, bounds);
+    EXPECT_TRUE(DataEqual(sparse1, data3));
     EXPECT_TRUE(DataEqual(data2, data3));
 
-    data1 = SparseLife(data1, bounds);
+    sparse1 =
+        SparseLife(std::vector<Vec2>{sparse1.begin(), sparse1.end()}, bounds);
     data2 = SparseLife(data2, bounds);
     data3 = SparseLife(data3, bounds);
-    EXPECT_TRUE(DataEqual(data1, data4));
+    EXPECT_TRUE(DataEqual(sparse1, data4));
     EXPECT_TRUE(DataEqual(data2, data4));
     EXPECT_TRUE(DataEqual(data3, data4));
 }

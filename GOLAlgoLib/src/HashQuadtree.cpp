@@ -262,15 +262,6 @@ HashQuadtree::HashQuadtree(std::span<const Vec2> data, Vec2 offset) {
         {static_cast<int64_t>(offset.X), static_cast<int64_t>(offset.Y)};
 }
 
-HashQuadtree::HashQuadtree(const HashQuadtree& other) { Copy(other); }
-
-HashQuadtree& HashQuadtree::operator=(const HashQuadtree& other) {
-    if (this != &other) {
-        Copy(other);
-    }
-    return *this;
-}
-
 // Generic form of HashQuadtree::FindOrCreate that we can also use
 // for building a transfer cache.
 static const LifeNode* FindOrCreateFromCache(HashLifeCache& cache,
@@ -286,12 +277,6 @@ static const LifeNode* FindOrCreateFromCache(HashLifeCache& cache,
     auto* node = cache.NodeStorage.emplace(nw, ne, sw, se);
     cache.NodeMap[node] = nullptr;
     return node;
-}
-
-void HashQuadtree::Copy(const HashQuadtree& other) {
-    m_Root = other.m_Root;
-    m_SeedOffset = other.m_SeedOffset;
-    m_Depth = other.m_Depth;
 }
 
 int32_t HashQuadtree::CalculateDepth() const { return m_Depth; }
@@ -332,8 +317,10 @@ void HashQuadtree::Set(Vec2 targetPos, bool alive) {
         m_Depth++;
     }
 
+    const auto insertLevel = std::min(m_Depth, 32);
     const auto [node, offset] = GetCenteredNode(32);
-    m_Root = SetImpl(node, offset, targetPos, std::min(m_Depth, 32), alive);
+    const auto* centered = SetImpl(node, offset, targetPos, insertLevel, alive);
+    m_Root = SetCenteredNode(m_Root, m_Depth, centered, insertLevel);
 }
 
 const LifeNode* HashQuadtree::SetImpl(const LifeNode* node, Vec2L pos,
@@ -373,15 +360,14 @@ const LifeNode* HashQuadtree::SetImpl(const LifeNode* node, Vec2L pos,
 
 void HashQuadtree::Clear(Rect region) {
     const auto [node, offset] = GetCenteredNode(32);
-    m_Root = ClearImpl(node, offset, region, std::min(m_Depth, 32));
+    const auto* centered =
+        ClearImpl(node, offset, region, std::min(m_Depth, 32));
+    m_Root = SetCenteredNode(m_Root, m_Depth, centered, 32);
 }
 
 const LifeNode* HashQuadtree::ClearImpl(const LifeNode* node, Vec2L pos,
                                         Rect region, int32_t level) {
-    if (level == 0) {
-        return FalseNode;
-    }
-    if (node->IsEmpty) {
+    if (node == FalseNode || node->IsEmpty) {
         return node;
     }
 
@@ -396,6 +382,10 @@ const LifeNode* HashQuadtree::ClearImpl(const LifeNode* node, Vec2L pos,
     // If there's no overlap at all, nothing to do
     if (!region.Intersects(nodeRect)) {
         return node;
+    }
+
+    if (level == 0) {
+        return FalseNode;
     }
 
     const auto halfSize = Pow2(level - 1);
@@ -413,15 +403,14 @@ const LifeNode* HashQuadtree::ClearImpl(const LifeNode* node, Vec2L pos,
 
 HashQuadtree HashQuadtree::Extract(Rect region) const {
     HashQuadtree result{};
-    result.m_SeedOffset = m_SeedOffset;
-    result.m_Depth = m_Depth;
+    result.m_SeedOffset = m_SeedOffset - Vec2L{region.X, region.Y};
 
     if (m_Root == FalseNode)
         return result;
 
     const auto [node, offset] = GetCenteredNode(32);
     result.m_Root = ExtractImpl(node, offset, region, std::min(m_Depth, 32));
-    result.m_SeedOffset -= Vec2L{region.X, region.Y};
+    result.m_Depth = std::min(m_Depth, 32);
     return result;
 }
 
@@ -565,6 +554,74 @@ HashQuadtree::GetCenteredNode(int32_t level) const {
     const auto size = Pow2(level - 1);
     return {.Node = FindOrCreate(northwest, northeast, southwest, southeast),
             .Offset = {m_SeedOffset.X - size, m_SeedOffset.Y - size}};
+}
+
+const LifeNode* HashQuadtree::ReplaceAlongPath(const LifeNode* node,
+                                               int32_t level, Quadrant quadrant,
+                                               const LifeNode* value,
+                                               int32_t targetLevel) const {
+    if (level <= targetLevel) {
+        return value;
+    }
+
+    const auto* source = (node == FalseNode) ? EmptyTree(level) : node;
+
+    const auto* nw = source->NorthWest;
+    const auto* ne = source->NorthEast;
+    const auto* sw = source->SouthWest;
+    const auto* se = source->SouthEast;
+
+    switch (quadrant) {
+    case Quadrant::NW:
+        nw = ReplaceAlongPath(nw, level - 1, quadrant, value, targetLevel);
+        break;
+    case Quadrant::NE:
+        ne = ReplaceAlongPath(ne, level - 1, quadrant, value, targetLevel);
+        break;
+    case Quadrant::SW:
+        sw = ReplaceAlongPath(sw, level - 1, quadrant, value, targetLevel);
+        break;
+    case Quadrant::SE:
+        se = ReplaceAlongPath(se, level - 1, quadrant, value, targetLevel);
+        break;
+    }
+
+    return FindOrCreate(nw, ne, sw, se);
+}
+
+const LifeNode* HashQuadtree::SetCenteredNode(const LifeNode* outer,
+                                              int32_t outerLevel,
+                                              const LifeNode* toInsert,
+                                              int32_t insertLevel) const {
+    if (outer == FalseNode) {
+        outer = EmptyTree(outerLevel);
+    }
+
+    if (outerLevel <= insertLevel) {
+        return toInsert;
+    }
+
+    // Undefined for inserting a single leaf into a larger even-sized node.
+    if (insertLevel == 0) {
+        return outer;
+    }
+
+    const auto childTargetLevel = insertLevel - 1;
+
+    const auto* nw =
+        ReplaceAlongPath(outer->NorthWest, outerLevel - 1, Quadrant::SE,
+                         toInsert->NorthWest, childTargetLevel);
+    const auto* ne =
+        ReplaceAlongPath(outer->NorthEast, outerLevel - 1, Quadrant::SW,
+                         toInsert->NorthEast, childTargetLevel);
+    const auto* sw =
+        ReplaceAlongPath(outer->SouthWest, outerLevel - 1, Quadrant::NE,
+                         toInsert->SouthWest, childTargetLevel);
+    const auto* se =
+        ReplaceAlongPath(outer->SouthEast, outerLevel - 1, Quadrant::NW,
+                         toInsert->SouthEast, childTargetLevel);
+
+    return FindOrCreate(nw, ne, sw, se);
 }
 
 BigInt HashQuadtree::Population() const { return PopulationOf(m_Root); }

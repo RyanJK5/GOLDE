@@ -11,46 +11,39 @@
 #include "Graphics2D.hpp"
 
 namespace gol {
-struct VersionChange {
-    std::optional<ActionVariant> Action{};
-    std::optional<std::pair<GameGrid, Size2>> GridResize{};
+struct VersionState {
+    GameGrid Universe{};
+    GameGrid SelectionUniverse{};
     std::optional<Rect> SelectionBounds{};
-    LifeHashSet CellsInserted{};
-    LifeHashSet CellsDeleted{};
-    Vec2 NudgeTranslation{};
-
-    bool InsertedIntoSelection() const { return SelectionBounds.has_value(); }
 };
 
 class VersionManager {
   public:
-    void BeginPaintChange(Vec2 pos, bool insert, SimulationState state);
-    void AddPaintChange(Vec2 pos, SimulationState state);
+    void BeginPaintChange(const GameGrid& universe, SimulationState state);
+    void AddPaintChange(const GameGrid& universe, SimulationState state);
 
-    void PushChange(const VersionChange& change);
-    void TryPushChange(const std::optional<VersionChange>& change,
+    void PushChange(const VersionState& change);
+    void TryPushChange(const std::optional<VersionState>& change,
                        SimulationState state);
 
-    std::optional<VersionChange> Undo();
-    std::optional<VersionChange> Redo();
+    std::optional<VersionState> Undo();
+    std::optional<VersionState> Redo();
 
     void Save() { m_LastSavedHeight = m_EditHeight; }
     bool IsSaved() const { return m_EditHeight == m_LastSavedHeight; }
 
-    bool UndosAvailable() const { return !m_UndoStack.empty(); }
+    bool UndosAvailable() const { return m_UndoStack.size() > 1; }
     bool RedosAvailable() const { return !m_RedoStack.empty(); }
 
   private:
-    bool BreakingChange(const VersionChange& change) const;
-
     void ClearRedos();
 
   private:
     size_t m_EditHeight = 0;
     size_t m_LastSavedHeight = 0;
 
-    std::stack<VersionChange> m_UndoStack;
-    std::stack<VersionChange> m_RedoStack;
+    std::stack<VersionState> m_UndoStack;
+    std::stack<VersionState> m_RedoStack;
 };
 } // namespace gol
 

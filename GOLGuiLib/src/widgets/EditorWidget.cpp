@@ -190,7 +190,7 @@ std::string RedoButton::Label(const EditorResult&) const {
 }
 
 bool RedoButton::Enabled(const EditorResult& state) const {
-    return state.Editing.UndosAvailable &&
+    return state.Editing.RedosAvailable &&
            (state.Simulation.State == SimulationState::Paint ||
             state.Simulation.State == SimulationState::Empty);
 }

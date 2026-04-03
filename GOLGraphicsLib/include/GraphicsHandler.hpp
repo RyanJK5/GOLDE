@@ -124,10 +124,9 @@ GraphicsHandler::GenerateGLBuffer(Vec2 offset, int32_t minLevel,
 
     if constexpr (std::ranges::sized_range<decltype(grid)>) {
         const auto visibleCapacity =
-            static_cast<size_t>(std::max<int32_t>(gridInfo.GridSize.Width, 0) *
-                                std::max<int32_t>(gridInfo.GridSize.Height, 0));
-        const auto reserveCount =
-            std::min(static_cast<size_t>(grid.size()), visibleCapacity);
+            static_cast<size_t>(std::max(gridInfo.GridSize.Width, 0) *
+                                std::max(gridInfo.GridSize.Height, 0));
+        const auto reserveCount = std::min(grid.size(), visibleCapacity);
         result.reserve(reserveCount * 3);
     }
 
@@ -153,7 +152,11 @@ GraphicsHandler::GenerateGLBuffer(Vec2 offset, int32_t minLevel,
     };
 
     if constexpr (std::is_same_v<std::decay_t<decltype(grid)>, HashQuadtree>) {
-        grid.ForEachCell(pushToBuffer, VisibleBounds(args), minLevel);
+        const auto visibleWorldBounds = VisibleBounds(args);
+        const Rect localBounds{
+            visibleWorldBounds.X - offset.X, visibleWorldBounds.Y - offset.Y,
+            visibleWorldBounds.Width, visibleWorldBounds.Height};
+        grid.ForEachCell(pushToBuffer, localBounds, minLevel);
     } else {
         for (const auto vec : grid) {
             pushToBuffer(vec, minLevel);

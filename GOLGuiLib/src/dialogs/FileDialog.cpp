@@ -11,7 +11,7 @@ namespace gol {
 std::expected<std::filesystem::path, FileDialogFailure>
 FileDialog::OpenFileDialog(const std::string& filters,
                            const std::string& defaultPath) {
-    const nfdfilteritem_t filterItem[]{{"GOLDE files", filters.c_str()}};
+    const nfdfilteritem_t filterItem[]{{"RLE files", filters.c_str()}};
 
     NFD::UniquePathU8 outPath{};
     const auto result =
@@ -41,7 +41,7 @@ FileDialog::OpenFileDialog(const std::string& filters,
 std::expected<std::filesystem::path, FileDialogFailure>
 FileDialog::SaveFileDialog(const std::string& filters,
                            const std::string& defaultPath) {
-    const nfdfilteritem_t filterItem[]{{"GOLDE files", filters.c_str()}};
+    const nfdfilteritem_t filterItem[]{{"RLE files", filters.c_str()}};
 
     NFD::UniquePathU8 outPath{};
     const auto result = NFD::SaveDialog(

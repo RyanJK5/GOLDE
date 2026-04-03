@@ -27,13 +27,9 @@ TEST(EncodeTest, DecodeEncodeTest) {
     const auto result = RLEEncoder::ReadRegion(filePath);
     ASSERT_TRUE(result.has_value()) << result.error().Message;
 
-    const auto dataToWrite =
-        result->Grid.Data() |
-        std::views::transform([&](Vec2 pos) { return pos + result->Offset; }) |
-        std::ranges::to<LifeHashSet>();
     GameGrid finalGrid{};
-    for (const auto pos : dataToWrite)
-        finalGrid.Set(pos.X, pos.Y, true);
+    for (const auto pos : result->Grid.Data())
+        finalGrid.Set(pos.X + result->Offset.X, pos.Y + result->Offset.Y, true);
 
     const auto boundingBox = finalGrid.BoundingBox();
     const auto encoded =

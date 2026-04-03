@@ -26,7 +26,6 @@
 #include "Graphics2D.hpp"
 #include "GraphicsHandler.hpp"
 #include "HashQuadtree.hpp"
-#include "LifeHashSet.hpp"
 #include "LoadingSpinner.hpp"
 #include "PopupWindow.hpp"
 #include "PresetSelectionResult.hpp"
@@ -129,34 +128,14 @@ SimulationState
 SimulationEditor::SimulationUpdate(const GraphicsHandlerArgs& args) {
     const auto snapshot = m_Model.Worker().GetResult();
 
-    const auto data = snapshot->IterableData();
-    if (std::holds_alternative<std::reference_wrapper<const LifeHashSet>>(data))
-        m_Graphics.DrawGrid(
-            {0, 0},
-            std::get<std::reference_wrapper<const LifeHashSet>>(data).get(),
-            args);
-    else
-        m_Graphics.DrawGrid(
-            {0, 0},
-            std::get<std::reference_wrapper<const HashQuadtree>>(data).get(),
-            args);
+    m_Graphics.DrawGrid({0, 0}, snapshot->IterableData(), args);
     return SimulationState::Simulation;
 }
 
 SimulationState SimulationEditor::PaintUpdate(const GraphicsHandlerArgs& args) {
     auto gridPos = CursorGridPos();
 
-    const auto data = m_Model.Grid().IterableData();
-    if (std::holds_alternative<std::reference_wrapper<const LifeHashSet>>(data))
-        m_Graphics.DrawGrid(
-            {0, 0},
-            std::get<std::reference_wrapper<const LifeHashSet>>(data).get(),
-            args);
-    else
-        m_Graphics.DrawGrid(
-            {0, 0},
-            std::get<std::reference_wrapper<const HashQuadtree>>(data).get(),
-            args);
+    m_Graphics.DrawGrid({0, 0}, m_Model.Grid().IterableData(), args);
 
     if (m_Model.Selection().CanDrawGrid())
         m_Graphics.DrawGrid(m_Model.Selection().SelectionBounds().UpperLeft(),
@@ -181,19 +160,7 @@ SimulationState SimulationEditor::PauseUpdate(const GraphicsHandlerArgs& args) {
     if (gridPos)
         m_Model.UpdateSelectionAreaTracked(*gridPos);
 
-    const auto data = m_Model.Grid().IterableData();
-    if (std::holds_alternative<std::reference_wrapper<const LifeHashSet>>(
-            data)) {
-        m_Graphics.DrawGrid(
-            {0, 0},
-            std::get<std::reference_wrapper<const LifeHashSet>>(data).get(),
-            args);
-    } else {
-        m_Graphics.DrawGrid(
-            {0, 0},
-            std::get<std::reference_wrapper<const HashQuadtree>>(data).get(),
-            args);
-    }
+    m_Graphics.DrawGrid({0, 0}, m_Model.Grid().IterableData(), args);
 
     if (m_Model.Selection().CanDrawSelection()) {
         m_Graphics.DrawSelection(m_Model.Selection().SelectionBounds(), args);
@@ -295,9 +262,13 @@ SimulationEditor::DisplaySimulation(bool grabFocus) {
             const auto sentinel =
                 m_Model.Selection().SelectionBounds().LowerRight();
             text += std::format(" X ({}, {})", sentinel.X, sentinel.Y);
-            text += std::format(", width: {}, height: {}",
+            text += std::format(std::locale{""}, ", width: {:L}; height: {:L}",
                                 std::abs(sentinel.X - pos.X),
                                 std::abs(sentinel.Y - pos.Y));
+            if (m_Model.Selection().CanDrawGrid()) {
+                text += std::format(std::locale{""}, " ({:L} cells)",
+                                    m_Model.Selection().SelectedPopulation());
+            }
         }
         ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y -
                              ImGui::CalcTextSize(text.c_str()).y);
