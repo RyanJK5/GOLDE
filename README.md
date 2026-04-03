@@ -47,7 +47,7 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 
 # Launch application
-./build/GOLExecutable/GOLExecutable.exe
+./build/GOLExecutable/GOLDE.exe
 ```
 
 For **multi-config generators** (Visual Studio, Xcode):
@@ -55,7 +55,7 @@ For **multi-config generators** (Visual Studio, Xcode):
 cmake -B build -G "Visual Studio 18 2026"
 cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure
-./build/GOLExecutable/Release/GOLExecutable.exe
+./build/GOLExecutable/Release/GOLDE.exe
 ```
 ## Usage Guide
 

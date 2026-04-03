@@ -52,6 +52,7 @@ OpenGLWindow::OpenGLWindow(int32_t width, int32_t height)
     const GLFWimage icon{
         .width = iconWidth, .height = iconHeight, .pixels = pixels.get()};
     glfwSetWindowIcon(m_Underlying, 1, &icon);
+    glfwPollEvents();
 
     if (!m_Underlying)
         throw GLException("Failed to create window");
