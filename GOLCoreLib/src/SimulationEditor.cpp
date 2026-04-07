@@ -36,6 +36,35 @@
 #include "VersionManager.hpp"
 
 namespace gol {
+namespace {
+constexpr int32_t SelectionCoordLimit = std::numeric_limits<int32_t>::max() / 2;
+
+std::string FormatSelectionPoint(Vec2 point) {
+    return std::format("({}, {})", point.X, point.Y);
+}
+
+std::string FormatHoverPoint(glm::dvec2 worldCellPos) {
+    const auto cursorX = std::floor(worldCellPos.x);
+    const auto cursorY = std::floor(worldCellPos.y);
+
+    if (!std::isfinite(cursorX) || !std::isfinite(cursorY)) {
+        return "(out of range)";
+    }
+
+    const auto minCoord = static_cast<double>(-SelectionCoordLimit);
+    const auto maxCoord = static_cast<double>(SelectionCoordLimit);
+    const auto inRange = cursorX >= minCoord && cursorX <= maxCoord &&
+                         cursorY >= minCoord && cursorY <= maxCoord;
+
+    if (inRange) {
+        return std::format("({}, {})", static_cast<int32_t>(cursorX),
+                           static_cast<int32_t>(cursorY));
+    }
+
+    return std::format("({:.0f}, {:.0f}) [out of range]", cursorX, cursorY);
+}
+} // namespace
+
 SimulationEditor::SimulationEditor(uint32_t id,
                                    const std::filesystem::path& path,
                                    Size2 windowSize, Size2 gridSize)
@@ -259,24 +288,43 @@ SimulationEditor::DisplaySimulation(bool grabFocus) {
         "%s", std::format(std::locale{""}, "Population: {:L}", totalPopulation)
                   .c_str());
 
+    const auto mousePos = Vec2F{ImGui::GetMousePos()};
+    const auto viewportBounds = ViewportBounds();
+    const auto hoverText = [&]() -> std::optional<std::string> {
+        if (!viewportBounds.InBounds(mousePos.X, mousePos.Y)) {
+            return std::nullopt;
+        }
+
+        auto worldPos =
+            m_Graphics.Camera.ScreenToWorldPos(mousePos, viewportBounds);
+        worldPos /= glm::dvec2{DefaultCellWidth, DefaultCellHeight};
+        return FormatHoverPoint(worldPos);
+    }();
+
     if (m_Model.Selection().CanDrawSelection()) {
-        const auto pos = m_Model.Selection().SelectionBounds().UpperLeft();
-        auto text = std::format("({}, {})", pos.X, pos.Y);
+        const auto bounds = m_Model.Selection().SelectionBounds();
+        const auto anchor = bounds.UpperLeft();
+        const auto sentinel = bounds.LowerRight() - Vec2{1, 1};
+
+        auto text = FormatSelectionPoint(anchor);
         if (m_Model.Selection().CanDrawLargeSelection()) {
-            const auto sentinel =
-                m_Model.Selection().SelectionBounds().LowerRight();
-            text += std::format(" X ({}, {})", sentinel.X, sentinel.Y);
+            text += std::format(" X {}", FormatSelectionPoint(sentinel));
             text += std::format(std::locale{""}, ", width: {:L}; height: {:L}",
-                                std::abs(sentinel.X - pos.X),
-                                std::abs(sentinel.Y - pos.Y));
+                                std::abs(sentinel.X - anchor.X) + 1,
+                                std::abs(sentinel.Y - anchor.Y) + 1);
             if (m_Model.Selection().CanDrawGrid()) {
                 text += std::format(std::locale{""}, " ({:L} cells)",
                                     m_Model.Selection().SelectedPopulation());
             }
         }
+
         ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y -
                              ImGui::CalcTextSize(text.c_str()).y);
         ImGui::Text("%s", text.c_str());
+    } else if (hoverText) {
+        ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y -
+                             ImGui::CalcTextSize(hoverText->c_str()).y);
+        ImGui::Text("%s", hoverText->c_str());
     }
 
     splitter.Merge(ImGui::GetWindowDrawList());
@@ -304,8 +352,16 @@ std::optional<Vec2> SimulationEditor::ConvertToGridPos(Vec2F screenPos) {
         m_Graphics.Camera.ScreenToWorldPos(screenPos, ViewportBounds());
     vec /= glm::dvec2{DefaultCellWidth, DefaultCellHeight};
 
-    Vec2 result = {static_cast<int32_t>(std::floor(vec.x)),
-                   static_cast<int32_t>(std::floor(vec.y))};
+    const auto cellX = std::floor(vec.x);
+    const auto cellY = std::floor(vec.y);
+    const auto minCoord = static_cast<double>(-SelectionCoordLimit);
+    const auto maxCoord = static_cast<double>(SelectionCoordLimit);
+    if (!std::isfinite(cellX) || !std::isfinite(cellY) || cellX < minCoord ||
+        cellX > maxCoord || cellY < minCoord || cellY > maxCoord) {
+        return std::nullopt;
+    }
+
+    Vec2 result = {static_cast<int32_t>(cellX), static_cast<int32_t>(cellY)};
     if (!m_Model.Grid().InBounds(result))
         return std::nullopt;
     return result;

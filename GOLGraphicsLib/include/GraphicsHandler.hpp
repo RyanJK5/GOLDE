@@ -68,10 +68,9 @@ class GraphicsHandler {
 
     void InitGridBuffer();
 
-    std::vector<float>
-    GenerateGLBuffer(Vec2 offset, int32_t minLevel,
-                     const std::ranges::input_range auto& grid,
-                     const GraphicsHandlerArgs& args) const;
+    void GenerateGLBuffer(Vec2 offset, int32_t minLevel,
+                          const std::ranges::input_range auto& grid,
+                          const GraphicsHandlerArgs& args);
 
     RectF GridToScreenBounds(Rect region,
                              const GraphicsHandlerArgs& args) const;
@@ -93,6 +92,8 @@ class GraphicsHandler {
     ShaderManager m_GridShader;
     ShaderManager m_SelectionShader;
 
+    std::vector<float> m_GLBuffer;
+
     GLVertexArray m_GridVAO;
     GLBuffer m_InstanceBuffer;
     GLBuffer m_CellBuffer;
@@ -108,11 +109,10 @@ class GraphicsHandler {
     GLRenderBuffer m_RenderBuffer;
 };
 
-std::vector<float>
-GraphicsHandler::GenerateGLBuffer(Vec2 offset, int32_t minLevel,
-                                  const std::ranges::input_range auto& grid,
-                                  const GraphicsHandlerArgs& args) const {
-    std::vector<float> result{};
+void GraphicsHandler::GenerateGLBuffer(
+    Vec2 offset, int32_t minLevel, const std::ranges::input_range auto& grid,
+    const GraphicsHandlerArgs& args) {
+    m_GLBuffer.clear();
 
     const auto gridInfo = CalculateGridLineInfo(offset, args);
     const auto minCellX = gridInfo.UpperLeft.X / args.CellSize.Width;
@@ -127,7 +127,7 @@ GraphicsHandler::GenerateGLBuffer(Vec2 offset, int32_t minLevel,
             static_cast<size_t>(std::max(gridInfo.GridSize.Width, 0) *
                                 std::max(gridInfo.GridSize.Height, 0));
         const auto reserveCount = std::min(grid.size(), visibleCapacity);
-        result.reserve(reserveCount * 3);
+        m_GLBuffer.reserve(reserveCount * 3);
     }
 
     const auto maxPop = static_cast<double>(int64_t{1} << (2 * minLevel));
@@ -142,13 +142,13 @@ GraphicsHandler::GenerateGLBuffer(Vec2 offset, int32_t minLevel,
         const auto opacity =
             std::clamp(static_cast<float>(population / maxPop), 0.f, 1.f);
         const auto cellScale = std::powf(2.f, static_cast<float>(minLevel));
-        result.push_back(
+        m_GLBuffer.push_back(
             static_cast<float>(x - Camera.Center.x / args.CellSize.Width) /
             cellScale);
-        result.push_back(
+        m_GLBuffer.push_back(
             static_cast<float>(y - Camera.Center.y / args.CellSize.Height) /
             cellScale);
-        result.push_back(opacity);
+        m_GLBuffer.push_back(opacity);
     };
 
     if constexpr (std::is_same_v<std::decay_t<decltype(grid)>, HashQuadtree>) {
@@ -162,8 +162,6 @@ GraphicsHandler::GenerateGLBuffer(Vec2 offset, int32_t minLevel,
             pushToBuffer(vec, minLevel);
         }
     }
-
-    return result;
 }
 
 void GraphicsHandler::DrawGrid(Vec2 offset,
@@ -201,19 +199,19 @@ void GraphicsHandler::DrawGrid(Vec2 offset,
     m_GridShader.AttachUniformFloat(
         "u_CellScale", std::powf(2.f, static_cast<float>(minLevel)));
 
-    const auto positions = GenerateGLBuffer(offset, minLevel, grid, args);
+    GenerateGLBuffer(offset, minLevel, grid, args);
 
     GL_DEBUG(glBindBuffer(GL_ARRAY_BUFFER, m_InstanceBuffer.ID()));
 
-    GL_DEBUG(glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(float),
+    GL_DEBUG(glBufferData(GL_ARRAY_BUFFER, m_GLBuffer.size() * sizeof(float),
                           nullptr, GL_DYNAMIC_DRAW));
     GL_DEBUG(glBufferSubData(GL_ARRAY_BUFFER, 0,
-                             positions.size() * sizeof(float),
-                             positions.data()));
+                             m_GLBuffer.size() * sizeof(float),
+                             m_GLBuffer.data()));
 
     GL_DEBUG(
         glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, nullptr,
-                                static_cast<GLsizei>(positions.size() / 3)));
+                                static_cast<GLsizei>(m_GLBuffer.size() / 3)));
 
     GL_DEBUG(glBindVertexArray(0));
 }

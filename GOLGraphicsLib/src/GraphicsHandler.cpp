@@ -2,6 +2,7 @@
 #include <cmath>
 #include <cstdint>
 #include <filesystem>
+#include <limits>
 #include <set>
 #include <utility>
 #include <vector>
@@ -119,8 +120,62 @@ void GraphicsHandler::ClearBackground(const GraphicsHandlerArgs& args) {
 
     GL_DEBUG(glClear(GL_COLOR_BUFFER_BIT));
     if (args.GridSize.Width == 0 || args.GridSize.Height == 0) {
-        GL_DEBUG(glClearColor(0.f, 0.f, 0.f, 1.f));
+        GL_DEBUG(glEnable(GL_SCISSOR_TEST));
+        GL_DEBUG(glScissor(0, 0, args.ViewportBounds.Width,
+                           args.ViewportBounds.Height));
+        GL_DEBUG(glClearColor(m_BgColor.Red, m_BgColor.Green, m_BgColor.Blue,
+                              m_BgColor.Alpha));
         GL_DEBUG(glClear(GL_COLOR_BUFFER_BIT));
+
+        const auto minCell =
+            static_cast<double>(std::numeric_limits<int32_t>::min());
+        const auto maxCellExclusive =
+            static_cast<double>(std::numeric_limits<int32_t>::max()) + 1.0;
+        const auto minWorldX = minCell * args.CellSize.Width;
+        const auto minWorldY = minCell * args.CellSize.Height;
+        const auto maxWorldX = maxCellExclusive * args.CellSize.Width;
+        const auto maxWorldY = maxCellExclusive * args.CellSize.Height;
+
+        // Convert world coordinates to viewport coordinates (origin at
+        // top-left) and then to scissor coordinates (origin at bottom-left).
+        const auto worldToViewport = [this, &args](double x, double y) {
+            return glm::dvec2{(x - Camera.Center.x) * Camera.Zoom +
+                                  args.ViewportBounds.Width / 2.0,
+                              (y - Camera.Center.y) * Camera.Zoom +
+                                  args.ViewportBounds.Height / 2.0};
+        };
+
+        const auto corner0 = worldToViewport(minWorldX, minWorldY);
+        const auto corner1 = worldToViewport(maxWorldX, maxWorldY);
+
+        const auto minScreenX = std::min(corner0.x, corner1.x);
+        const auto maxScreenX = std::max(corner0.x, corner1.x);
+        const auto minScreenY = std::min(corner0.y, corner1.y);
+        const auto maxScreenY = std::max(corner0.y, corner1.y);
+
+        const auto clipMinX = static_cast<double>(0);
+        const auto clipMinY = static_cast<double>(0);
+        const auto clipMaxX = static_cast<double>(args.ViewportBounds.Width);
+        const auto clipMaxY = static_cast<double>(args.ViewportBounds.Height);
+
+        const auto boundedMinX = std::clamp(minScreenX, clipMinX, clipMaxX);
+        const auto boundedMinY = std::clamp(minScreenY, clipMinY, clipMaxY);
+        const auto boundedMaxX = std::clamp(maxScreenX, clipMinX, clipMaxX);
+        const auto boundedMaxY = std::clamp(maxScreenY, clipMinY, clipMaxY);
+
+        const auto x0 = static_cast<int32_t>(std::floor(boundedMinX));
+        const auto y0 = static_cast<int32_t>(std::floor(boundedMinY));
+        const auto x1 = static_cast<int32_t>(std::ceil(boundedMaxX));
+        const auto y1 = static_cast<int32_t>(std::ceil(boundedMaxY));
+
+        if (x1 > x0 && y1 > y0) {
+            const auto scissorY = args.ViewportBounds.Height - y1;
+            GL_DEBUG(glScissor(x0, scissorY, x1 - x0, y1 - y0));
+            GL_DEBUG(glClearColor(0.f, 0.f, 0.f, 1.f));
+            GL_DEBUG(glClear(GL_COLOR_BUFFER_BIT));
+        }
+
+        GL_DEBUG(glDisable(GL_SCISSOR_TEST));
         return;
     }
 
