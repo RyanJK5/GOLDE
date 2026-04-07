@@ -5,6 +5,7 @@
 #include <random>
 #include <ranges>
 
+#include "HashLife.hpp"
 #include "HashQuadtree.hpp"
 #include "LifeAlgorithm.hpp"
 #include "RLEEncoder.hpp"
@@ -49,7 +50,7 @@ static void CheckAgainstFile(const std::filesystem::path& unevolved,
 
     BigInt totalGenerations{};
     for (auto i = 0; i < numJumps; ++i) {
-        const auto genCount = HashLife(current, stepSize);
+        const auto genCount = HashLife{}.Step(current, stepSize);
         EXPECT_EQ(genCount, expectedGenerationsPerJump)
             << "HashLife should advance by " << expectedGenerationsPerJump
             << " generations per jump";
@@ -447,7 +448,7 @@ TEST(HashQuadtreeTest, HashLifeSlowAdvanceConsistency) {
     ASSERT_EQ(tree1, tree2);
 
     const auto directUpdate = tree1.Advance(1);
-    const auto hashLifeUpdate = HashLife(tree2, 1);
+    const auto hashLifeUpdate = HashLife{}.Step(tree2, 1);
 
     EXPECT_EQ(directUpdate, 1);
     EXPECT_EQ(hashLifeUpdate, 1);

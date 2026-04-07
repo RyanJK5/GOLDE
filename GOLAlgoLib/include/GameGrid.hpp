@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "Graphics2D.hpp"
+#include "HashLife.hpp"
 #include "HashQuadtree.hpp"
 #include "LifeAlgorithm.hpp"
 #include "LifeHashSet.hpp"
@@ -33,9 +34,19 @@ class GameGrid {
 
     GameGrid(const HashQuadtree& data, Size2 size);
 
-    LifeAlgorithm GetAlgorithm() const { return m_Algorithm; }
+    GameGrid(const GameGrid& other);
 
-    void SetAlgorithm(LifeAlgorithm algorithm);
+    GameGrid& operator=(const GameGrid& other);
+
+    GameGrid(GameGrid&& other) = default;
+
+    GameGrid& operator=(GameGrid&& other) = default;
+
+    ~GameGrid() = default;
+
+    const LifeAlgorithm& GetAlgorithm() const { return *m_Algorithm; }
+
+    void SetAlgorithm(std::string_view algorithm);
 
     // Advances the universe `numSteps` generations. A stop token can optionally
     // be provided if the thread may terminate during advance.
@@ -106,9 +117,8 @@ class GameGrid {
     void ValidateSortedCache() const;
 
   private:
-    LifeAlgorithm m_Algorithm;
-
     HashQuadtree m_HashLifeData;
+    std::unique_ptr<LifeAlgorithm> m_Algorithm = std::make_unique<HashLife>();
 
     mutable std::vector<Vec2>
         m_SortedData; // Declared mutable due to hidden cache validation

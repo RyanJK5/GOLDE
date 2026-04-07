@@ -11,9 +11,6 @@ struct std::hash<gol::Vec2> {
 };
 
 namespace gol {
-// The primary data structure for representing the grid through the SparseLife
-// algorithm. It is also the most useful way for viewing the grid when using
-// editor commands, such as copy, paste, etc.
 using LifeHashSet = ankerl::unordered_dense::set<Vec2>;
 } // namespace gol
 

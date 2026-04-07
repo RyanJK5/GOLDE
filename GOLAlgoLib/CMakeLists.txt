@@ -1,16 +1,19 @@
 set(SOURCES
     src/GameGrid.cpp
+    src/HashLife.cpp
     src/HashQuadtree.cpp
     src/HashQuadtreeIterator.cpp
+    src/LifeAlgorithm.cpp
     src/LifeNode.cpp
     src/LifeHashSet.cpp
-    src/SparseLife.cpp
 )
 set(HEADERS
     include/GameGrid.hpp
     include/Graphics2D.hpp
+    include/HashLife.hpp
     include/HashQuadtree.hpp
     include/LifeAlgorithm.hpp
+    include/LifeDataStructure.hpp
     include/LifeHashSet.hpp
     include/LifeRule.hpp
 )

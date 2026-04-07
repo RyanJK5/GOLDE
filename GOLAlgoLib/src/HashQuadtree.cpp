@@ -20,16 +20,6 @@
 #include "LifeRule.hpp"
 
 namespace gol {
-// Returns the exponent of the greatest power of two less than `stepSize`.
-constexpr static int32_t Log2MaxAdvanceOf(const BigInt& stepSize) {
-    if (stepSize.is_zero())
-        return 0;
-
-    return static_cast<int32_t>(boost::multiprecision::msb(stepSize));
-}
-
-constexpr BigInt BigPow2(int32_t exponent) { return BigOne << exponent; }
-
 constexpr static auto ViewportMaxLevel = 31;
 
 HashLifeCache::HashLifeCache() {
@@ -176,26 +166,6 @@ const LifeNode* DecodeLevel2(uint16_t bits, FindOrCreateFn&& findOrCreate) {
     return findOrCreate(quadrantNW, quadrantNE, quadrantSW, quadrantSE);
 }
 } // namespace
-
-// Free function form of calling HashQuadtree::Advance, with the added bonus of
-// supporting an exact `stepCount` rather than just a `maxAdvance`.
-BigInt HashLife(HashQuadtree& data, const BigInt& numSteps,
-                std::stop_token stopToken) {
-    if (numSteps.is_zero()) // Hyper speed
-        return BigPow2(data.Advance(-1, stopToken));
-
-    BigInt generation{};
-    while (generation < numSteps) {
-        const auto advanceLevel = Log2MaxAdvanceOf(numSteps - generation);
-
-        const auto gens = BigPow2(data.Advance(advanceLevel, stopToken));
-        if (stopToken.stop_requested())
-            return generation;
-        generation += gens;
-    }
-
-    return generation;
-}
 
 void HashQuadtree::SetRule(const LifeRule& rule) {
     s_Rule = rule;

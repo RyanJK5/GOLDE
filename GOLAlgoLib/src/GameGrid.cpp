@@ -16,6 +16,7 @@
 
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
+#include "HashLife.hpp"
 #include "HashQuadtree.hpp"
 #include "LifeAlgorithm.hpp"
 #include "LifeHashSet.hpp"
@@ -71,7 +72,8 @@ GameGrid::GenerateNoise(Rect bounds, float density, uint32_t warnThreshold) {
 }
 
 GameGrid::GameGrid(int32_t width, int32_t height)
-    : m_Algorithm(LifeAlgorithm::HashLife), m_Width(width), m_Height(height) {}
+    : m_Algorithm(std::make_unique<HashLife>()), m_Width(width),
+      m_Height(height) {}
 
 GameGrid::GameGrid(Size2 size) : GameGrid(size.Width, size.Height) {}
 
@@ -84,12 +86,33 @@ GameGrid::GameGrid(const GameGrid& other, Size2 size) : GameGrid(size) {
     m_Population = m_HashLifeData.Population();
 }
 
+GameGrid::GameGrid(const GameGrid& other)
+    : m_HashLifeData(other.m_HashLifeData), m_Width(other.m_Width),
+      m_Height(other.m_Height), m_Population(other.m_Population) {}
+
+GameGrid& GameGrid::operator=(const GameGrid& other) {
+    if (this == &other) {
+        return *this;
+    }
+
+    m_HashLifeData = other.m_HashLifeData;
+    m_Width = other.m_Width;
+    m_Height = other.m_Height;
+    m_Population = other.m_Population;
+
+    return *this;
+}
+
 GameGrid::GameGrid(const HashQuadtree& data, Size2 size)
     : m_Width(size.Width), m_Height(size.Height), m_HashLifeData(data),
-      m_Population(data.Population()), m_Algorithm(LifeAlgorithm::HashLife) {}
+      m_Population(data.Population()),
+      m_Algorithm(std::make_unique<HashLife>()) {}
 
-void GameGrid::SetAlgorithm(LifeAlgorithm algorithm) {
-    m_Algorithm = algorithm;
+void GameGrid::SetAlgorithm(std::string_view algorithmIdentifier) {
+    if (algorithmIdentifier == m_Algorithm->GetIdentifier()) {
+        return;
+    }
+    m_Algorithm = LifeAlgorithm::MakeAlgorithm(algorithmIdentifier);
 }
 
 bool GameGrid::Dead() const { return m_HashLifeData.empty(); }
@@ -114,20 +137,13 @@ const HashQuadtree& GameGrid::IterableData() const { return m_HashLifeData; }
 BigInt GameGrid::Update(const BigInt& numSteps, std::stop_token stopToken) {
     m_SortedCacheInvalidated = true;
 
-    switch (m_Algorithm) {
-    case LifeAlgorithm::SparseLife:
-        // SparseLife is currently disabled with the intention of replacing it
-        // long-term with a more efficient algorithm.
-        return BigInt{};
-    case LifeAlgorithm::HashLife:
-        const auto generations = HashLife(m_HashLifeData, numSteps, stopToken);
-        m_Generation += generations;
-        m_Population = m_HashLifeData.Population();
-        m_SortedCacheInvalidated = true;
-        return generations;
-    }
+    const auto generations =
+        m_Algorithm->Step(m_HashLifeData, numSteps, stopToken);
+    m_Generation += generations;
+    m_Population = m_HashLifeData.Population();
+    m_SortedCacheInvalidated = true;
 
-    return 0;
+    return generations;
 }
 
 bool GameGrid::Toggle(int32_t x, int32_t y) {

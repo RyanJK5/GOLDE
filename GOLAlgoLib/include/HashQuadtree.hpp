@@ -21,6 +21,7 @@
 
 #include "BigInt.hpp"
 #include "Graphics2D.hpp"
+#include "LifeDataStructure.hpp"
 #include "LifeHashSet.hpp"
 #include "LifeNode.hpp"
 #include "LifeRule.hpp"
@@ -78,7 +79,7 @@ struct HashLifeCache {
 // This is the primary data structure for executing the HashLife algorithm. It
 // satisfies the requirements of `std::ranges::input_range` and can be used in
 // many STL algorithms.
-class HashQuadtree {
+class HashQuadtree : public LifeDataStructure {
   public:
     class Iterator {
       private:
@@ -163,20 +164,20 @@ class HashQuadtree {
     bool operator==(const HashQuadtree& other) const;
     bool operator!=(const HashQuadtree& other) const;
 
-    void Set(Vec2 pos, bool alive);
+    void Set(Vec2 pos, bool alive) override;
 
     // Inserts `other` shifted by `offset` into this tree.
     // This operation can merge aligned subtrees directly to avoid
     // per-cell insertion in common cases.
     void Insert(const HashQuadtree& other, Vec2 offset);
 
-    bool Get(Vec2 pos) const;
+    bool Get(Vec2 pos) const override;
 
-    void Clear(Rect region);
+    void Clear(Rect region) override;
 
     HashQuadtree Extract(Rect region) const;
 
-    Rect FindBoundingBox() const;
+    Rect FindBoundingBox() const override;
 
   private:
     const LifeNode* SetImpl(const LifeNode* node, Vec2L pos, Vec2 targetPos,

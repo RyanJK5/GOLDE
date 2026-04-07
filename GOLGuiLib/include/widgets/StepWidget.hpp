@@ -48,17 +48,17 @@ class StepWidget : public Widget {
 
   public:
     BigInt EffectiveStepCount() const {
-        return (m_HyperSpeed && m_Algorithm == LifeAlgorithm::HashLife)
-                   ? BigZero
-                   : m_StepCount;
+        return m_HyperSpeed ? BigZero : m_StepCount;
     }
-    LifeAlgorithm CurrentAlgorithm() const { return m_Algorithm; }
+    std::string_view CurrentAlgorithmIdentifier() const {
+        return m_AlgorithmIdentifier;
+    }
     bool IsHyperSpeed() const { return m_HyperSpeed; }
 
   private:
     std::string m_InputText;
 
-    LifeAlgorithm m_Algorithm = LifeAlgorithm::HashLife;
+    std::string_view m_AlgorithmIdentifier = "HashLife";
     BigInt m_StepCount = 1;
     bool m_HyperSpeed = false;
 

@@ -1,7 +1,6 @@
 set(SOURCES
     src/EncodeTest.cpp
     src/HashQuadtreeTest.cpp
-    src/SparseLifeTest.cpp
     src/TestMain.cpp
 )
 
