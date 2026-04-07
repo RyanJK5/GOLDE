@@ -1,4 +1,4 @@
-#P -40 -8
+#CXRLE Pos = -40, -8
 x = 50, y = 45, rule = B3/S23
 25b3o$21b4o3b3o$19b2o10bo$18bo13b2o$17bo16bo$15b10ob9o$13b3o6b6o7bo$
 10b3obo3b4o2b5o6b3o$9bo3bo2b2o2b4o5b11o$8bo4bobo3bo9bob3obo3b3o$7bo4bo

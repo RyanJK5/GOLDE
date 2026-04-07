@@ -20,7 +20,7 @@ std::string EncodeRegion(const GameGrid& grid, Rect region, Vec2 offset) {
     std::string out{};
 
     if (offset.X != 0 || offset.Y != 0)
-        out += std::format("#P {} {}\n", offset.X, offset.Y);
+        out += std::format("#CXRLE Pos = {}, {}\n", offset.X, offset.Y);
 
     out += std::format("x = {}, y = {}, rule = B3/S23\n", region.Width,
                        region.Height);
@@ -113,27 +113,34 @@ std::expected<DecodeResult, DecodeError> DecodeRegion(std::string_view src,
                                  : line.substr(firstNonSpace);
 
         if (!trimmed.empty() && trimmed[0] == '#') {
-            // #P x y  or  #R x y — explicit pattern origin
-            if (trimmed.size() >= 2 &&
-                (trimmed[1] == 'P' || trimmed[1] == 'R')) {
-                const auto coords = trimmed.substr(2);
-                auto pointX = 0;
-                auto pointY = 0;
+            if (trimmed.starts_with("CXRLE")) {
+                const auto posField = trimmed.find("Pos");
 
-                const auto* start = coords.data();
-                const auto* end = coords.data() + coords.size();
-                while (start < end && (*start == ' ' || *start == '\t'))
-                    ++start;
-                auto [p1, ec1] = std::from_chars(start, end, pointX);
+                const auto eq = trimmed.find('=', posField);
+                if (eq != std::string_view::npos) {
 
-                if (ec1 == std::errc{}) {
-                    // skip whitespace between coords
-                    while (p1 < coords.data() + coords.size() &&
-                           (*p1 == ' ' || *p1 == '\t'))
-                        ++p1;
-                    std::from_chars(p1, coords.data() + coords.size(), pointY);
-                    explicitOffset = {pointX, pointY};
-                    hasExplicitOffset = true;
+                    const char* start = trimmed.data() + eq + 1;
+                    const char* end = trimmed.data() + trimmed.size();
+
+                    while (start < end && (*start == ' ' || *start == '\t'))
+                        ++start;
+
+                    auto pointX = 0;
+                    auto pointY = 0;
+
+                    auto [p1, ec1] = std::from_chars(start, end, pointX);
+
+                    if (ec1 == std::errc{}) {
+
+                        while (p1 < end &&
+                               (*p1 == ',' || *p1 == ' ' || *p1 == '\t'))
+                            ++p1;
+
+                        std::from_chars(p1, end, pointY);
+
+                        explicitOffset = {pointX, pointY};
+                        hasExplicitOffset = true;
+                    }
                 }
             }
         } else {

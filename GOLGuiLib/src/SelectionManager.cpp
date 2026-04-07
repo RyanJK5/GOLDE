@@ -136,13 +136,15 @@ SelectionManager::Paste(const GameGrid& grid, std::optional<Vec2> gridPos,
 
     if (!gridPos)
         gridPos = m_AnchorSelection;
-    if (!gridPos)
-        gridPos = {0, 0};
 
     auto decodeResult =
         RLEEncoder::DecodeRegion(ImGui::GetClipboardText(), warnThreshold);
     if (!decodeResult) {
         return std::unexpected<RLEEncoder::DecodeError>{decodeResult.error()};
+    }
+
+    if (!gridPos) {
+        gridPos = decodeResult->Offset;
     }
 
     m_Selected = std::move(decodeResult->Grid);
