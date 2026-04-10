@@ -88,7 +88,8 @@ GameGrid::GameGrid(const GameGrid& other, Size2 size) : GameGrid(size) {
 
 GameGrid::GameGrid(const GameGrid& other)
     : m_HashLifeData(other.m_HashLifeData), m_Width(other.m_Width),
-      m_Height(other.m_Height), m_Population(other.m_Population) {}
+      m_Height(other.m_Height), m_Population(other.m_Population),
+      m_Generation(other.m_Generation) {}
 
 GameGrid& GameGrid::operator=(const GameGrid& other) {
     if (this == &other) {
@@ -99,6 +100,7 @@ GameGrid& GameGrid::operator=(const GameGrid& other) {
     m_Width = other.m_Width;
     m_Height = other.m_Height;
     m_Population = other.m_Population;
+    m_Generation = other.m_Generation;
 
     return *this;
 }
