@@ -132,8 +132,6 @@ std::span<Vec2> GameGrid::SortedData() const {
 
 const HashQuadtree& GameGrid::Data() const { return m_HashLifeData; }
 
-const HashQuadtree& GameGrid::IterableData() const { return m_HashLifeData; }
-
 void GameGrid::SetRule(const LifeRule& rule) { m_Algorithm->SetRule(rule); }
 
 BigInt GameGrid::Update(const BigInt& numSteps, std::stop_token stopToken) {

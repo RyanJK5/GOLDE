@@ -108,9 +108,6 @@ class GameGrid {
     // Returns an unordered set of the universe's data.
     const HashQuadtree& Data() const;
 
-    // Returns the underlying universe representation.
-    const HashQuadtree& IterableData() const;
-
     void SetRule(const LifeRule& rule);
 
     bool ShouldValidateCache() const;

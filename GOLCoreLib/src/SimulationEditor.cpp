@@ -175,14 +175,14 @@ SimulationState
 SimulationEditor::SimulationUpdate(const GraphicsHandlerArgs& args) {
     const auto snapshot = m_Model.Worker().GetResult();
 
-    m_Graphics.DrawGrid({0, 0}, snapshot->IterableData(), args);
+    m_Graphics.DrawGrid({0, 0}, snapshot->Data(), args);
     return SimulationState::Simulation;
 }
 
 SimulationState SimulationEditor::PaintUpdate(const GraphicsHandlerArgs& args) {
     auto gridPos = CursorGridPos();
 
-    m_Graphics.DrawGrid({0, 0}, m_Model.Grid().IterableData(), args);
+    m_Graphics.DrawGrid({0, 0}, m_Model.Grid().Data(), args);
 
     if (m_Model.Selection().CanDrawGrid())
         m_Graphics.DrawGrid(m_Model.Selection().SelectionBounds().UpperLeft(),
@@ -207,7 +207,7 @@ SimulationState SimulationEditor::PauseUpdate(const GraphicsHandlerArgs& args) {
     if (gridPos)
         m_Model.UpdateSelectionAreaTracked(*gridPos);
 
-    m_Graphics.DrawGrid({0, 0}, m_Model.Grid().IterableData(), args);
+    m_Graphics.DrawGrid({0, 0}, m_Model.Grid().Data(), args);
 
     if (m_Model.Selection().CanDrawSelection()) {
         m_Graphics.DrawSelection(m_Model.Selection().SelectionBounds(), args);
