@@ -24,6 +24,7 @@ inline std::strong_ordering operator<=>(const BigInt& lhs, const BigInt& rhs) {
 }
 
 using BigVec2 = GenericVec<BigInt>;
+using BigRect = GenericRect<BigInt>;
 } // namespace gol
 
 namespace std {

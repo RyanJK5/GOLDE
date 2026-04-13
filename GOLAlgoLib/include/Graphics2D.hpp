@@ -95,13 +95,14 @@ struct GenericRect {
     }
 
     constexpr GenericRect() : GenericRect(0, 0, 0, 0) {}
-    constexpr GenericRect(T x, T y, T width, T height)
+    constexpr GenericRect(const T& x, const T& y, const T& width,
+                          const T& height)
         : X(x), Y(y), Width(width), Height(height) {}
-    constexpr GenericRect(GenericVec<T> pos, GenericSize<T> size)
+    constexpr GenericRect(const GenericVec<T>& pos, const GenericSize<T>& size)
         : X(pos.X), Y(pos.Y), Width(size.Width), Height(size.Height) {}
 
     template <std::totally_ordered U>
-    constexpr bool InBounds(U x, U y) const {
+    constexpr bool InBounds(const U& x, const U& y) const {
         return x >= X && x < X + Width && y >= Y && y < Y + Height;
     }
 

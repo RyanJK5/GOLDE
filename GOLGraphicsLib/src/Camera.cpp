@@ -8,14 +8,18 @@
 
 namespace gol {
 void GraphicsCamera::ZoomBy(Vec2F screenPos, RectF viewBounds, float zoom) {
-    Zoom *= 1.f + zoom;
-    if (Zoom < MinZoom) {
-        Zoom = MinZoom;
-        return;
-    } else if (Zoom > MaxZoom) {
-        Zoom = MaxZoom;
+    const auto scale = 1.f + zoom;
+    if (!std::isfinite(scale) || scale <= 0.f) {
         return;
     }
+
+    const auto nextZoom = Zoom * scale;
+    if (!std::isfinite(nextZoom) || nextZoom < MinPositiveZoom) {
+        Zoom = MinPositiveZoom;
+        return;
+    }
+
+    Zoom = nextZoom;
 
     Center += (ScreenToWorldPos(screenPos, viewBounds) - Center) *
               static_cast<double>(zoom);

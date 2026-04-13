@@ -64,7 +64,7 @@ class GraphicsHandler {
     uint32_t TextureID() const { return m_Texture.ID(); }
 
   private:
-    Rect VisibleBounds(const GraphicsHandlerArgs& args) const;
+    BigRect VisibleBounds(const GraphicsHandlerArgs& args) const;
 
     void InitGridBuffer();
 
@@ -130,9 +130,10 @@ void GraphicsHandler::GenerateGLBuffer(
         m_GLBuffer.reserve(reserveCount * 3);
     }
 
-    const auto maxPop = static_cast<double>(int64_t{1} << (2 * minLevel));
+    const auto maxPop = std::exp2(static_cast<double>(2 * minLevel));
 
-    const auto pushToBuffer = [&](Vec2 vec, int64_t population) {
+    const auto pushToBuffer = [&]<typename VecType>(const VecType& vec,
+                                                    int64_t population) {
         const auto x = static_cast<double>(vec.X + offset.X);
         const auto y = static_cast<double>(vec.Y + offset.Y);
         if (x < minCellX || x > maxCellX || y < minCellY || y > maxCellY) {
@@ -153,9 +154,41 @@ void GraphicsHandler::GenerateGLBuffer(
 
     if constexpr (std::is_same_v<std::decay_t<decltype(grid)>, HashQuadtree>) {
         const auto visibleWorldBounds = VisibleBounds(args);
-        const Rect localBounds{
-            visibleWorldBounds.X - offset.X, visibleWorldBounds.Y - offset.Y,
-            visibleWorldBounds.Width, visibleWorldBounds.Height};
+        const auto boundsX = visibleWorldBounds.X - BigInt{offset.X};
+        const auto boundsY = visibleWorldBounds.Y - BigInt{offset.Y};
+        const auto boundsWidth = visibleWorldBounds.Width;
+        const auto boundsHeight = visibleWorldBounds.Height;
+
+        const auto fitsInt32 = [&] {
+            const BigInt int32Min{std::numeric_limits<int32_t>::min()};
+            const BigInt int32Max{std::numeric_limits<int32_t>::max()};
+
+            if (boundsWidth < BigZero || boundsHeight < BigZero) {
+                return false;
+            }
+            if (boundsWidth > int32Max || boundsHeight > int32Max) {
+                return false;
+            }
+
+            const auto right = boundsX + boundsWidth;
+            const auto bottom = boundsY + boundsHeight;
+
+            return boundsX >= int32Min && boundsX <= int32Max &&
+                   boundsY >= int32Min && boundsY <= int32Max &&
+                   right >= int32Min && right <= int32Max &&
+                   bottom >= int32Min && bottom <= int32Max;
+        }();
+
+        if (fitsInt32) {
+            const Rect localBounds{boundsX.convert_to<int32_t>(),
+                                   boundsY.convert_to<int32_t>(),
+                                   boundsWidth.convert_to<int32_t>(),
+                                   boundsHeight.convert_to<int32_t>()};
+            grid.ForEachCell(pushToBuffer, localBounds, minLevel);
+            return;
+        }
+
+        const BigRect localBounds{boundsX, boundsY, boundsWidth, boundsHeight};
         grid.ForEachCell(pushToBuffer, localBounds, minLevel);
     } else {
         for (const auto vec : grid) {
@@ -188,9 +221,16 @@ void GraphicsHandler::DrawGrid(Vec2 offset,
     const auto minLevel = [&] {
         if constexpr (std::is_same_v<std::decay_t<decltype(grid)>,
                                      HashQuadtree>) {
-            const auto scale = 1.f / (args.CellSize.Width * Camera.Zoom);
-            return std::max(0,
-                            static_cast<int32_t>(std::floor(std::log2(scale))));
+            const auto scale =
+                1.0 / static_cast<double>(args.CellSize.Width * Camera.Zoom);
+            if (!std::isfinite(scale) || scale <= 0.0) {
+                return 0;
+            }
+            const auto level = std::floor(std::log2(scale));
+            if (!std::isfinite(level)) {
+                return 0;
+            }
+            return std::max(0, static_cast<int32_t>(level));
         } else {
             return 0;
         }

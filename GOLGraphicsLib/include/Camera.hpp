@@ -2,14 +2,15 @@
 #define Camera_hpp_
 
 #include <glm/glm.hpp>
+#include <limits>
 
 #include "Graphics2D.hpp"
 
 namespace gol {
 class GraphicsCamera {
   public:
-    static constexpr float MinZoom = 1e-7f;
-    static constexpr float MaxZoom = 40.f;
+    // Keep zoom strictly positive to avoid divide-by-zero in transforms.
+    static constexpr float MinPositiveZoom = std::numeric_limits<float>::min();
 
   public:
     float Zoom = 1.f;

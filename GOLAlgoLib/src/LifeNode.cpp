@@ -3,25 +3,85 @@
 #include <functional>
 
 namespace gol {
-bool IsWithinBounds(Rect bounds, Vec2L pos) {
-    const auto left = static_cast<int64_t>(bounds.X);
-    const auto top = static_cast<int64_t>(bounds.Y);
+bool IsWithinBounds(const RectL& bounds, Vec2L pos) {
+    const auto left = bounds.X;
+    const auto top = bounds.Y;
     const auto right = left + bounds.Width;
     const auto bottom = top + bounds.Height;
     return pos.X >= left && pos.X < right && pos.Y >= top && pos.Y < bottom;
 }
 
-bool IntersectsBounds(Rect bounds, Vec2L pos, int32_t level) {
+bool IsWithinBounds(Rect bounds, Vec2L pos) {
+    return IsWithinBounds(
+        RectL{bounds.X, bounds.Y, bounds.Width, bounds.Height}, pos);
+}
+
+bool IntersectsBounds(const RectL& bounds, Vec2L pos, int32_t level) {
     const auto regionRight = pos.X + Pow2(level);
     const auto regionBottom = pos.Y + Pow2(level);
 
-    const auto left = static_cast<int64_t>(bounds.X);
-    const auto top = static_cast<int64_t>(bounds.Y);
+    const auto left = bounds.X;
+    const auto top = bounds.Y;
     const auto right = left + bounds.Width;
     const auto bottom = top + bounds.Height;
 
     return !(regionRight <= left || pos.X >= right || regionBottom <= top ||
              pos.Y >= bottom);
+}
+
+bool IsWithinBounds(const BigRect& bounds, Vec2L pos) {
+    const auto left = bounds.X;
+    const auto top = bounds.Y;
+    const auto right = left + bounds.Width;
+    const auto bottom = top + bounds.Height;
+    const BigInt x{pos.X};
+    const BigInt y{pos.Y};
+
+    return x >= left && x < right && y >= top && y < bottom;
+}
+
+bool IsWithinBounds(const BigRect& bounds, const BigVec2& pos) {
+    const auto left = bounds.X;
+    const auto top = bounds.Y;
+    const auto right = left + bounds.Width;
+    const auto bottom = top + bounds.Height;
+
+    return pos.X >= left && pos.X < right && pos.Y >= top && pos.Y < bottom;
+}
+
+bool IntersectsBounds(const BigRect& bounds, Vec2L pos, int32_t level) {
+    const auto regionRight = BigInt{pos.X} + (BigOne << level);
+    const auto regionBottom = BigInt{pos.Y} + (BigOne << level);
+
+    const auto left = bounds.X;
+    const auto top = bounds.Y;
+    const auto right = left + bounds.Width;
+    const auto bottom = top + bounds.Height;
+
+    const BigInt x{pos.X};
+    const BigInt y{pos.Y};
+
+    return !(regionRight <= left || x >= right || regionBottom <= top ||
+             y >= bottom);
+}
+
+bool IntersectsBounds(const BigRect& bounds, const BigVec2& pos,
+                      const BigInt& size) {
+    const auto regionRight = pos.X + size;
+    const auto regionBottom = pos.Y + size;
+
+    const auto left = bounds.X;
+    const auto top = bounds.Y;
+    const auto right = left + bounds.Width;
+    const auto bottom = top + bounds.Height;
+
+    return !(regionRight <= left || pos.X >= right || regionBottom <= top ||
+             pos.Y >= bottom);
+}
+
+bool IntersectsBounds(Rect bounds, Vec2L pos, int32_t level) {
+    return IntersectsBounds(
+        RectL{bounds.X, bounds.Y, bounds.Width, bounds.Height}, pos, level);
 }
 
 uint64_t LifeNode::ComputeHash(const LifeNode* nw, const LifeNode* ne,

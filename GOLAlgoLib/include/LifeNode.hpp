@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 
+#include "BigInt.hpp"
 #include "Graphics2D.hpp"
 
 namespace gol {
@@ -54,10 +55,17 @@ struct LifeNodeKey {
 };
 
 bool IsWithinBounds(Rect bounds, Vec2L pos);
+bool IsWithinBounds(const RectL& bounds, Vec2L pos);
+bool IsWithinBounds(const BigRect& bounds, Vec2L pos);
+bool IsWithinBounds(const BigRect& bounds, const BigVec2& pos);
 
 // Checks if a `size * size` square with its upper-left corner at `pos`
 // intersects with the bounds of this iterator
 bool IntersectsBounds(Rect bounds, Vec2L pos, int32_t level);
+bool IntersectsBounds(const RectL& bounds, Vec2L pos, int32_t level);
+bool IntersectsBounds(const BigRect& bounds, Vec2L pos, int32_t level);
+bool IntersectsBounds(const BigRect& bounds, const BigVec2& pos,
+                      const BigInt& size);
 
 struct LifeNodeEqual {
     using is_transparent = void; // Flag for ankerl::unordered_dense

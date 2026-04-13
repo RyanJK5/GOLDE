@@ -14,6 +14,32 @@
 #include "ShaderManager.hpp"
 
 namespace gol {
+namespace {
+BigInt BigIntFromIntegralDouble(double value) {
+    if (value == 0.0) {
+        return BigZero;
+    }
+
+    const auto absValue = std::fabs(value);
+    int32_t exponent = 0;
+    const auto fraction = std::frexp(absValue, &exponent);
+
+    constexpr int32_t mantissaBits = std::numeric_limits<double>::digits;
+    auto mantissa = static_cast<uint64_t>(std::ldexp(fraction, mantissaBits));
+
+    BigInt result{mantissa};
+    if (exponent > mantissaBits) {
+        result <<= (exponent - mantissaBits);
+    } else {
+        result >>= (mantissaBits - exponent);
+    }
+
+    return value < 0.0 ? -result : result;
+}
+
+BigRect EmptyBigRect() { return BigRect{BigZero, BigZero, BigZero, BigZero}; }
+} // namespace
+
 FrameBufferBinder::FrameBufferBinder(const GLFrameBuffer& buffer) {
     GL_DEBUG(glBindFramebuffer(GL_FRAMEBUFFER, buffer.ID()));
 }
@@ -120,62 +146,9 @@ void GraphicsHandler::ClearBackground(const GraphicsHandlerArgs& args) {
 
     GL_DEBUG(glClear(GL_COLOR_BUFFER_BIT));
     if (args.GridSize.Width == 0 || args.GridSize.Height == 0) {
-        GL_DEBUG(glEnable(GL_SCISSOR_TEST));
-        GL_DEBUG(glScissor(0, 0, args.ViewportBounds.Width,
-                           args.ViewportBounds.Height));
-        GL_DEBUG(glClearColor(m_BgColor.Red, m_BgColor.Green, m_BgColor.Blue,
-                              m_BgColor.Alpha));
+        // Unbounded universes always render against a uniform black backdrop.
+        GL_DEBUG(glClearColor(0.f, 0.f, 0.f, 1.f));
         GL_DEBUG(glClear(GL_COLOR_BUFFER_BIT));
-
-        const auto minCell =
-            static_cast<double>(std::numeric_limits<int32_t>::min());
-        const auto maxCellExclusive =
-            static_cast<double>(std::numeric_limits<int32_t>::max()) + 1.0;
-        const auto minWorldX = minCell * args.CellSize.Width;
-        const auto minWorldY = minCell * args.CellSize.Height;
-        const auto maxWorldX = maxCellExclusive * args.CellSize.Width;
-        const auto maxWorldY = maxCellExclusive * args.CellSize.Height;
-
-        // Convert world coordinates to viewport coordinates (origin at
-        // top-left) and then to scissor coordinates (origin at bottom-left).
-        const auto worldToViewport = [this, &args](double x, double y) {
-            return glm::dvec2{(x - Camera.Center.x) * Camera.Zoom +
-                                  args.ViewportBounds.Width / 2.0,
-                              (y - Camera.Center.y) * Camera.Zoom +
-                                  args.ViewportBounds.Height / 2.0};
-        };
-
-        const auto corner0 = worldToViewport(minWorldX, minWorldY);
-        const auto corner1 = worldToViewport(maxWorldX, maxWorldY);
-
-        const auto minScreenX = std::min(corner0.x, corner1.x);
-        const auto maxScreenX = std::max(corner0.x, corner1.x);
-        const auto minScreenY = std::min(corner0.y, corner1.y);
-        const auto maxScreenY = std::max(corner0.y, corner1.y);
-
-        const auto clipMinX = static_cast<double>(0);
-        const auto clipMinY = static_cast<double>(0);
-        const auto clipMaxX = static_cast<double>(args.ViewportBounds.Width);
-        const auto clipMaxY = static_cast<double>(args.ViewportBounds.Height);
-
-        const auto boundedMinX = std::clamp(minScreenX, clipMinX, clipMaxX);
-        const auto boundedMinY = std::clamp(minScreenY, clipMinY, clipMaxY);
-        const auto boundedMaxX = std::clamp(maxScreenX, clipMinX, clipMaxX);
-        const auto boundedMaxY = std::clamp(maxScreenY, clipMinY, clipMaxY);
-
-        const auto x0 = static_cast<int32_t>(std::floor(boundedMinX));
-        const auto y0 = static_cast<int32_t>(std::floor(boundedMinY));
-        const auto x1 = static_cast<int32_t>(std::ceil(boundedMaxX));
-        const auto y1 = static_cast<int32_t>(std::ceil(boundedMaxY));
-
-        if (x1 > x0 && y1 > y0) {
-            const auto scissorY = args.ViewportBounds.Height - y1;
-            GL_DEBUG(glScissor(x0, scissorY, x1 - x0, y1 - y0));
-            GL_DEBUG(glClearColor(0.f, 0.f, 0.f, 1.f));
-            GL_DEBUG(glClear(GL_COLOR_BUFFER_BIT));
-        }
-
-        GL_DEBUG(glDisable(GL_SCISSOR_TEST));
         return;
     }
 
@@ -367,7 +340,7 @@ void GraphicsHandler::CenterCamera(const GraphicsHandlerArgs& args) {
                      args.GridSize.Height / 2.0 * args.CellSize.Height};
 }
 
-Rect GraphicsHandler::VisibleBounds(const GraphicsHandlerArgs& args) const {
+BigRect GraphicsHandler::VisibleBounds(const GraphicsHandlerArgs& args) const {
     const auto viewBounds = args.ViewportBounds;
     const auto topLeftWorld =
         Camera.ScreenToWorldPos(Vec2F{static_cast<float>(viewBounds.X),
@@ -381,16 +354,25 @@ Rect GraphicsHandler::VisibleBounds(const GraphicsHandlerArgs& args) const {
         std::minmax(topLeftWorld.x, bottomRightWorld.x);
     const auto [minWorldY, maxWorldY] =
         std::minmax(topLeftWorld.y, bottomRightWorld.y);
-    const auto minCellX =
-        static_cast<int32_t>(std::floor(minWorldX / args.CellSize.Width));
-    const auto minCellY =
-        static_cast<int32_t>(std::floor(minWorldY / args.CellSize.Height));
-    const auto maxCellX =
-        static_cast<int32_t>(std::ceil(maxWorldX / args.CellSize.Width));
-    const auto maxCellY =
-        static_cast<int32_t>(std::ceil(maxWorldY / args.CellSize.Height));
 
-    return Rect{minCellX, minCellY, std::max(0, maxCellX - minCellX),
-                std::max(0, maxCellY - minCellY)};
+    if (!std::isfinite(minWorldX) || !std::isfinite(maxWorldX) ||
+        !std::isfinite(minWorldY) || !std::isfinite(maxWorldY)) {
+        return BigRect{};
+    }
+
+    const auto minCellX = std::floor(minWorldX / args.CellSize.Width);
+    const auto minCellY = std::floor(minWorldY / args.CellSize.Height);
+    const auto maxCellX = std::ceil(maxWorldX / args.CellSize.Width);
+    const auto maxCellY = std::ceil(maxWorldY / args.CellSize.Height);
+
+    const auto minX = BigIntFromIntegralDouble(minCellX);
+    const auto minY = BigIntFromIntegralDouble(minCellY);
+    const auto maxX = BigIntFromIntegralDouble(maxCellX);
+    const auto maxY = BigIntFromIntegralDouble(maxCellY);
+
+    const auto width = maxX > minX ? maxX - minX : BigZero;
+    const auto height = maxY > minY ? maxY - minY : BigZero;
+
+    return BigRect{minX, minY, width, height};
 }
 } // namespace gol

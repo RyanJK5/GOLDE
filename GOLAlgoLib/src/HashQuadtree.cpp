@@ -354,6 +354,57 @@ const LifeNode* HashQuadtree::ClearImpl(const LifeNode* node, Vec2L pos,
         ClearImpl(se, {pos.X + halfSize, pos.Y + halfSize}, region, level - 1));
 }
 
+const LifeNode* HashQuadtree::ExtractImpl(const LifeNode* node, Vec2L pos,
+                                          Rect region, int32_t level) const {
+    if (node == FalseNode || node->IsEmpty) {
+        return EmptyTree(level);
+    }
+
+    const auto size = Pow2(level);
+    const bool unconstrainedX = (region.Width == 0);
+    const bool unconstrainedY = (region.Height == 0);
+
+    // No overlap — return empty
+    const bool overlapX =
+        unconstrainedX ||
+        (pos.X < static_cast<int64_t>(region.X) + region.Width &&
+         pos.X + size > static_cast<int64_t>(region.X));
+    const bool overlapY =
+        unconstrainedY ||
+        (pos.Y < static_cast<int64_t>(region.Y) + region.Height &&
+         pos.Y + size > static_cast<int64_t>(region.Y));
+    if (!overlapX || !overlapY) {
+        return EmptyTree(level);
+    }
+
+    // Fully contained on each axis independently
+    const bool containedX =
+        unconstrainedX ||
+        (pos.X >= static_cast<int64_t>(region.X) &&
+         pos.X + size <= static_cast<int64_t>(region.X) + region.Width);
+    const bool containedY =
+        unconstrainedY ||
+        (pos.Y >= static_cast<int64_t>(region.Y) &&
+         pos.Y + size <= static_cast<int64_t>(region.Y) + region.Height);
+
+    if (containedX && containedY) {
+        return node;
+    }
+
+    if (level == 0) {
+        return node;
+    }
+
+    const auto half = Pow2(level - 1);
+
+    return FindOrCreate(
+        ExtractImpl(node->NorthWest, {pos.X, pos.Y}, region, level - 1),
+        ExtractImpl(node->NorthEast, {pos.X + half, pos.Y}, region, level - 1),
+        ExtractImpl(node->SouthWest, {pos.X, pos.Y + half}, region, level - 1),
+        ExtractImpl(node->SouthEast, {pos.X + half, pos.Y + half}, region,
+                    level - 1));
+}
+
 HashQuadtree HashQuadtree::Extract(Rect region) const {
     HashQuadtree result{};
     result.m_SeedOffset = m_SeedOffset - Vec2L{region.X, region.Y};
@@ -367,9 +418,10 @@ HashQuadtree HashQuadtree::Extract(Rect region) const {
     result.m_Depth = std::min(m_Depth, ViewportMaxLevel);
     return result;
 }
+
 static int64_t FindExtentImpl(const LifeNode* node, Vec2L pos, int32_t level,
                               bool returnX, bool findLeast) {
-    const auto hasLiveCells = [](const LifeNode* n) {
+    constexpr static auto hasLiveCells = [](const LifeNode* n) {
         return n != FalseNode && !n->IsEmpty;
     };
 
@@ -477,38 +529,6 @@ Rect HashQuadtree::FindBoundingBox() const {
 
     return {clampToInt32(minX), clampToInt32(minY),
             clampToInt32(maxX - minX + 1), clampToInt32(maxY - minY + 1)};
-}
-const LifeNode* HashQuadtree::ExtractImpl(const LifeNode* node, Vec2L pos,
-                                          Rect region, int32_t level) const {
-    if (node == FalseNode || node->IsEmpty) {
-        return EmptyTree(level);
-    }
-
-    const auto size = Pow2(level);
-    const RectL nodeRect{pos.X, pos.Y, size, size};
-
-    // No overlap — return empty
-    if (!region.Intersects(nodeRect)) {
-        return EmptyTree(level);
-    }
-
-    // Fully contained — keep as-is
-    if (region.Contains(nodeRect)) {
-        return node;
-    }
-
-    if (level == 0) {
-        return node;
-    }
-
-    const auto half = Pow2(level - 1);
-
-    return FindOrCreate(
-        ExtractImpl(node->NorthWest, {pos.X, pos.Y}, region, level - 1),
-        ExtractImpl(node->NorthEast, {pos.X + half, pos.Y}, region, level - 1),
-        ExtractImpl(node->SouthWest, {pos.X, pos.Y + half}, region, level - 1),
-        ExtractImpl(node->SouthEast, {pos.X + half, pos.Y + half}, region,
-                    level - 1));
 }
 
 bool HashQuadtree::Get(Vec2 targetPos) const {

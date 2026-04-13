@@ -168,7 +168,7 @@ std::optional<VersionState> SelectionManager::Delete(const GameGrid& grid) {
 
 std::optional<VersionState> SelectionManager::Rotate(bool clockwise,
                                                      const GameGrid& grid) {
-    if (!m_Selected)
+    if (!m_Selected || !m_Selected->ShouldValidateCache())
         return std::nullopt;
 
     auto upperLeft = SelectionBounds().UpperLeft();
@@ -190,7 +190,7 @@ std::optional<VersionState> SelectionManager::Rotate(bool clockwise,
 
 std::optional<VersionState> SelectionManager::Flip(SelectionAction direction,
                                                    const GameGrid& grid) {
-    if (!m_Selected)
+    if (!m_Selected || !m_Selected->ShouldValidateCache())
         return std::nullopt;
 
     m_Selected->FlipGrid(direction == SelectionAction::FlipVertically);
