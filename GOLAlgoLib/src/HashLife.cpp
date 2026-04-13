@@ -605,7 +605,7 @@ int32_t HashLife::DoOneJump(HashQuadtree& data, int32_t advanceLevel,
 
     m_Topology->PrepareBorderCells(data);
 
-    // The second condition in this while loop is to prevent freezing when the
+    // The condition in this while loop is to prevent freezing when the
     // user asks for a large step size on a small pattern. For example, running
     // hyperspeed on a 2x2 block will not cause it to advance particularly fast
     // since it exhibits no expansion, but if maxAdvance is specified to 2^32,

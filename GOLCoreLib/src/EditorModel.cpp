@@ -174,7 +174,10 @@ bool EditorModel::HandleSelectionAction(SelectionAction action,
     m_VersionManager.TryPushChange(actionResult, m_State);
 
     if (!actionResult &&
-        (action == SelectionAction::Copy || action == SelectionAction::Cut)) {
+        (action == SelectionAction::Copy || action == SelectionAction::Cut ||
+         action == SelectionAction::FlipHorizontally ||
+         action == SelectionAction::FlipVertically ||
+         action == SelectionAction::Rotate)) {
         return false;
     } else {
         return true;

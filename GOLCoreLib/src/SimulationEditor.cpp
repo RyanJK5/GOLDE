@@ -514,7 +514,7 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                 if (!m_Model.HandleSelectionAction(cmd.Action, cmd.NudgeSize)) {
                     m_CopyErrorWindow.Activate();
                     m_CopyErrorWindow.Message = std::format(
-                        std::locale{""}, "Tried copying too many cells ({:L})",
+                        std::locale{""}, "Tried editing too many cells ({:L})",
                         m_Model.Selection().SelectedPopulation());
                 }
                 return m_Model.State();
