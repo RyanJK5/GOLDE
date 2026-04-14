@@ -4,6 +4,8 @@
 
 namespace gol {
 WidgetResult CameraPositionWidget::UpdateImpl(const EditorResult& info) {
+    constexpr float BasePixelsPerCellAtZoom1 = 20.f;
+
     std::array data{m_Position.X, m_Position.Y};
 
     ImGui::Text("Camera Position");
@@ -32,10 +34,10 @@ WidgetResult CameraPositionWidget::UpdateImpl(const EditorResult& info) {
 
     ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, 30.f);
 
-    const auto inputScale = 20.f / info.Zoom;
-    auto scale = inputScale;
+    const auto inputPixelsPerCell = BasePixelsPerCellAtZoom1 * info.Zoom;
+    auto pixelsPerCell = inputPixelsPerCell;
 
-    const bool leftDisabled = scale < 1.f;
+    const bool leftDisabled = pixelsPerCell < 1.f;
     const auto leftID = ImGui::GetID("##CameraZoomLabel");
     const auto rightID = ImGui::GetID("##RatioLabel");
 
@@ -58,13 +60,16 @@ WidgetResult CameraPositionWidget::UpdateImpl(const EditorResult& info) {
     ImGui::SetNextItemWidth(inputWidth); // Apply the calculated half-width
 
     auto leftReturn = [&] {
-        const bool input =
-            ImGui::InputFloat("##CameraZoomLabel", leftDisabled ? &one : &scale,
-                              0.f, 0.f, leftDisabled ? "%.0f" : "%.2e",
-                              ImGuiInputTextFlags_EnterReturnsTrue);
-        if (input && scale != inputScale) {
-            return WidgetResult{.Command =
-                                    CameraZoomCommand{.Zoom = 20.f / scale}};
+        const char* enabledFormat = (pixelsPerCell <= 100.f) ? "%.2f" : "%.2e";
+        const bool input = ImGui::InputFloat(
+            "##CameraZoomLabel", leftDisabled ? &one : &pixelsPerCell, 0.f, 0.f,
+            (leftDisabled || pixelsPerCell == 1.f) ? "%.0f" : enabledFormat,
+            ImGuiInputTextFlags_EnterReturnsTrue);
+        if (input && pixelsPerCell != inputPixelsPerCell &&
+            pixelsPerCell > 0.f) {
+            return WidgetResult{
+                .Command = CameraZoomCommand{.Zoom = pixelsPerCell /
+                                                     BasePixelsPerCellAtZoom1}};
         }
         return WidgetResult{};
     }();
@@ -74,18 +79,21 @@ WidgetResult CameraPositionWidget::UpdateImpl(const EditorResult& info) {
     ImGui::Text(" : ");
     ImGui::SameLine();
 
-    auto zoom = info.Zoom / 20.f;
+    auto cellsPerPixel = 1.f / inputPixelsPerCell;
     ImGui::PushItemFlag(ImGuiItemFlags_Disabled, !leftDisabled);
     ImGui::SetNextItemWidth(inputWidth); // Apply the calculated half-width
 
     auto rightReturn = [&] {
-        const bool input =
-            ImGui::InputFloat("##RatioLabel", leftDisabled ? &zoom : &one, 0.f,
-                              0.f, leftDisabled ? "%.2e" : "%.0f",
-                              ImGuiInputTextFlags_EnterReturnsTrue);
-        if (input && zoom != info.Zoom / 20.f) {
-            return WidgetResult{.Command =
-                                    CameraZoomCommand{.Zoom = zoom * 20.f}};
+        const char* enabledFormat = (cellsPerPixel <= 100.f) ? "%.2f" : "%.2e";
+        const bool input = ImGui::InputFloat(
+            "##RatioLabel", leftDisabled ? &cellsPerPixel : &one, 0.f, 0.f,
+            (leftDisabled || cellsPerPixel == 1.f) ? enabledFormat : "%.0f",
+            ImGuiInputTextFlags_EnterReturnsTrue);
+        if (input && cellsPerPixel > 0.f &&
+            cellsPerPixel != 1.f / inputPixelsPerCell) {
+            return WidgetResult{
+                .Command = CameraZoomCommand{
+                    .Zoom = 1.f / (cellsPerPixel * BasePixelsPerCellAtZoom1)}};
         }
         return WidgetResult{};
     }();
