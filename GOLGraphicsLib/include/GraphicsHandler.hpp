@@ -184,10 +184,11 @@ void GraphicsHandler::GenerateGLBuffer(
                                    boundsY.convert_to<int32_t>(),
                                    boundsWidth.convert_to<int32_t>(),
                                    boundsHeight.convert_to<int32_t>()};
+            std::println("Fast path");
             grid.ForEachCell(pushToBuffer, localBounds, minLevel);
             return;
         }
-
+        std::println("Slow path");
         const BigRect localBounds{boundsX, boundsY, boundsWidth, boundsHeight};
         grid.ForEachCell(pushToBuffer, localBounds, minLevel);
     } else {

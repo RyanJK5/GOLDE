@@ -10,8 +10,9 @@ namespace gol {
 class GraphicsCamera {
   public:
     // Keep zoom strictly positive to avoid divide-by-zero in transforms.
-    static constexpr float MinPositiveZoom = std::numeric_limits<float>::min();
-    static constexpr float MaxZoom = 40.f;
+    static constexpr float MinZoom = std::numeric_limits<float>::min();
+    static constexpr float MaxZoom = 100.f;
+
   public:
     float Zoom = 1.f;
     glm::dvec2 Center = {};

@@ -28,6 +28,7 @@ struct EditorResult {
     EditingStatus Editing{};
     FileStatus File{};
     std::optional<Rect> SelectionBounds{};
+    float Zoom = 1.f;
     bool Active = true;
     bool Closing = false;
 };

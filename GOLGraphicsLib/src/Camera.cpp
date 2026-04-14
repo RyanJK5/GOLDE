@@ -14,8 +14,8 @@ void GraphicsCamera::ZoomBy(Vec2F screenPos, RectF viewBounds, float zoom) {
     }
 
     const auto nextZoom = Zoom * scale;
-    if (!std::isfinite(nextZoom) || nextZoom < MinPositiveZoom) {
-        Zoom = MinPositiveZoom;
+    if (!std::isfinite(nextZoom) || nextZoom < MinZoom) {
+        Zoom = MinZoom;
         return;
     }
     if (nextZoom > MaxZoom) {

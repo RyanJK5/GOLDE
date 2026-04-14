@@ -165,6 +165,7 @@ SimulationEditor::Update(std::optional<bool> activeOverride,
         .SelectionBounds = m_Model.Selection().CanDrawGrid()
                                ? m_Model.Selection().SelectionBounds()
                                : std::optional<Rect>{},
+        .Zoom = m_Graphics.Camera.Zoom,
         .Active = (activeOverride && *activeOverride) || displayResult.Selected,
         .Closing = displayResult.Closing ||
                    (controlArgs.Command && std::holds_alternative<CloseCommand>(
@@ -407,6 +408,11 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                 glm::dvec2 precisePos{cmd.Position.X * DefaultCellWidth,
                                       cmd.Position.Y * DefaultCellHeight};
                 m_Graphics.Camera.Center = precisePos;
+                return m_Model.State();
+            },
+            [this](const CameraZoomCommand& cmd) {
+                m_Graphics.Camera.Zoom = std::clamp(
+                    cmd.Zoom, GraphicsCamera::MinZoom, GraphicsCamera::MaxZoom);
                 return m_Model.State();
             },
             [this](const ResizeCommand& cmd) {
