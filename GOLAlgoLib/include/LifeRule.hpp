@@ -8,6 +8,11 @@
 #include "Graphics2D.hpp"
 
 namespace gol {
+
+using namespace std::literals::string_view_literals;
+
+enum class TopologyKind { Plane, Torus };
+
 class LifeRule {
   public:
     constexpr static uint32_t NumLeafPatterns = 1 << 16;
@@ -22,39 +27,43 @@ class LifeRule {
     constexpr static std::expected<Size2, std::string_view>
     ExtractDimensions(std::string_view ruleString);
 
-    constexpr LifeRule(int32_t birthMask, int32_t surviveMask,
-                       Rect bounds = {});
+    constexpr static std::expected<TopologyKind, std::string_view>
+    ExtractTopologyKind(std::string_view ruleString);
+
+    constexpr LifeRule(int32_t birthMask, int32_t surviveMask, Rect bounds = {},
+                       TopologyKind topology = TopologyKind::Plane);
     constexpr const LookupTable& Table() const;
 
     constexpr std::optional<Rect> Bounds() const;
+
+    constexpr TopologyKind GetTopology() const;
 
   private:
     constexpr LookupTable BuildRuleTable(int32_t birthMask,
                                          int32_t surviveMask);
 
-    template <bool FullyConstruct>
-    constexpr static std::expected<
-        std::conditional_t<FullyConstruct, LifeRule, Size2>, std::string_view>
+    template <typename ExtractType>
+    constexpr static std::expected<ExtractType, std::string_view>
     TryMake(std::string_view ruleString);
 
   private:
     LookupTable m_RuleTable;
     Rect m_Bounds;
+    TopologyKind m_TopologyKind;
 };
 
-template <bool FullyConstruct>
-constexpr std::expected<std::conditional_t<FullyConstruct, LifeRule, Size2>,
-                        std::string_view>
+template <typename ExtractType>
+constexpr std::expected<ExtractType, std::string_view>
 LifeRule::TryMake(std::string_view ruleString) {
     const auto slash = ruleString.find('/');
     if (slash == std::string_view::npos || ruleString[0] != 'B' ||
         ruleString[slash + 1] != 'S') {
         return std::unexpected{
-            std::string_view{"Rule string must be in B.../S...:P... format."}};
+            "Rule string must be in B.../S...:[P|T]... format."sv};
     }
 
     const auto surviveEnd = [&] {
-        auto topologyBegin = ruleString.find(":P");
+        auto topologyBegin = ruleString.find(":");
         if (topologyBegin == std::string_view::npos) {
             return ruleString.size();
         } else {
@@ -65,12 +74,10 @@ LifeRule::TryMake(std::string_view ruleString) {
     auto birthMask = 0;
     for (char c : ruleString.substr(1, slash - 1)) {
         if (c == '0') {
-            return std::unexpected{
-                std::string_view{"B0 rules are not currently supported."}};
+            return std::unexpected{"B0 rules are not currently supported."sv};
         }
         if (c < '0' || c > '8') {
-            return std::unexpected{
-                std::string_view{"Invalid birth neighbor count."}};
+            return std::unexpected{"Invalid birth neighbor count."sv};
         }
         birthMask |= (1 << (c - '0'));
     }
@@ -78,10 +85,45 @@ LifeRule::TryMake(std::string_view ruleString) {
     auto surviveMask = 0;
     for (char c : ruleString.substr(slash + 2, surviveEnd - (slash + 2))) {
         if (c < '0' || c > '8') {
-            return std::unexpected{
-                std::string_view{"Invalid survive neighbor count."}};
+            return std::unexpected{"Invalid survive neighbor count."sv};
         }
         surviveMask |= (1 << (c - '0'));
+    }
+
+    const auto topologyKind =
+        [&] -> std::expected<TopologyKind, std::string_view> {
+        if (surviveEnd == ruleString.size() ||
+            surviveEnd == ruleString.size() - 1) {
+            return TopologyKind::Plane;
+        }
+
+        const auto topologyChar = ruleString[surviveEnd + 1];
+        switch (topologyChar) {
+        case 'p':
+        case 'P':
+            return TopologyKind::Plane;
+        case 't':
+        case 'T':
+            return TopologyKind::Torus;
+        case 'k':
+        case 'K':
+            return std::unexpected{
+                "Klein bottle topology is not currently supported."sv};
+        case 'c':
+        case 'C':
+            return std::unexpected{
+                "Cross-surface topology is not currently supported."sv};
+        case 's':
+        case 'S':
+            return std::unexpected{
+                "Sphere topology is not currently supported."sv};
+        default:
+            return std::unexpected{"Unkown topology."sv};
+        }
+    }();
+
+    if (!topologyKind) {
+        return std::unexpected{topologyKind.error()};
     }
 
     const auto bounds = [&] -> std::expected<Size2, std::string_view> {
@@ -89,7 +131,13 @@ LifeRule::TryMake(std::string_view ruleString) {
             return Size2{};
         }
 
-        const auto separatorIndex = ruleString.find(',', surviveEnd);
+        const auto separatorIndex = [&] {
+            const auto ret = ruleString.find(',', surviveEnd);
+            if (ret == std::string_view::npos) {
+                return ruleString.size();
+            }
+            return ret;
+        }();
 
         auto width = 0;
         auto [pointer, ec] =
@@ -97,7 +145,11 @@ LifeRule::TryMake(std::string_view ruleString) {
                             ruleString.data() + separatorIndex, width);
 
         if (ec != std::errc{}) {
-            return std::unexpected{std::string_view{"Invalid topology width."}};
+            return std::unexpected{"Invalid topology width."sv};
+        }
+
+        if (separatorIndex == ruleString.size()) {
+            return Size2{width, width};
         }
 
         auto height = 0;
@@ -105,8 +157,7 @@ LifeRule::TryMake(std::string_view ruleString) {
             pointer + 1, ruleString.data() + ruleString.size(), height);
 
         if (ec2 != std::errc{}) {
-            return std::unexpected{
-                std::string_view{"Invalid topology height."}};
+            return std::unexpected{"Invalid topology height."sv};
         }
 
         return Size2{width, height};
@@ -116,26 +167,36 @@ LifeRule::TryMake(std::string_view ruleString) {
         return std::unexpected{bounds.error()};
     }
 
-    if constexpr (FullyConstruct) {
-        return LifeRule{birthMask, surviveMask, Rect{Vec2{}, *bounds}};
-    } else {
+    if constexpr (std::is_same_v<ExtractType, LifeRule>) {
+        return LifeRule{birthMask, surviveMask, Rect{Vec2{}, *bounds},
+                        *topologyKind};
+    } else if constexpr (std::is_same_v<ExtractType, Size2>) {
         return *bounds;
+    } else if constexpr (std::is_same_v<ExtractType, TopologyKind>) {
+        return *topologyKind;
+    } else {
+        return std::expected<void, std::string_view>{};
     }
 }
 
 constexpr std::expected<LifeRule, std::string_view>
 LifeRule::Make(std::string_view ruleString) {
-    return TryMake<true>(ruleString);
+    return TryMake<LifeRule>(ruleString);
 }
 
 constexpr std::expected<void, std::string_view>
 LifeRule::IsValidRule(std::string_view ruleString) {
-    return TryMake<false>(ruleString).transform([](auto&&) {});
+    return TryMake<void>(ruleString);
 }
 
 constexpr std::expected<Size2, std::string_view>
 LifeRule::ExtractDimensions(std::string_view ruleString) {
-    return TryMake<false>(ruleString);
+    return TryMake<Size2>(ruleString);
+}
+
+constexpr std::expected<TopologyKind, std::string_view>
+LifeRule::ExtractTopologyKind(std::string_view ruleString) {
+    return TryMake<TopologyKind>(ruleString);
 }
 
 constexpr LifeRule::LookupTable LifeRule::BuildRuleTable(int32_t birthMask,
@@ -188,9 +249,12 @@ constexpr std::optional<Rect> LifeRule::Bounds() const {
     return m_Bounds;
 }
 
+constexpr TopologyKind LifeRule::GetTopology() const { return m_TopologyKind; }
+
 constexpr LifeRule::LifeRule(int32_t birthMask, int32_t surviveMask,
-                             Rect bounds)
-    : m_RuleTable(BuildRuleTable(birthMask, surviveMask)), m_Bounds(bounds) {}
+                             Rect bounds, TopologyKind topology)
+    : m_RuleTable(BuildRuleTable(birthMask, surviveMask)), m_Bounds(bounds),
+      m_TopologyKind(topology) {}
 
 } // namespace gol
 #endif

@@ -636,7 +636,17 @@ void HashLife::SetRule(const LifeRule& rule) {
     s_SlowCache.clear();
 
     if (rule.Bounds()) {
-        m_Topology = std::make_unique<Plane>(*rule.Bounds());
+
+        m_Topology = [&] -> std::unique_ptr<Topology> {
+            switch (rule.GetTopology()) {
+            case TopologyKind::Plane:
+                return std::make_unique<Plane>(*rule.Bounds());
+            case TopologyKind::Torus:
+                return std::make_unique<Torus>(*rule.Bounds());
+            default:
+                return std::make_unique<Plane>(*rule.Bounds());
+            }
+        }();
     }
 }
 

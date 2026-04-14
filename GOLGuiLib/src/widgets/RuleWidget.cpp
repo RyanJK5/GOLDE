@@ -7,10 +7,11 @@
 
 namespace gol {
 RuleWidget::RuleWidget()
-    : m_InputError("Invalid Rule",
+    : m_TopologyCombo("##TopologyLabel", "Plane", "Torus"),
+      m_InputError("Invalid Rule",
                    [this](auto) { m_InputText = m_LastValid; }) {}
 
-std::optional<Size2> RuleWidget::ResizeComponent(const EditorResult&) {
+RuleWidget::RuleInfoChange RuleWidget::ResizeComponent(const EditorResult&) {
     const auto totalWidth = ImGui::GetContentRegionAvail().x / 2.f;
 
     ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding, 10.f);
@@ -19,11 +20,39 @@ std::optional<Size2> RuleWidget::ResizeComponent(const EditorResult&) {
     const auto dimensions =
         LifeRule::ExtractDimensions(m_InputText).value_or(Size2{});
     std::array wrapper{dimensions.Width, dimensions.Height};
-    ImGui::InputInt2("##label", wrapper.data());
-    ImGui::SetItemTooltip("If either width or height is set to zero, the "
-                          "universe will be unbounded.");
+    ImGui::InputInt2("##BoundsLabel", wrapper.data());
+    ImGui::SetItemTooltip("If a dimension is set to 0, the universe will "
+                          "unbounded along that dimension.");
 
-    const auto ret = [&] -> std::optional<Size2> {
+    ImGui::SameLine();
+
+    const auto newActiveTopology = [&] -> std::optional<TopologyKind> {
+        const auto dimensions = LifeRule::ExtractDimensions(m_InputText);
+        DisabledScope disableIf{
+            !dimensions || (dimensions->Width == 0 && dimensions->Height == 0)};
+
+        const auto oldActiveIndex = m_TopologyCombo.ActiveIndex;
+        m_TopologyCombo.ActiveIndex =
+            static_cast<int32_t>(LifeRule::ExtractTopologyKind(m_InputText)
+                                     .value_or(TopologyKind::Plane));
+        m_TopologyCombo.Update();
+
+        switch (static_cast<TopologyKind>(m_TopologyCombo.ActiveIndex)) {
+        case TopologyKind::Plane:
+            ImGui::SetItemTooltip("The standard topology for both unbounded "
+                                  "and bounded universes.");
+            break;
+        case TopologyKind::Torus:
+            ImGui::SetItemTooltip("Creates a looping universe where cells lea");
+        }
+
+        if (oldActiveIndex != m_TopologyCombo.ActiveIndex) {
+            return static_cast<TopologyKind>(m_TopologyCombo.ActiveIndex);
+        }
+        return std::nullopt;
+    }();
+
+    const auto newSize = [&] -> std::optional<Size2> {
         if (wrapper[0] != dimensions.Width || wrapper[1] != dimensions.Height) {
             return Size2{wrapper[0], wrapper[1]};
         }
@@ -40,11 +69,14 @@ std::optional<Size2> RuleWidget::ResizeComponent(const EditorResult&) {
     ImGui::SetCursorPosX(totalWidth / 2.f +
                          ImGui::GetStyle().FramePadding.x * 3);
     ImGui::Text("Height");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(totalWidth + ImGui::GetStyle().FramePadding.x * 4);
+    ImGui::Text("Topology");
 
     ImGui::Separator();
     ImGui::PopStyleVar();
 
-    return ret;
+    return {.NewSize = newSize, .NewTopologyKind = newActiveTopology};
 }
 
 WidgetResult RuleWidget::UpdateImpl(const EditorResult& state) {
@@ -78,12 +110,23 @@ WidgetResult RuleWidget::UpdateImpl(const EditorResult& state) {
     m_InputError.Update();
 
     auto changed = ResizeComponent(state);
-    if (changed) {
+    if (changed.NewSize) {
         auto suffix = [&] -> std::string {
-            if (changed->Width == 0 && changed->Height == 0) {
+            if (changed.NewSize->Width == 0 && changed.NewSize->Height == 0) {
                 return "";
             }
-            return std::format(":P{},{}", changed->Width, changed->Height);
+
+            auto topologyString = [&] -> std::string_view {
+                const auto colonIndex = m_InputText.find(':');
+                if (colonIndex == std::string::npos) {
+                    return ":P";
+                }
+                return std::string_view{m_InputText.begin() + colonIndex,
+                                        m_InputText.begin() + colonIndex + 2};
+            }();
+
+            return std::format("{}{},{}", topologyString,
+                               changed.NewSize->Width, changed.NewSize->Height);
         }();
 
         const auto replaceIndex = [&] {
@@ -97,6 +140,21 @@ WidgetResult RuleWidget::UpdateImpl(const EditorResult& state) {
             replaceIndex,
             std::max(suffix.size(), m_InputText.size() - replaceIndex),
             std::move(suffix));
+    }
+    if (changed.NewTopologyKind) {
+        const auto colonIndex = m_InputText.find(':');
+        if (colonIndex != std::string::npos) {
+            m_InputText[colonIndex + 1] = [&] {
+                switch (*changed.NewTopologyKind) {
+                case TopologyKind::Plane:
+                    return 'P';
+                case TopologyKind::Torus:
+                    return 'T';
+                default:
+                    return '?';
+                }
+            }();
+        }
     }
 
     if (!Actions::Editable(state.Simulation.State) ||

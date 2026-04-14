@@ -3,6 +3,7 @@ set(SOURCES
     src/dialogs/FileDialog.cpp
     src/dialogs/PopupWindow.cpp
     src/dialogs/WarnWindow.cpp
+    src/misc/Combo.cpp
     src/misc/DisabledScope.cpp
     src/misc/LoadingSpinner.cpp
     src/misc/RLEEncoder.cpp
@@ -27,6 +28,7 @@ set(HEADERS
     include/dialogs/PopupWindow.hpp
     include/dialogs/WarnWindow.hpp
     include/misc/ConfigLoader.hpp
+    include/misc/Combo.hpp
     include/misc/DisabledScope.hpp
     include/misc/LoadingSpinner.hpp
     include/misc/RLEEncoder.hpp
