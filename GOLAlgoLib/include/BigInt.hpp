@@ -51,21 +51,21 @@ struct formatter<gol::BigInt> {
         if (sv.size() <= 10UZ) {
             return FormatSmall(sv, negative, ctx);
         }
-        return FormatBig(sv, ctx);
+        return FormatBig(sv, negative, ctx);
     }
 
   private:
     bool m_UseLocale = false;
 
-    auto FormatBig(std::string_view str, auto& ctx) const {
+    auto FormatBig(std::string_view str, bool negative, auto& ctx) const {
         const auto exponent = str.size() - 1UZ;
 
         const auto mantissaLength = std::min(str.size() - 1, 2UZ);
         const std::string_view mantissa{str.begin() + 1,
                                         str.begin() + 1 + mantissaLength};
 
-        return std::format_to(ctx.out(), "{}.{}e+{}", str[0], mantissa,
-                              exponent);
+        return std::format_to(ctx.out(), "{}{}.{}e+{}", negative ? "-" : "",
+                              str[0], mantissa, exponent);
     }
 
     auto FormatSmall(std::string_view str, bool negative, auto& ctx) const {

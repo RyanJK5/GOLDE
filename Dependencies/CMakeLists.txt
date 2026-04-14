@@ -16,8 +16,11 @@ FetchContent_MakeAvailable(boost_multiprecision boost_config)
 
 # Force the include directories to be treated as SYSTEM
 if(TARGET boost_multiprecision)
-    set_target_properties(boost_multiprecision PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES 
-        $<TARGET_PROPERTY:boost_multiprecision,INTERFACE_INCLUDE_DIRECTORIES>)
+    if(MSVC)
+        target_compile_options(boost_multiprecision INTERFACE /W0)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(boost_multiprecision INTERFACE -w)
+    endif()
 endif()
 
 # FontAwesome
