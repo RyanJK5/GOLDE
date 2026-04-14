@@ -1,8 +1,11 @@
 #ifndef LifeRule_hpp_
 #define LifeRule_hpp_
 #include <array>
+#include <charconv>
 #include <expected>
 #include <string_view>
+
+#include "Graphics2D.hpp"
 
 namespace gol {
 class LifeRule {
@@ -16,26 +19,48 @@ class LifeRule {
     constexpr static std::expected<void, std::string_view>
     IsValidRule(std::string_view ruleString);
 
-    constexpr LifeRule(int32_t birthMask, int32_t surviveMask);
+    constexpr static std::expected<Size2, std::string_view>
+    ExtractDimensions(std::string_view ruleString);
+
+    constexpr LifeRule(int32_t birthMask, int32_t surviveMask,
+                       Rect bounds = {});
     constexpr const LookupTable& Table() const;
+
+    constexpr std::optional<Rect> Bounds() const;
 
   private:
     constexpr LookupTable BuildRuleTable(int32_t birthMask,
                                          int32_t surviveMask);
 
+    template <bool FullyConstruct>
+    constexpr static std::expected<
+        std::conditional_t<FullyConstruct, LifeRule, Size2>, std::string_view>
+    TryMake(std::string_view ruleString);
+
   private:
     LookupTable m_RuleTable;
+    Rect m_Bounds;
 };
 
-constexpr std::expected<LifeRule, std::string_view>
-LifeRule::Make(std::string_view ruleString) {
-
+template <bool FullyConstruct>
+constexpr std::expected<std::conditional_t<FullyConstruct, LifeRule, Size2>,
+                        std::string_view>
+LifeRule::TryMake(std::string_view ruleString) {
     const auto slash = ruleString.find('/');
     if (slash == std::string_view::npos || ruleString[0] != 'B' ||
         ruleString[slash + 1] != 'S') {
         return std::unexpected{
-            std::string_view{"Rule string must be in B.../S... format."}};
+            std::string_view{"Rule string must be in B.../S...:P... format."}};
     }
+
+    const auto surviveEnd = [&] {
+        auto topologyBegin = ruleString.find(":P");
+        if (topologyBegin == std::string_view::npos) {
+            return ruleString.size();
+        } else {
+            return topologyBegin;
+        }
+    }();
 
     auto birthMask = 0;
     for (char c : ruleString.substr(1, slash - 1)) {
@@ -51,7 +76,7 @@ LifeRule::Make(std::string_view ruleString) {
     }
 
     auto surviveMask = 0;
-    for (char c : ruleString.substr(slash + 2)) {
+    for (char c : ruleString.substr(slash + 2, surviveEnd - (slash + 2))) {
         if (c < '0' || c > '8') {
             return std::unexpected{
                 std::string_view{"Invalid survive neighbor count."}};
@@ -59,37 +84,58 @@ LifeRule::Make(std::string_view ruleString) {
         surviveMask |= (1 << (c - '0'));
     }
 
-    return LifeRule{birthMask, surviveMask};
+    const auto bounds = [&] -> std::expected<Size2, std::string_view> {
+        if (surviveEnd == ruleString.size()) {
+            return Size2{};
+        }
+
+        const auto separatorIndex = ruleString.find(',', surviveEnd);
+
+        auto width = 0;
+        auto [pointer, ec] =
+            std::from_chars(ruleString.data() + surviveEnd + 2,
+                            ruleString.data() + separatorIndex, width);
+
+        if (ec != std::errc{}) {
+            return std::unexpected{std::string_view{"Invalid topology width."}};
+        }
+
+        auto height = 0;
+        auto [pointer2, ec2] = std::from_chars(
+            pointer + 1, ruleString.data() + ruleString.size(), height);
+
+        if (ec2 != std::errc{}) {
+            return std::unexpected{
+                std::string_view{"Invalid topology height."}};
+        }
+
+        return Size2{width, height};
+    }();
+
+    if (!bounds) {
+        return std::unexpected{bounds.error()};
+    }
+
+    if constexpr (FullyConstruct) {
+        return LifeRule{birthMask, surviveMask, Rect{Vec2{}, *bounds}};
+    } else {
+        return *bounds;
+    }
+}
+
+constexpr std::expected<LifeRule, std::string_view>
+LifeRule::Make(std::string_view ruleString) {
+    return TryMake<true>(ruleString);
 }
 
 constexpr std::expected<void, std::string_view>
 LifeRule::IsValidRule(std::string_view ruleString) {
-    const auto slash = ruleString.find('/');
-    if (slash == std::string_view::npos || ruleString[0] != 'B' ||
-        ruleString[slash + 1] != 'S') {
-        return std::unexpected{
-            std::string_view{"Rule string must be in B.../S... format."}};
-    }
+    return TryMake<false>(ruleString).transform([](auto&&) {});
+}
 
-    for (char c : ruleString.substr(1, slash - 1)) {
-        if (c == '0') {
-            return std::unexpected{
-                std::string_view{"B0 rules are not currently supported."}};
-        }
-        if (c < '0' || c > '8') {
-            return std::unexpected{
-                std::string_view{"Invalid birth neighbor count."}};
-        }
-    }
-
-    for (char c : ruleString.substr(slash + 2)) {
-        if (c < '0' || c > '8') {
-            return std::unexpected{
-                std::string_view{"Invalid survive neighbor count."}};
-        }
-    }
-
-    return std::expected<void, std::string_view>{};
+constexpr std::expected<Size2, std::string_view>
+LifeRule::ExtractDimensions(std::string_view ruleString) {
+    return TryMake<false>(ruleString);
 }
 
 constexpr LifeRule::LookupTable LifeRule::BuildRuleTable(int32_t birthMask,
@@ -135,8 +181,16 @@ constexpr const LifeRule::LookupTable& LifeRule::Table() const {
     return m_RuleTable;
 }
 
-constexpr LifeRule::LifeRule(int32_t birthMask, int32_t surviveMask)
-    : m_RuleTable(BuildRuleTable(birthMask, surviveMask)) {}
+constexpr std::optional<Rect> LifeRule::Bounds() const {
+    if (m_Bounds == Rect{}) {
+        return std::nullopt;
+    }
+    return m_Bounds;
+}
+
+constexpr LifeRule::LifeRule(int32_t birthMask, int32_t surviveMask,
+                             Rect bounds)
+    : m_RuleTable(BuildRuleTable(birthMask, surviveMask)), m_Bounds(bounds) {}
 
 } // namespace gol
 #endif

@@ -415,18 +415,6 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                     cmd.Zoom, GraphicsCamera::MinZoom, GraphicsCamera::MaxZoom);
                 return m_Model.State();
             },
-            [this](const ResizeCommand& cmd) {
-                auto oldWidth = m_Model.Grid().Width();
-                auto oldHeight = m_Model.Grid().Height();
-                auto state = m_Model.HandleResize(cmd.NewDimensions);
-                if (m_Model.Grid().Width() != oldWidth ||
-                    m_Model.Grid().Height() != oldHeight) {
-                    m_Graphics.Camera.Center = {
-                        m_Model.Grid().Width() * DefaultCellWidth / 2.f,
-                        m_Model.Grid().Height() * DefaultCellHeight / 2.f};
-                }
-                return state;
-            },
             [this](const GenerateNoiseCommand& cmd) {
                 auto result = m_Model.HandleGenerateNoise(
                     cmd.Density, static_cast<uint32_t>(threshold));
@@ -503,9 +491,17 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
             [this](const NewFileCommand&) { return m_Model.State(); },
             [this](const CloseCommand&) { return m_Model.State(); },
             [this](const RuleCommand& cmd) {
-                m_Model.Worker().BufferRule(std::make_unique<LifeRule>(
-                    *LifeRule::Make(cmd.RuleString)));
-                return m_Model.State();
+                const auto oldWidth = m_Model.Grid().Width();
+                const auto oldHeight = m_Model.Grid().Height();
+                const auto state = m_Model.HandleRuleChange(cmd.RuleString);
+                if (m_Model.Grid().Width() != oldWidth ||
+                    m_Model.Grid().Height() != oldHeight) {
+                    m_Graphics.Camera.Center = {
+                        m_Model.Grid().Width() * DefaultCellWidth / 2.f,
+                        m_Model.Grid().Height() * DefaultCellHeight / 2.f};
+                }
+
+                return state;
             },
             [this](const SelectionCommand& cmd) {
                 if (cmd.Action == SelectionAction::Paste) {

@@ -26,9 +26,6 @@ struct ClearCommand {};
 struct StepCommand {};
 
 // Editor commands
-struct ResizeCommand {
-    Size2 NewDimensions;
-};
 struct GenerateNoiseCommand {
     float Density = 0.f;
 };
@@ -74,11 +71,11 @@ struct RuleCommand {
 
 using SimulationCommand =
     std::variant<StartCommand, PauseCommand, ResumeCommand, RestartCommand,
-                 ResetCommand, ClearCommand, StepCommand, ResizeCommand,
-                 GenerateNoiseCommand, UndoCommand, RedoCommand, SaveCommand,
-                 SaveAsNewCommand, NewFileCommand, LoadCommand, CloseCommand,
-                 SelectionCommand, SelectionBoundsCommand,
-                 CameraPositionCommand, CameraZoomCommand, RuleCommand>;
+                 ResetCommand, ClearCommand, StepCommand, GenerateNoiseCommand,
+                 UndoCommand, RedoCommand, SaveCommand, SaveAsNewCommand,
+                 NewFileCommand, LoadCommand, CloseCommand, SelectionCommand,
+                 SelectionBoundsCommand, CameraPositionCommand,
+                 CameraZoomCommand, RuleCommand>;
 
 // Convert individual action enum values to SimulationCommand.
 // Used by Widget::UpdateResult for simple (no-payload) buttons.
@@ -107,7 +104,7 @@ inline SimulationCommand ToCommand(EditorAction action) {
     switch (action) {
         using enum EditorAction;
     case Resize:
-        return ResizeCommand{};
+        return RuleCommand{};
     case GenerateNoise:
         return GenerateNoiseCommand{};
     case Undo:

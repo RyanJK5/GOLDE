@@ -218,9 +218,8 @@ struct RowMajorEqual {
 };
 } // namespace gol
 
-namespace std {
 template <std::totally_ordered T>
-struct formatter<gol::GenericVec<T>> {
+struct std::formatter<gol::GenericVec<T>> {
     constexpr auto parse(std::format_parse_context& context) {
         return context.begin();
     }
@@ -230,6 +229,5 @@ struct formatter<gol::GenericVec<T>> {
         return std::format_to(context.out(), "({}, {})", vec.X, vec.Y);
     }
 };
-} // namespace std
 
 #endif

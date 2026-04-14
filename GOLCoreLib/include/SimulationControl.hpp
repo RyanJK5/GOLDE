@@ -17,7 +17,6 @@
 #include "GameEnums.hpp"
 #include "KeyShortcut.hpp"
 #include "NoiseWidget.hpp"
-#include "ResizeWidget.hpp"
 #include "RuleWidget.hpp"
 #include "SelectionBoundsWidget.hpp"
 #include "SimulationControlResult.hpp"
@@ -60,7 +59,6 @@ class SimulationControl {
     ExecutionWidget m_ExecutionWidget;
     EditorWidget m_EditorWidget;
     FileWidget m_FileWidget;
-    ResizeWidget m_ResizeWidget;
     StepWidget m_StepWidget;
     RuleWidget m_RuleWidget;
     DelayWidget m_DelayWidget;
@@ -80,9 +78,8 @@ void SimulationControl::ForEachWidget(auto&& widgetFunc) {
     widgetFunc(m_EditorWidget);
     widgetFunc(m_SelectionBoundsWidget);
     widgetFunc(m_CameraPositionWidget);
-    widgetFunc(m_ResizeWidget);
-    widgetFunc(m_StepWidget);
     widgetFunc(m_RuleWidget);
+    widgetFunc(m_StepWidget);
     widgetFunc(m_DelayWidget);
     widgetFunc(m_NoiseWidget);
 }

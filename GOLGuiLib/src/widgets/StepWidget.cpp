@@ -152,6 +152,7 @@ WidgetResult StepWidget::UpdateImpl(const EditorResult& state) {
             "to run slowly for the first few jumps, but speed up "
             "significantly afterwards.");
     }
+    ImGui::Separator();
     ImGui::PopStyleVar();
 
     return retValue;

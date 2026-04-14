@@ -12,7 +12,6 @@ set(SOURCES
     src/widgets/ExecutionWidget.cpp
     src/widgets/FileWidget.cpp
     src/widgets/NoiseWidget.cpp
-    src/widgets/ResizeWidget.cpp
     src/widgets/RuleWidget.cpp
     src/widgets/SelectionBoundsWidget.cpp
     src/widgets/StepWidget.cpp
@@ -38,7 +37,6 @@ set(HEADERS
     include/widgets/ExecutionWidget.hpp
     include/widgets/FileWidget.hpp
     include/widgets/NoiseWidget.hpp
-    include/widgets/ResizeWidget.hpp
     include/widgets/RuleWidget.hpp
     include/widgets/SelectionBoundsWidget.hpp
     include/widgets/StepWidget.hpp

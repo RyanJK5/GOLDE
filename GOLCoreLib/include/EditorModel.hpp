@@ -41,7 +41,7 @@ class EditorModel {
     SimulationState HandlePause();
     SimulationState HandleResume();
     SimulationState HandleStep();
-    SimulationState HandleResize(Size2 newDimensions);
+    SimulationState HandleRuleChange(std::string_view ruleStr);
     SimulationState HandleUndo();
     SimulationState HandleRedo();
     bool HandleSelectionAction(SelectionAction action, int32_t nudgeSize);

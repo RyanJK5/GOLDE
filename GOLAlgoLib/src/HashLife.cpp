@@ -563,6 +563,10 @@ void HashLife::SetTopology(std::unique_ptr<Topology> topology) {
 void HashLife::SetRule(const LifeRule& rule) {
     s_Rule = rule;
     s_SlowCache.clear();
+
+    if (rule.Bounds()) {
+        m_Topology = std::make_unique<Plane>(*rule.Bounds());
+    }
 }
 
 bool HashLife::CompatibleWith(const LifeDataStructure& data) const {

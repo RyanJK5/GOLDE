@@ -107,15 +107,19 @@ SimulationState EditorModel::HandleStep() {
     return SimulationState::Stepping;
 }
 
-SimulationState EditorModel::HandleResize(Size2 newDimensions) {
-    if (newDimensions.Width == m_Grid.Width() &&
-        newDimensions.Height == m_Grid.Height())
+SimulationState EditorModel::HandleRuleChange(std::string_view ruleStr) {
+    const auto rule = *LifeRule::Make(ruleStr);
+    m_Worker->BufferRule(std::make_unique<LifeRule>(rule));
+
+    if (!rule.Bounds() && m_Grid.Width() == 0 && m_Grid.Height() == 0)
         return SimulationState::Paint;
-    if ((newDimensions.Width == 0 || newDimensions.Height == 0) &&
-        (m_Grid.Width() == 0 || m_Grid.Height() == 0))
+    if (rule.Bounds()->Width == m_Grid.Width() &&
+        rule.Bounds()->Height == m_Grid.Height())
         return SimulationState::Paint;
 
-    m_Grid = GameGrid{std::move(m_Grid), newDimensions};
+    m_Grid = GameGrid{std::move(m_Grid),
+                      rule.Bounds() ? rule.Bounds()->Size() : Size2{}};
+
     m_VersionManager.TryPushChange(VersionState{.Universe = m_Grid}, m_State);
     if (m_SelectionManager.CanDrawSelection()) {
         auto selection = m_SelectionManager.SelectionBounds();

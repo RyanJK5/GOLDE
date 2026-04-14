@@ -85,7 +85,6 @@ SimulationControl::SimulationControl(
                             fileInfo.Shortcuts.at(EditorAction::Close)),
       m_ExecutionWidget(fileInfo.Shortcuts), m_EditorWidget(fileInfo.Shortcuts),
       m_FileWidget(fileInfo.Shortcuts),
-      m_ResizeWidget(fileInfo.Shortcuts.at(EditorAction::Resize)),
       m_StepWidget(fileInfo.Shortcuts.at(GameAction::Step)),
       m_NoiseWidget(fileInfo.Shortcuts.at(EditorAction::GenerateNoise)),
       m_ShortcutConfigPath(fileInfo.OriginPath),

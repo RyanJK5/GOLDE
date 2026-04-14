@@ -27,9 +27,8 @@ using BigVec2 = GenericVec<BigInt>;
 using BigRect = GenericRect<BigInt>;
 } // namespace gol
 
-namespace std {
 template <>
-struct formatter<gol::BigInt> {
+struct std::formatter<gol::BigInt> {
     constexpr auto parse(std::format_parse_context& ctx) {
         auto it = ctx.begin();
         if (it != ctx.end() && *it == 'L') {
@@ -100,6 +99,5 @@ struct formatter<gol::BigInt> {
         return out;
     }
 };
-} // namespace std
 
 #endif
