@@ -5,11 +5,13 @@ FetchContent_Declare(
     boost_multiprecision
     GIT_REPOSITORY https://github.com/boostorg/multiprecision.git
     GIT_TAG master
+    SYSTEM
 )
 FetchContent_Declare(
     boost_config
     GIT_REPOSITORY https://github.com/boostorg/config.git
     GIT_TAG master
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(boost_multiprecision boost_config)
@@ -65,15 +67,6 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 enable_testing()
-
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-	set_target_properties(gtest PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES $<TARGET_PROPERTY:gtest,INTERFACE_INCLUDE_DIRECTORIES>)
-	target_compile_options(gtest PRIVATE -Wno-character-conversion -Wno-error)
-	target_compile_options(gtest_main PRIVATE -Wno-character-conversion -Wno-error)
-elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-	target_compile_options(gtest PRIVATE /WX-)
-	target_compile_options(gtest_main PRIVATE /WX-)
-endif()
 
 # Fetch GLFW from source
 include(FetchContent)
