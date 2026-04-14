@@ -143,6 +143,14 @@ void HashQuadtree::Insert(const HashQuadtree& other, Vec2 offset) {
 
     const auto insertLevel = std::min(m_Depth, ViewportMaxLevel);
     const auto [centeredRoot, rootTopLeft] = GetCenteredNode(ViewportMaxLevel);
+
+    if (centeredRoot == FalseNode || centeredRoot->IsEmpty) {
+        m_Root = other.m_Root;
+        m_Depth = other.m_Depth;
+        m_SeedOffset = other.m_SeedOffset + Vec2L{offset.X, offset.Y};
+        return;
+    }
+
     const auto* centered =
         InsertNodeImpl(centeredRoot, insertLevel, rootTopLeft, sourceNode,
                        sourceLevel, sourceTopLeft);
