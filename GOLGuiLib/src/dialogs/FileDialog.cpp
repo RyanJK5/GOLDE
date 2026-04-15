@@ -1,7 +1,9 @@
+#include <algorithm>
 #include <expected>
 #include <filesystem>
 #include <functional>
 #include <nfd.hpp>
+#include <ranges>
 #include <string>
 
 #include "FileDialog.hpp"
@@ -9,24 +11,34 @@
 namespace gol {
 
 std::expected<std::filesystem::path, FileDialogFailure>
-FileDialog::OpenFileDialog(const std::string& filters,
+FileDialog::OpenFileDialog(std::span<const FilterItem> filters,
                            const std::string& defaultPath) {
-    const nfdfilteritem_t filterItem[]{{"RLE files", filters.c_str()}};
+
+    const auto nfdFilters = filters |
+                            std::views::transform([](FilterItem item) {
+                                return nfdfilteritem_t{.name = item.Identifier,
+                                                       .spec = item.Filter};
+                            }) |
+                            std::ranges::to<std::vector<nfdfilteritem_t>>();
 
     NFD::UniquePathU8 outPath{};
-    const auto result =
-        NFD::OpenDialog(outPath, filters.empty() ? nullptr : filterItem,
-                        filters.empty() ? 0 : 1,
-                        defaultPath.empty() ? nullptr : defaultPath.c_str());
+    const auto result = NFD::OpenDialog(
+        outPath, nfdFilters.empty() ? nullptr : nfdFilters.data(),
+        nfdFilters.size(), defaultPath.empty() ? nullptr : defaultPath.c_str());
 
     if (result == NFD_OKAY) {
         auto ret = std::filesystem::path{outPath.get()};
-        const auto extension = ret.extension().string();
-        if (extension != ".rle") {
+        const auto extension = ret.extension().string().substr(1);
+
+        const auto filterContainsWord = [&](auto&& filterItem) {
+            return std::string_view{filterItem.Filter}.find(extension) !=
+                   std::string::npos;
+        };
+
+        if (std::ranges::none_of(filters, filterContainsWord)) {
             return std::unexpected<FileDialogFailure>{
                 {.Type = FileFailureType::Error,
-                 .Message = "Invalid file type selected. Please select a .rle "
-                            "file. "}};
+                 .Message = "Invalid file type selected."}};
         }
         return ret;
     } else if (result == NFD_CANCEL) {
@@ -39,15 +51,20 @@ FileDialog::OpenFileDialog(const std::string& filters,
 }
 
 std::expected<std::filesystem::path, FileDialogFailure>
-FileDialog::SaveFileDialog(const std::string& filters,
+FileDialog::SaveFileDialog(std::span<const FilterItem> filters,
                            const std::string& defaultPath) {
-    const nfdfilteritem_t filterItem[]{{"RLE files", filters.c_str()}};
 
+    const auto nfdFilters = filters |
+                            std::views::transform([](FilterItem item) {
+                                return nfdfilteritem_t{.name = item.Identifier,
+                                                       .spec = item.Filter};
+                            }) |
+                            std::ranges::to<std::vector<nfdfilteritem_t>>();
     NFD::UniquePathU8 outPath{};
     const auto result = NFD::SaveDialog(
-        outPath, filters.empty() ? nullptr : filterItem,
-        filters.empty() ? 0 : 1,
-        defaultPath.empty() ? nullptr : defaultPath.c_str(), nullptr);
+        outPath, nfdFilters.empty() ? nullptr : nfdFilters.data(),
+        nfdFilters.size(), defaultPath.empty() ? nullptr : defaultPath.c_str(),
+        nullptr);
 
     if (result == NFD_OKAY) {
         auto ret = std::filesystem::path{outPath.get()};

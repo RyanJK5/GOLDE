@@ -7,10 +7,10 @@
 
 namespace gol {
 
-static std::expected<RLEEncoder::DecodeResult, std::string>
+static std::expected<FileEncoder::DecodeResult, std::string>
 EncodeDecodeRegionTest(const GameGrid& grid, Rect region, Vec2 offset) {
-    const auto encoded = RLEEncoder::EncodeRegion(grid, region, offset);
-    const auto decodeResult = RLEEncoder::DecodeRegion(encoded, 1000000);
+    const auto encoded = FileEncoder::EncodeRegion(grid, region, offset);
+    const auto decodeResult = FileEncoder::DecodeRegion(encoded, 1000000);
 
     if (!decodeResult.has_value()) {
         const auto str = std::format("Decode failed with error: {}",
@@ -24,7 +24,7 @@ EncodeDecodeRegionTest(const GameGrid& grid, Rect region, Vec2 offset) {
 TEST(EncodeTest, DecodeEncodeTest) {
     const auto filePath =
         std::filesystem::path{"universes"} / "bigsquiggles1.rle";
-    const auto result = RLEEncoder::ReadRegion(filePath);
+    const auto result = FileEncoder::ReadRegion(filePath);
     ASSERT_TRUE(result.has_value()) << result.error().Message;
 
     GameGrid finalGrid{};
@@ -33,7 +33,7 @@ TEST(EncodeTest, DecodeEncodeTest) {
 
     const auto boundingBox = finalGrid.BoundingBox();
     const auto encoded =
-        RLEEncoder::EncodeRegion(finalGrid, boundingBox, boundingBox.Pos());
+        FileEncoder::EncodeRegion(finalGrid, boundingBox, boundingBox.Pos());
 
     const auto fileStr = [&] {
         auto in = std::ifstream{filePath};

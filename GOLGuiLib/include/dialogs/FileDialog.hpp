@@ -3,7 +3,9 @@
 
 #include <expected>
 #include <filesystem>
+#include <span>
 #include <string>
+#include <string_view>
 
 namespace gol {
 enum class FileFailureType { Cancelled, Error };
@@ -13,12 +15,19 @@ struct FileDialogFailure {
     std::string Message{};
 };
 
+struct FilterItem {
+    const char* Identifier;
+    const char* Filter;
+};
+
 namespace FileDialog {
 std::expected<std::filesystem::path, FileDialogFailure>
-OpenFileDialog(const std::string& filters, const std::string& defaultPath);
+OpenFileDialog(std::span<const FilterItem> filters,
+               const std::string& defaultPath);
 
 std::expected<std::filesystem::path, FileDialogFailure>
-SaveFileDialog(const std::string& filters, const std::string& defaultPath);
+SaveFileDialog(std::span<const FilterItem> filters,
+               const std::string& defaultPath);
 
 std::expected<std::filesystem::path, FileDialogFailure>
 SelectFolderDialog(const std::string& defaultPath);

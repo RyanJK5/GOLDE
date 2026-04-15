@@ -33,7 +33,7 @@ class SelectionManager {
 
     std::optional<VersionState> Cut(const GameGrid& grid);
 
-    std::expected<VersionState, RLEEncoder::DecodeError>
+    std::expected<VersionState, FileEncoder::DecodeError>
     Paste(const GameGrid& grid, std::optional<Vec2> gridPos,
           uint32_t warnThreshold, bool unlock = false);
 
@@ -54,7 +54,7 @@ class SelectionManager {
     std::pair<std::optional<VersionState>, std::optional<VersionState>>
     ModifySelectionBounds(GameGrid& grid, Rect bounds);
 
-    std::expected<VersionState, RLEEncoder::DecodeError>
+    std::expected<VersionState, FileEncoder::DecodeError>
     Load(const GameGrid& grid, const std::filesystem::path& filePath);
 
     bool Save(const GameGrid& grid,

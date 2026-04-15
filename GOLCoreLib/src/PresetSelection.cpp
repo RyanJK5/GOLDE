@@ -120,8 +120,8 @@ PresetSelectionResult PresetSelection::Update(const EditorResult& info) {
                     std::format("##{}", m_Library[i].FileName).c_str(),
                     {windowBounds.Width, windowBounds.Height}))
                 retString =
-                    RLEEncoder::EncodeRegion(m_Library[i].Grid,
-                                             {{0, 0}, m_Library[i].Grid.Size()})
+                    FileEncoder::EncodeRegion(
+                        m_Library[i].Grid, {{0, 0}, m_Library[i].Grid.Size()})
                         .c_str();
 
             if (ImGui::IsItemHovered())
@@ -142,7 +142,7 @@ void PresetSelection::ReadFiles(const std::filesystem::path& path) {
         if (file.path().extension() != ".rle")
             continue;
 
-        auto result = RLEEncoder::ReadRegion(file.path());
+        auto result = FileEncoder::ReadRegion(file.path());
         if (!result) {
             ERROR("Failed to read file {}: {}", file.path().filename().string(),
                   result.error().Message);

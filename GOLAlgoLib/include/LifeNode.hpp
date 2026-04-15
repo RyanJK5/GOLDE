@@ -54,6 +54,13 @@ struct LifeNodeKey {
                 const LifeNode* se);
 };
 
+// Extracts the four 16-bit quadrant encodings from a level-3 node.
+struct LeafQuadrants {
+    uint16_t nw, ne, sw, se;
+};
+
+LeafQuadrants EncodeLevel3(const LifeNode* node);
+
 bool IsWithinBounds(Rect bounds, Vec2L pos);
 bool IsWithinBounds(const RectL& bounds, Vec2L pos);
 bool IsWithinBounds(const BigRect& bounds, Vec2L pos);

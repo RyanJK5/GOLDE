@@ -43,7 +43,8 @@ RuleWidget::RuleInfoChange RuleWidget::ResizeComponent(const EditorResult&) {
                                   "and bounded universes.");
             break;
         case TopologyKind::Torus:
-            ImGui::SetItemTooltip("Creates a looping universe where cells lea");
+            ImGui::SetItemTooltip("Creates a looping universe where cells "
+                                  "re-enter on the opposite side they exited.");
         }
 
         if (oldActiveIndex != m_TopologyCombo.ActiveIndex) {

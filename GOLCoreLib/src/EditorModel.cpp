@@ -212,7 +212,7 @@ bool EditorModel::SaveToFile(const std::filesystem::path& path,
     return false;
 }
 
-std::expected<void, RLEEncoder::DecodeError>
+std::expected<void, FileEncoder::DecodeError>
 EditorModel::PasteSelection(std::optional<Vec2> cursorPos) {
     if (cursorPos || m_SelectionManager.CanDrawGrid()) {
         m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),

@@ -58,7 +58,7 @@ class SimulationEditor {
 
     void SaveWithErrorHandling(const std::filesystem::path& path,
                                bool markAsSaved);
-    void HandlePasteError(const RLEEncoder::DecodeError& result);
+    void HandlePasteError(const FileEncoder::DecodeError& result);
 
     void UpdateViewport();
 

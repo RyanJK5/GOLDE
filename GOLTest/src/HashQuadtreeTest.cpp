@@ -35,8 +35,8 @@ static void CheckAgainstFile(const std::filesystem::path& unevolved,
     ASSERT_TRUE(std::filesystem::exists(evolved));
     ASSERT_GE(numJumps, 1);
 
-    const auto data1 = RLEEncoder::ReadRegion(unevolved);
-    const auto data2 = RLEEncoder::ReadRegion(evolved);
+    const auto data1 = FileEncoder::ReadRegion(unevolved);
+    const auto data2 = FileEncoder::ReadRegion(evolved);
     const auto shifted = [](const HashQuadtree& tree, Vec2 offset) {
         std::vector<Vec2> result{};
         for (const auto cell : tree) {
@@ -328,7 +328,7 @@ TEST(HashQuadtreeTest, ConstIteratorUsage) {
 TEST(HashQuadtreeTest, CopyingBreeder) {
     const std::filesystem::path directory{"universes"};
 
-    const auto data = RLEEncoder::ReadRegion(directory / "glider_gun.rle");
+    const auto data = FileEncoder::ReadRegion(directory / "glider_gun.rle");
 
     HashQuadtree original{data->Grid.Data() | std::ranges::to<LifeHashSet>(),
                           data->Offset};

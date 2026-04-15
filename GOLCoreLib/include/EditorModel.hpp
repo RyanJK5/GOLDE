@@ -52,7 +52,7 @@ class EditorModel {
     bool SaveToFile(const std::filesystem::path& path, bool markAsSaved);
 
     // Paste operations
-    std::expected<void, RLEEncoder::DecodeError>
+    std::expected<void, FileEncoder::DecodeError>
     PasteSelection(std::optional<Vec2> cursorPos);
     void ForcePaste(std::optional<Vec2> cursorPos);
 

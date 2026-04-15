@@ -112,7 +112,7 @@ std::optional<VersionState> SelectionManager::Copy(GameGrid& grid) {
     }
 
     ImGui::SetClipboardText(
-        RLEEncoder::EncodeRegion(*m_Selected, {{0, 0}, m_Selected->Size()})
+        FileEncoder::EncodeRegion(*m_Selected, {{0, 0}, m_Selected->Size()})
             .c_str());
     return Deselect(grid);
 }
@@ -122,13 +122,13 @@ std::optional<VersionState> SelectionManager::Cut(const GameGrid& grid) {
         return std::nullopt;
 
     ImGui::SetClipboardText(
-        RLEEncoder::EncodeRegion(
+        FileEncoder::EncodeRegion(
             *m_Selected, {0, 0, m_Selected->Width(), m_Selected->Height()})
             .c_str());
     return Delete(grid);
 }
 
-std::expected<VersionState, RLEEncoder::DecodeError>
+std::expected<VersionState, FileEncoder::DecodeError>
 SelectionManager::Paste(const GameGrid& grid, std::optional<Vec2> gridPos,
                         uint32_t warnThreshold, bool unlock) {
     if (unlock)
@@ -138,9 +138,9 @@ SelectionManager::Paste(const GameGrid& grid, std::optional<Vec2> gridPos,
         gridPos = m_AnchorSelection;
 
     auto decodeResult =
-        RLEEncoder::DecodeRegion(ImGui::GetClipboardText(), warnThreshold);
+        FileEncoder::DecodeRegion(ImGui::GetClipboardText(), warnThreshold);
     if (!decodeResult) {
-        return std::unexpected<RLEEncoder::DecodeError>{decodeResult.error()};
+        return std::unexpected<FileEncoder::DecodeError>{decodeResult.error()};
     }
 
     if (!gridPos) {
@@ -226,10 +226,10 @@ SelectionManager::InsertNoise(const GameGrid& grid, Rect selectionBounds,
     return CaptureState(grid);
 }
 
-std::expected<VersionState, RLEEncoder::DecodeError>
+std::expected<VersionState, FileEncoder::DecodeError>
 SelectionManager::Load(const GameGrid& grid,
                        const std::filesystem::path& filePath) {
-    auto result = RLEEncoder::ReadRegion(filePath);
+    auto result = FileEncoder::ReadRegion(filePath);
     if (!result)
         return std::unexpected{std::move(result.error())};
 
@@ -245,11 +245,11 @@ bool SelectionManager::Save(const GameGrid& grid,
                             const std::filesystem::path& filePath) const {
     if (!m_Selected) {
         auto boundingBox = grid.BoundingBox();
-        return RLEEncoder::WriteRegion(grid, boundingBox, filePath,
-                                       boundingBox.Pos());
+        return FileEncoder::WriteRegion(grid, boundingBox, filePath,
+                                        boundingBox.Pos());
     }
-    return RLEEncoder::WriteRegion(*m_Selected,
-                                   Rect{{0, 0}, m_Selected->Size()}, filePath);
+    return FileEncoder::WriteRegion(*m_Selected,
+                                    Rect{{0, 0}, m_Selected->Size()}, filePath);
 }
 
 std::optional<VersionState>

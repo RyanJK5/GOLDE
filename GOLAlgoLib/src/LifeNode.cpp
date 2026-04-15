@@ -3,6 +3,89 @@
 #include <functional>
 
 namespace gol {
+
+namespace {
+// Directly encodes a level-1 quadrant's cells into the known bit positions
+// for each 2x2 sub-quadrant of the 4x4 grid.
+uint16_t EncodeQuadrantNW(const LifeNode* q) {
+    if (q == FalseNode)
+        return 0;
+    uint16_t bits = 0;
+    if (q->NorthWest == TrueNode)
+        bits |= (1 << 15);
+    if (q->NorthEast == TrueNode)
+        bits |= (1 << 14);
+    if (q->SouthWest == TrueNode)
+        bits |= (1 << 11);
+    if (q->SouthEast == TrueNode)
+        bits |= (1 << 10);
+    return bits;
+}
+
+uint16_t EncodeQuadrantNE(const LifeNode* q) {
+    if (q == FalseNode)
+        return 0;
+    uint16_t bits = 0;
+    if (q->NorthWest == TrueNode)
+        bits |= (1 << 13);
+    if (q->NorthEast == TrueNode)
+        bits |= (1 << 12);
+    if (q->SouthWest == TrueNode)
+        bits |= (1 << 9);
+    if (q->SouthEast == TrueNode)
+        bits |= (1 << 8);
+    return bits;
+}
+
+uint16_t EncodeQuadrantSW(const LifeNode* q) {
+    if (q == FalseNode)
+        return 0;
+    uint16_t bits = 0;
+    if (q->NorthWest == TrueNode)
+        bits |= (1 << 7);
+    if (q->NorthEast == TrueNode)
+        bits |= (1 << 6);
+    if (q->SouthWest == TrueNode)
+        bits |= (1 << 3);
+    if (q->SouthEast == TrueNode)
+        bits |= (1 << 2);
+    return bits;
+}
+
+uint16_t EncodeQuadrantSE(const LifeNode* q) {
+    if (q == FalseNode)
+        return 0;
+    uint16_t bits = 0;
+    if (q->NorthWest == TrueNode)
+        bits |= (1 << 5);
+    if (q->NorthEast == TrueNode)
+        bits |= (1 << 4);
+    if (q->SouthWest == TrueNode)
+        bits |= (1 << 1);
+    if (q->SouthEast == TrueNode)
+        bits |= (1 << 0);
+    return bits;
+}
+
+// Encodes a level-2 node (4x4 grid of leaf cells) as a 16-bit value.
+uint16_t EncodeLevel2(const LifeNode* node) {
+    if (node == FalseNode ||
+        (node->NorthEast == FalseNode && node->NorthWest == FalseNode &&
+         node->SouthEast == FalseNode && node->SouthWest == FalseNode))
+        return 0;
+    return EncodeQuadrantNW(node->NorthWest) |
+           EncodeQuadrantNE(node->NorthEast) |
+           EncodeQuadrantSW(node->SouthWest) |
+           EncodeQuadrantSE(node->SouthEast);
+}
+
+} // namespace
+
+LeafQuadrants EncodeLevel3(const LifeNode* node) {
+    return {EncodeLevel2(node->NorthWest), EncodeLevel2(node->NorthEast),
+            EncodeLevel2(node->SouthWest), EncodeLevel2(node->SouthEast)};
+}
+
 bool IsWithinBounds(const RectL& bounds, Vec2L pos) {
     const auto left = bounds.X;
     const auto top = bounds.Y;

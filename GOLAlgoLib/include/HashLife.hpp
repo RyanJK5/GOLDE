@@ -55,15 +55,8 @@ class HashLife : public LifeAlgorithm {
         uint16_t nw, n, ne, w, center, e, sw, s, se;
     };
 
-    // Extracts the four 16-bit quadrant encodings from a level-3 node.
-    struct LeafQuadrants {
-        uint16_t nw, ne, sw, se;
-    };
-
     FirstGenResults ComputeFirstGeneration(const LeafQuadrants& q) const;
     uint16_t AssembleCentered6x6(const FirstGenResults& gen1) const;
-
-    LeafQuadrants EncodeLevel3(const LifeNode* node) const;
 
   private:
     std::unique_ptr<Topology> m_Topology;

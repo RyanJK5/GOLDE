@@ -111,6 +111,10 @@ WidgetResult FileWidget::UpdateImpl(const EditorResult& state) {
     auto filePath =
         [&action,
          &state] -> std::expected<std::filesystem::path, FileDialogFailure> {
+        constexpr static std::array supportedSaveExtensions{
+            FilterItem{"Extended RLE", "rle"}, FilterItem{"Macrocell", "mc"}};
+        constexpr static std::array supportedOpenExtensions{
+            FilterItem{"Game of Life Files", "rle,mc"}};
         switch (*action) {
             using enum EditorAction;
         case NewFile:
@@ -118,12 +122,12 @@ WidgetResult FileWidget::UpdateImpl(const EditorResult& state) {
         case Save:
             if (!state.File.CurrentFilePath.empty())
                 return state.File.CurrentFilePath;
-            return FileDialog::SaveFileDialog("rle", "");
+            return FileDialog::SaveFileDialog(supportedSaveExtensions, "");
         case SaveAsNew:
             return FileDialog::SaveFileDialog(
-                "rle", state.File.CurrentFilePath.string());
+                supportedSaveExtensions, state.File.CurrentFilePath.string());
         case Load:
-            return FileDialog::OpenFileDialog("rle", "");
+            return FileDialog::OpenFileDialog(supportedOpenExtensions, "");
         default:
             return std::unexpected{
                 FileDialogFailure{FileFailureType::Error, "Unknown action"}};

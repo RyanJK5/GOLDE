@@ -17,11 +17,13 @@
 #include "Graphics2D.hpp"
 #include "Logging.hpp"
 
-namespace gol::RLEEncoder {
+namespace gol::FileEncoder {
 struct DecodeResult {
     GameGrid Grid;
     Vec2 Offset;
 };
+
+enum class FileFormat { RLE, Macrocell };
 
 struct DecodeError {
     enum class Type {
@@ -38,16 +40,18 @@ struct DecodeError {
 };
 
 std::string EncodeRegion(const GameGrid& grid, Rect region,
-                         Vec2 offset = {0, 0});
+                         Vec2 offset = {0, 0},
+                         FileFormat fileFormat = FileFormat::RLE);
 
-std::expected<DecodeResult, DecodeError> DecodeRegion(std::string_view data,
-                                                      uint32_t warnThreshold);
+std::expected<DecodeResult, DecodeError>
+DecodeRegion(std::string_view data, uint32_t warnThreshold,
+             FileFormat fileFormat = FileFormat::RLE);
 
 bool WriteRegion(const GameGrid& grid, Rect region,
                  const std::filesystem::path& filePath, Vec2 offset = {0, 0});
 
 std::expected<DecodeResult, DecodeError>
 ReadRegion(const std::filesystem::path& filePath);
-} // namespace gol::RLEEncoder
+} // namespace gol::FileEncoder
 
 #endif

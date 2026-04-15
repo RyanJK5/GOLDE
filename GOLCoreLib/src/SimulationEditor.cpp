@@ -533,9 +533,10 @@ void SimulationEditor::SaveWithErrorHandling(const std::filesystem::path& path,
     }
 }
 
-void SimulationEditor::HandlePasteError(const RLEEncoder::DecodeError& result) {
+void SimulationEditor::HandlePasteError(
+    const FileEncoder::DecodeError& result) {
     switch (result.ErrorType) {
-        using enum RLEEncoder::DecodeError::Type;
+        using enum FileEncoder::DecodeError::Type;
     case TooManyCells:
         m_PasteWarning.Activate();
         m_PasteWarning.Message = std::format(

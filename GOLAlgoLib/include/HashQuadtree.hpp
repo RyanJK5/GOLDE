@@ -176,6 +176,9 @@ class HashQuadtree : public LifeDataStructure {
     const LifeNode* FindOrCreate(const LifeNode* nw, const LifeNode* ne,
                                  const LifeNode* sw, const LifeNode* se) const;
 
+    // Returns an empty tree at the given level (size 2^level).
+    const LifeNode* EmptyTree(int32_t level) const;
+
     std::optional<const LifeNode*> Find(const LifeNode* node) const;
 
     void CacheResult(const LifeNode* key, const LifeNode* value) const;
@@ -226,9 +229,6 @@ class HashQuadtree : public LifeDataStructure {
     // Helper function for converting a LifeHashSet into a quadtree.
     const LifeNode* BuildTreeRegion(std::span<Vec2L> cells, Vec2L pos,
                                     int32_t level);
-
-    // Returns an empty tree at the given level (size 2^level).
-    const LifeNode* EmptyTree(int32_t level) const;
 
     const LifeNode* BuildTree(std::span<const Vec2> data);
 
