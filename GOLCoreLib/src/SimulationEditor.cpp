@@ -101,6 +101,8 @@ EditorResult
 SimulationEditor::Update(std::optional<bool> activeOverride,
                          const SimulationControlResult& controlArgs,
                          const PresetSelectionResult& presetArgs) {
+    HashQuadtree::SetCacheIndex(m_Model.EditorID());
+    
     auto displayResult = DisplaySimulation(
         (controlArgs.Command || !presetArgs.ClipboardText.empty()) &&
         activeOverride && (*activeOverride));

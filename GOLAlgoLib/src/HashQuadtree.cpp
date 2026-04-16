@@ -27,7 +27,9 @@ HashLifeCache::HashLifeCache() {
     NodeMap.reserve(1UZ << 20UZ);
 }
 
-thread_local HashLifeCache HashQuadtree::s_Cache{};
+std::array<HashLifeCache, HashQuadtree::MaxCacheCount> HashQuadtree::s_Cache{};
+thread_local size_t HashQuadtree::s_CacheIndex{};
+
 
 // Mixes the node's precomputed hash with MaxAdvance. The node hash is already
 // well-distributed via splitmix64, so a single round of xor-shift mixing with
@@ -68,6 +70,11 @@ HashQuadtree::HashQuadtree(std::span<const Vec2> data, Vec2 offset) {
         {static_cast<int64_t>(offset.X), static_cast<int64_t>(offset.Y)};
     ExpandUniverse(4);
 }
+
+void HashQuadtree::SetCacheIndex(size_t index) {
+    s_CacheIndex = index;
+}
+
 
 const LifeNode* HashQuadtree::Data() const { return m_Root; }
 
@@ -589,7 +596,7 @@ int64_t HashQuadtree::CalculateTreeSize() const {
 
 bool HashQuadtree::empty() const { return m_Root == EmptyTree(m_Depth); }
 
-BigInt HashQuadtree::PopulationOf(const LifeNode* node) {
+BigInt HashQuadtree::PopulationOf(const LifeNode* node) const {
     if (node == FalseNode) {
         return BigZero;
     }
@@ -597,18 +604,18 @@ BigInt HashQuadtree::PopulationOf(const LifeNode* node) {
         return BigOne;
     }
 
-    if (auto it = s_Cache.PopulationCache.find(node);
-        it != s_Cache.PopulationCache.end()) {
+    if (auto it = s_Cache[s_CacheIndex].PopulationCache.find(node);
+        it != s_Cache[s_CacheIndex].PopulationCache.end()) {
         return it->second;
     }
 
     // 4. Insert and return a copy
-    return s_Cache.PopulationCache[node] =
+    return s_Cache[s_CacheIndex].PopulationCache[node] =
                PopulationOf(node->NorthWest) + PopulationOf(node->NorthEast) +
                PopulationOf(node->SouthWest) + PopulationOf(node->SouthEast);
 }
 
-int64_t HashQuadtree::PopulationOf(const LifeNode* node, bool) {
+int64_t HashQuadtree::PopulationOf(const LifeNode* node, bool) const {
     if (node == FalseNode) {
         return int64_t{0};
     }
@@ -616,13 +623,13 @@ int64_t HashQuadtree::PopulationOf(const LifeNode* node, bool) {
         return int64_t{1};
     }
 
-    if (auto it = s_Cache.SmallPopulationCache.find(node);
-        it != s_Cache.SmallPopulationCache.end()) {
+    if (auto it = s_Cache[s_CacheIndex].SmallPopulationCache.find(node);
+        it != s_Cache[s_CacheIndex].SmallPopulationCache.end()) {
         return it->second;
     }
 
     // 4. Insert and return a copy
-    return s_Cache.SmallPopulationCache[node] =
+    return s_Cache[s_CacheIndex].SmallPopulationCache[node] =
                PopulationOf(node->NorthWest, false) +
                PopulationOf(node->NorthEast, false) +
                PopulationOf(node->SouthWest, false) +
@@ -750,19 +757,19 @@ const LifeNode* HashQuadtree::FindOrCreate(const LifeNode* nw,
                                            const LifeNode* sw,
                                            const LifeNode* se) const {
     LifeNodeKey key{nw, ne, sw, se};
-    if (const auto itr = s_Cache.NodeMap.find(key);
-        itr != s_Cache.NodeMap.end()) {
+    if (const auto itr = s_Cache[s_CacheIndex].NodeMap.find(key);
+        itr != s_Cache[s_CacheIndex].NodeMap.end()) {
         return itr->first;
     }
 
-    auto* node = s_Cache.NodeStorage.emplace(nw, ne, sw, se);
-    s_Cache.NodeMap[node] = nullptr;
+    auto* node = s_Cache[s_CacheIndex].NodeStorage.emplace(nw, ne, sw, se);
+    s_Cache[s_CacheIndex].NodeMap[node] = nullptr;
     return node;
 }
 
 std::optional<const LifeNode*> HashQuadtree::Find(const LifeNode* node) const {
-    auto it = s_Cache.NodeMap.find(node);
-    if (it == s_Cache.NodeMap.end() || it->second == nullptr) {
+    auto it = s_Cache[s_CacheIndex].NodeMap.find(node);
+    if (it == s_Cache[s_CacheIndex].NodeMap.end() || it->second == nullptr) {
         return std::nullopt;
     }
     return it->second;
@@ -770,13 +777,13 @@ std::optional<const LifeNode*> HashQuadtree::Find(const LifeNode* node) const {
 
 void HashQuadtree::CacheResult(const LifeNode* key,
                                const LifeNode* value) const {
-    s_Cache.NodeMap[key] = value;
+    s_Cache[s_CacheIndex].NodeMap[key] = value;
 }
 
 void HashQuadtree::ClearCache() {
-    s_Cache.NodeMap.clear();
-    s_Cache.PopulationCache.clear();
-    s_Cache.SmallPopulationCache.clear();
+    s_Cache[s_CacheIndex].NodeMap.clear();
+    s_Cache[s_CacheIndex].PopulationCache.clear();
+    s_Cache[s_CacheIndex].SmallPopulationCache.clear();
 }
 
 void HashQuadtree::ExpandUniverse(int32_t targetLevel) {
@@ -808,15 +815,15 @@ const LifeNode* HashQuadtree::EmptyTree(int32_t level) const {
         return FalseNode;
     }
 
-    if (level >= static_cast<int32_t>(s_Cache.EmptyNodeCache.size())) {
-        s_Cache.EmptyNodeCache.resize(level + 1, nullptr);
-    } else if (s_Cache.EmptyNodeCache[level] != nullptr) {
-        return s_Cache.EmptyNodeCache[level];
+    if (level >= static_cast<int32_t>(s_Cache[s_CacheIndex].EmptyNodeCache.size())) {
+        s_Cache[s_CacheIndex].EmptyNodeCache.resize(level + 1, nullptr);
+    } else if (s_Cache[s_CacheIndex].EmptyNodeCache[level] != nullptr) {
+        return s_Cache[s_CacheIndex].EmptyNodeCache[level];
     }
 
     const auto* child = EmptyTree(level - 1);
     const auto* result = FindOrCreate(child, child, child, child);
-    s_Cache.EmptyNodeCache[level] = result;
+    s_Cache[s_CacheIndex].EmptyNodeCache[level] = result;
     return result;
 }
 

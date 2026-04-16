@@ -15,7 +15,7 @@ namespace gol {
 
 EditorModel::EditorModel(uint32_t id, const std::filesystem::path& path,
                          Size2 gridSize)
-    : m_Grid(gridSize), m_Worker(std::make_unique<SimulationWorker>()),
+    : m_Grid(gridSize), m_Worker(std::make_unique<SimulationWorker>(id)),
       m_CurrentFilePath(path), m_EditorID(id) {
     // Seed history with the initial state so first undo restores correctly.
     m_VersionManager.PushChange(VersionState{.Universe = m_Grid});

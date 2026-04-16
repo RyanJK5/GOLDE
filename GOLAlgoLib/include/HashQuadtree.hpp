@@ -78,6 +78,9 @@ struct HashLifeCache {
 // many STL algorithms.
 class HashQuadtree : public LifeDataStructure {
   public:
+    // The maximum number of distinct caches that can be stored in static memory.
+    constexpr inline static auto MaxCacheCount = 200UZ;
+
     class Iterator {
       private:
         // We keep track of what node we're on through a variety of factors.
@@ -128,6 +131,7 @@ class HashQuadtree : public LifeDataStructure {
     HashQuadtree();
     HashQuadtree(std::span<const Vec2> data, Vec2 offset = {});
 
+    static void SetCacheIndex(size_t index);
   public:
     bool empty() const;
 
@@ -205,56 +209,25 @@ class HashQuadtree : public LifeDataStructure {
                                 int32_t level) const;
 
     template <std::invocable<Vec2, int64_t> Func>
-    static void ForEachImpl(const Func& func, const LifeNode* node, Vec2L pos,
-                            int32_t level, int32_t minLevel, Rect bounds);
+    void ForEachImpl(const Func& func, const LifeNode* node, Vec2L pos,
+                            int32_t level, int32_t minLevel, Rect bounds) const;
 
     template <std::invocable<const BigVec2&, int64_t> Func>
-    static void
+    void
     ForEachBigImpl(const Func& func, const LifeNode* node, int32_t level,
                    int32_t minLevel, const BigInt& left, const BigInt& top,
                    const BigInt& right, const BigInt& bottom,
                    const BigInt& boundsLeft, const BigInt& boundsTop,
-                   const BigInt& boundsRight, const BigInt& boundsBottom);
+                   const BigInt& boundsRight, const BigInt& boundsBottom) const;
 
-    static BigInt PopulationOf(const LifeNode* node);
-    static int64_t PopulationOf(const LifeNode* node, bool);
-
-    // Advances a node at the specified level by `maxAdvance` generations. Early
-    // exit is possible through `stopToken`.
-    NodeUpdateInfo AdvanceNode(std::stop_token stopToken, const LifeNode* node,
-                               int32_t level, int32_t advanceLevel) const;
+    BigInt PopulationOf(const LifeNode* node) const;
+    int64_t PopulationOf(const LifeNode* node, bool) const;
 
     // Helper function for converting a LifeHashSet into a quadtree.
     const LifeNode* BuildTreeRegion(std::span<Vec2L> cells, Vec2L pos,
                                     int32_t level);
 
     const LifeNode* BuildTree(std::span<const Vec2> data);
-
-    // Takes the inner portions from the east and west node and constructs a new
-    // node.
-    const LifeNode* CenteredHorizontal(const LifeNode& west,
-                                       const LifeNode& east) const;
-
-    // Takes the inner portions from the north and south node and constructs a
-    // new node.
-    const LifeNode* CenteredVertical(const LifeNode& north,
-                                     const LifeNode& south) const;
-
-    // Returns the subnode centered within `node`.
-    const LifeNode* CenteredSubNode(const LifeNode& node) const;
-
-    // Handles the base case for HashLife (8x8 node, advances 2 generations).
-    const LifeNode* AdvanceBase(const LifeNode* node) const;
-
-    // Handles the base case for HashLife with 1-generation advancement.
-    const LifeNode* AdvanceBaseOneGen(const LifeNode* node) const;
-
-    // Handles bounded advancement.
-    NodeUpdateInfo AdvanceSlow(std::stop_token stopToken, const LifeNode* node,
-                               int32_t level, int32_t advanceDepth) const;
-    // Handles unbounded advancement.
-    NodeUpdateInfo AdvanceFast(std::stop_token stopToken, const LifeNode* node,
-                               int32_t level, int32_t advanceDepth) const;
 
     struct CenteredNodeResult {
         const LifeNode* Node;
@@ -283,7 +256,8 @@ class HashQuadtree : public LifeDataStructure {
                                    int32_t srcLevel, Vec2L srcPos) const;
 
   private:
-    static thread_local HashLifeCache s_Cache;
+    static std::array<HashLifeCache, MaxCacheCount> s_Cache;
+    static thread_local size_t s_CacheIndex;
 
     const LifeNode* m_Root = FalseNode;
 
@@ -301,7 +275,7 @@ constexpr int32_t Index2D(int32_t x, int32_t y) {
 template <std::invocable<Vec2, int64_t> Func>
 void HashQuadtree::ForEachImpl(const Func& func, const LifeNode* node,
                                Vec2L pos, int32_t level, int32_t minLevel,
-                               Rect bounds) {
+                               Rect bounds) const {
     if (node == FalseNode || node->IsEmpty ||
         !IntersectsBounds(bounds, pos, level)) {
         return;
@@ -358,7 +332,7 @@ void HashQuadtree::ForEachBigImpl(
     const Func& func, const LifeNode* node, int32_t level, int32_t minLevel,
     const BigInt& left, const BigInt& top, const BigInt& right,
     const BigInt& bottom, const BigInt& boundsLeft, const BigInt& boundsTop,
-    const BigInt& boundsRight, const BigInt& boundsBottom) {
+    const BigInt& boundsRight, const BigInt& boundsBottom) const {
     // Intersects check — no temporaries on the bounds side
     if (node == FalseNode || node->IsEmpty || right <= boundsLeft ||
         left >= boundsRight || bottom <= boundsTop || top >= boundsBottom) {

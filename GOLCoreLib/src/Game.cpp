@@ -342,6 +342,9 @@ bool Game::CheckForNewEditors(const SimulationControlResult& controlResult) {
     if (fileOpen)
         return false;
 
+    if (m_EditorCounter >= HashQuadtree::MaxCacheCount) {
+        return false;
+    }
     m_Editors.emplace_back(m_EditorCounter++, filePath,
                            Size2{DefaultWindowWidth, DefaultWindowHeight},
                            Size2{DefaultGridWidth, DefaultGridHeight});

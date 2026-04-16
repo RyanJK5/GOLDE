@@ -17,7 +17,7 @@
 namespace gol {
 class SimulationWorker {
   public:
-    SimulationWorker();
+    SimulationWorker(size_t cacheIndex);
     ~SimulationWorker();
 
     void Start(GameGrid& initialGrid, bool oneStep = false,
@@ -39,6 +39,8 @@ class SimulationWorker {
     size_t SimulationLoop(std::stop_token runStopToken);
 
   private:
+    size_t m_CacheIndex;
+
     std::mutex m_StepCountMutex;
     BigInt m_StepCount = 1;
 

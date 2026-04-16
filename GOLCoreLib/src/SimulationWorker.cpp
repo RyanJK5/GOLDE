@@ -6,8 +6,8 @@
 
 namespace gol {
 
-SimulationWorker::SimulationWorker()
-    : m_Thread(std::bind_front(&SimulationWorker::ThreadLoop, this)) {}
+SimulationWorker::SimulationWorker(size_t cacheIndex)
+    : m_CacheIndex(cacheIndex), m_Thread(std::bind_front(&SimulationWorker::ThreadLoop, this)) {}
 
 SimulationWorker::~SimulationWorker() {
     m_RunStopSource.request_stop();
@@ -15,6 +15,7 @@ SimulationWorker::~SimulationWorker() {
 }
 
 void SimulationWorker::ThreadLoop(std::stop_token threadStopToken) {
+    HashQuadtree::SetCacheIndex(m_CacheIndex);
     while (true) {
         {
             std::unique_lock lock{m_ResumeMutex};
