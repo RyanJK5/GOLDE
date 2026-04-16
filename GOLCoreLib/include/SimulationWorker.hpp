@@ -25,6 +25,8 @@ class SimulationWorker {
 
     GameGrid Stop();
 
+    bool IsRunning();
+
     void SetStepCount(const BigInt& stepCount);
     void SetTickDelayMs(int64_t tickDelayMs);
 

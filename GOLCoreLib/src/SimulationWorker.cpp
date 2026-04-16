@@ -121,6 +121,10 @@ GameGrid SimulationWorker::Stop() {
     return m_Buffers[m_SnapshotIndex.load(std::memory_order_relaxed)];
 }
 
+bool SimulationWorker::IsRunning() {
+    return m_IsRunning.load(std::memory_order_acquire);
+}
+
 void SimulationWorker::SetStepCount(const BigInt& stepCount) {
     std::scoped_lock lock{m_StepCountMutex};
     m_StepCount = stepCount;

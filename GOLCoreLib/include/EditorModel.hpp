@@ -1,6 +1,7 @@
 #ifndef EditorModel_hpp_
 #define EditorModel_hpp_
 
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -18,6 +19,15 @@
 #include "VersionManager.hpp"
 
 namespace gol {
+
+enum class EditWorkState { Idle, Working, PublishPending, Failed };
+
+enum class EditRejectReason { Busy, SimulationRunning, InvalidState };
+
+struct EditDispatchResult {
+    bool Accepted = false;
+    std::optional<EditRejectReason> RejectedReason{};
+};
 
 class EditorModel {
   public:
@@ -66,6 +76,50 @@ class EditorModel {
     void BeginPaintChange();
     void PaintCell(Vec2 pos, bool value);
     void MarkSaved();
+
+    // Facade read API for SimulationEditor.
+    Size2 GridSize() const { return m_Grid.Size(); }
+    int32_t GridWidth() const { return m_Grid.Width(); }
+    int32_t GridHeight() const { return m_Grid.Height(); }
+    const HashQuadtree& GridData() const { return m_Grid.Data(); }
+    bool GridDead() const { return m_Grid.Dead(); }
+    bool InBounds(Vec2 pos) const { return m_Grid.InBounds(pos); }
+    std::optional<bool> CellAt(Vec2 pos) const {
+        return m_Grid.Get(pos.X, pos.Y);
+    }
+    const GameGrid* SimulationSnapshot() const { return m_Worker->GetResult(); }
+    std::chrono::duration<float> SimulationLag() const {
+        return m_Worker->GetTimeSinceLastUpdate();
+    }
+
+    bool SelectionActive() const { return m_SelectionManager.CanDrawGrid(); }
+    bool CanDrawSelection() const {
+        return m_SelectionManager.CanDrawSelection();
+    }
+    bool CanDrawLargeSelection() const {
+        return m_SelectionManager.CanDrawLargeSelection();
+    }
+    bool SelectionGridAlive() const { return m_SelectionManager.GridAlive(); }
+    const HashQuadtree& SelectionGridData() const {
+        return m_SelectionManager.GridData();
+    }
+    const BigInt& SelectedPopulation() const {
+        return m_SelectionManager.SelectedPopulation();
+    }
+    std::optional<Rect> SelectionBoundsOpt() const {
+        if (!m_SelectionManager.CanDrawSelection())
+            return std::nullopt;
+        return m_SelectionManager.SelectionBounds();
+    }
+
+    bool UndosAvailable() const { return m_VersionManager.UndosAvailable(); }
+    bool RedosAvailable() const { return m_VersionManager.RedosAvailable(); }
+    BigInt GridPopulation() const { return m_Grid.Population(); }
+    BigInt GridGeneration() const { return m_Grid.Generation(); }
+
+    EditWorkState WorkState() const;
+    bool IsEditBusy() const;
+    EditDispatchResult CanDispatchEdit() const;
 
     // Read-only accessors
     const GameGrid& Grid() const { return m_Grid; }

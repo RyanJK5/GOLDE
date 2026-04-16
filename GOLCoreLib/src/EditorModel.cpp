@@ -278,4 +278,28 @@ void EditorModel::PaintCell(Vec2 pos, bool value) {
 
 void EditorModel::MarkSaved() { m_VersionManager.Save(); }
 
+EditWorkState EditorModel::WorkState() const {
+    if (m_Worker->IsRunning()) {
+        return EditWorkState::Working;
+    }
+    return EditWorkState::Idle;
+}
+
+bool EditorModel::IsEditBusy() const {
+    return WorkState() == EditWorkState::Working;
+}
+
+EditDispatchResult EditorModel::CanDispatchEdit() const {
+    if (m_State == SimulationState::Simulation ||
+        m_State == SimulationState::Stepping) {
+        return {.Accepted = false,
+                .RejectedReason = EditRejectReason::SimulationRunning};
+    }
+    if (IsEditBusy()) {
+        return {.Accepted = false, .RejectedReason = EditRejectReason::Busy};
+    }
+
+    return {.Accepted = true, .RejectedReason = std::nullopt};
+}
+
 } // namespace gol

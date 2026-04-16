@@ -111,7 +111,7 @@ SimulationEditor::Update(std::optional<bool> activeOverride,
 
     const auto graphicsArgs =
         GraphicsHandlerArgs{.ViewportBounds = ViewportBounds(),
-                            .GridSize = m_Model.Grid().Size(),
+                            .GridSize = m_Model.GridSize(),
                             .CellSize = {SimulationEditor::DefaultCellWidth,
                                          SimulationEditor::DefaultCellHeight},
                             .ShowGridLines = controlArgs.Settings.GridLines};
@@ -159,14 +159,12 @@ SimulationEditor::Update(std::optional<bool> activeOverride,
 
     return {
         .Simulation = {.State = m_Model.State()},
-        .Editing = {.SelectionActive = m_Model.Selection().CanDrawGrid(),
-                    .UndosAvailable = m_Model.Versions().UndosAvailable(),
-                    .RedosAvailable = m_Model.Versions().RedosAvailable()},
+        .Editing = {.SelectionActive = m_Model.SelectionActive(),
+                    .UndosAvailable = m_Model.UndosAvailable(),
+                    .RedosAvailable = m_Model.RedosAvailable()},
         .File = {.CurrentFilePath = m_Model.CurrentFilePath(),
                  .HasUnsavedChanges = !m_Model.IsSaved()},
-        .SelectionBounds = m_Model.Selection().CanDrawGrid()
-                               ? m_Model.Selection().SelectionBounds()
-                               : std::optional<Rect>{},
+        .SelectionBounds = m_Model.SelectionBoundsOpt(),
         .Zoom = m_Graphics.Camera.Zoom,
         .Active = (activeOverride && *activeOverride) || displayResult.Selected,
         .Closing = displayResult.Closing ||
@@ -176,7 +174,7 @@ SimulationEditor::Update(std::optional<bool> activeOverride,
 
 SimulationState
 SimulationEditor::SimulationUpdate(const GraphicsHandlerArgs& args) {
-    const auto snapshot = m_Model.Worker().GetResult();
+    const auto snapshot = m_Model.SimulationSnapshot();
 
     m_Graphics.DrawGrid({0, 0}, snapshot->Data(), args);
     return SimulationState::Simulation;
@@ -184,14 +182,17 @@ SimulationEditor::SimulationUpdate(const GraphicsHandlerArgs& args) {
 
 SimulationState SimulationEditor::PaintUpdate(const GraphicsHandlerArgs& args) {
     auto gridPos = CursorGridPos();
+    const auto selectionBounds = m_Model.SelectionBoundsOpt();
 
-    m_Graphics.DrawGrid({0, 0}, m_Model.Grid().Data(), args);
+    m_Graphics.DrawGrid({0, 0}, m_Model.GridData(), args);
 
-    if (m_Model.Selection().CanDrawGrid())
-        m_Graphics.DrawGrid(m_Model.Selection().SelectionBounds().UpperLeft(),
-                            m_Model.Selection().GridData(), args);
-    if (m_Model.Selection().CanDrawSelection())
-        m_Graphics.DrawSelection(m_Model.Selection().SelectionBounds(), args);
+    if (selectionBounds && m_Model.SelectionActive()) {
+        m_Graphics.DrawGrid(selectionBounds->UpperLeft(),
+                            m_Model.SelectionGridData(), args);
+    }
+    if (selectionBounds && m_Model.CanDrawSelection()) {
+        m_Graphics.DrawSelection(*selectionBounds, args);
+    }
 
     if (gridPos) {
         UpdateMouseState(*gridPos);
@@ -200,24 +201,25 @@ SimulationState SimulationEditor::PaintUpdate(const GraphicsHandlerArgs& args) {
     }
     m_LeftDeltaLast = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
 
-    return (m_Model.Grid().Dead() && !m_Model.Selection().GridAlive())
+    return (m_Model.GridDead() && !m_Model.SelectionGridAlive())
                ? SimulationState::Empty
                : SimulationState::Paint;
 }
 
 SimulationState SimulationEditor::PauseUpdate(const GraphicsHandlerArgs& args) {
     const auto gridPos = CursorGridPos();
+    const auto selectionBounds = m_Model.SelectionBoundsOpt();
     if (gridPos)
         m_Model.UpdateSelectionAreaTracked(*gridPos);
 
-    m_Graphics.DrawGrid({0, 0}, m_Model.Grid().Data(), args);
+    m_Graphics.DrawGrid({0, 0}, m_Model.GridData(), args);
 
-    if (m_Model.Selection().CanDrawSelection()) {
-        m_Graphics.DrawSelection(m_Model.Selection().SelectionBounds(), args);
+    if (selectionBounds && m_Model.CanDrawSelection()) {
+        m_Graphics.DrawSelection(*selectionBounds, args);
     }
-    if (m_Model.Selection().CanDrawGrid()) {
-        m_Graphics.DrawGrid(m_Model.Selection().SelectionBounds().UpperLeft(),
-                            m_Model.Selection().GridData(), args);
+    if (selectionBounds && m_Model.SelectionActive()) {
+        m_Graphics.DrawGrid(selectionBounds->UpperLeft(),
+                            m_Model.SelectionGridData(), args);
     }
 
     if (m_Model.State() == SimulationState::Paused) {
@@ -276,7 +278,7 @@ SimulationEditor::DisplaySimulation(bool grabFocus) {
 
     if ((m_Model.State() == SimulationState::Simulation ||
          m_Model.State() == SimulationState::Stepping) &&
-        m_Model.Worker().GetTimeSinceLastUpdate() >= std::chrono::seconds{3}) {
+        m_Model.SimulationLag() >= std::chrono::seconds{3}) {
         constexpr static auto radius = 30.f;
         constexpr static auto thickness = 12.f;
         ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - radius * 2 -
@@ -290,17 +292,17 @@ SimulationEditor::DisplaySimulation(bool grabFocus) {
     splitter.SetCurrentChannel(ImGui::GetWindowDrawList(), 1);
     ImGui::SetCursorPos(ImGui::GetWindowContentRegionMin());
 
-    const auto snapshot = m_Model.Worker().GetResult();
+    const auto snapshot = m_Model.SimulationSnapshot();
     const auto generation =
-        snapshot ? snapshot->Generation() : m_Model.Grid().Generation();
+        snapshot ? snapshot->Generation() : m_Model.GridGeneration();
     const auto population =
-        snapshot ? snapshot->Population() : m_Model.Grid().Population();
+        snapshot ? snapshot->Population() : m_Model.GridPopulation();
     ImGui::Text(
         "%s",
         std::format(std::locale{""}, "Generation: {:L}", generation).c_str());
 
     const auto totalPopulation =
-        BigInt{population + m_Model.Selection().SelectedPopulation()};
+        BigInt{population + m_Model.SelectedPopulation()};
     ImGui::Text(
         "%s", std::format(std::locale{""}, "Population: {:L}", totalPopulation)
                   .c_str());
@@ -318,20 +320,21 @@ SimulationEditor::DisplaySimulation(bool grabFocus) {
         return FormatHoverPoint(worldPos);
     }();
 
-    if (m_Model.Selection().CanDrawSelection()) {
-        const auto bounds = m_Model.Selection().SelectionBounds();
+    const auto selectionBounds = m_Model.SelectionBoundsOpt();
+    if (selectionBounds && m_Model.CanDrawSelection()) {
+        const auto bounds = *selectionBounds;
         const auto anchor = bounds.UpperLeft();
         const auto sentinel = bounds.LowerRight() - Vec2{1, 1};
 
         auto text = FormatSelectionPoint(anchor);
-        if (m_Model.Selection().CanDrawLargeSelection()) {
+        if (m_Model.CanDrawLargeSelection()) {
             text += std::format(" X {}", FormatSelectionPoint(sentinel));
             text += std::format(std::locale{""}, ", width: {:L}; height: {:L}",
                                 std::abs(sentinel.X - anchor.X) + 1,
                                 std::abs(sentinel.Y - anchor.Y) + 1);
-            if (m_Model.Selection().CanDrawGrid()) {
+            if (m_Model.SelectionActive()) {
                 text += std::format(std::locale{""}, " ({:L} cells)",
-                                    m_Model.Selection().SelectedPopulation());
+                                    m_Model.SelectedPopulation());
             }
         }
 
@@ -379,7 +382,7 @@ std::optional<Vec2> SimulationEditor::ConvertToGridPos(Vec2F screenPos) {
     }
 
     const Vec2 result{static_cast<int32_t>(cellX), static_cast<int32_t>(cellY)};
-    if (!m_Model.Grid().InBounds(result))
+    if (!m_Model.InBounds(result))
         return std::nullopt;
     return result;
 }
@@ -443,7 +446,7 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                 return m_Model.State();
             },
             [this](const SaveAsNewCommand& cmd) {
-                if (m_Model.Grid().Population() > threshold &&
+                if (m_Model.GridPopulation() > threshold &&
                     cmd.FilePath.extension().string() == ".rle") {
                     m_SaveWarning.SetCallback(
                         [this, path = cmd.FilePath](PopupWindowState state) {
@@ -461,7 +464,7 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                         "format may be more efficient. Are you sure you want "
                         "to \n"
                         "continue?",
-                        m_Model.Grid().Population());
+                        m_Model.GridPopulation());
                     return m_Model.State();
                 }
                 SaveWithErrorHandling(cmd.FilePath, false);
@@ -480,14 +483,14 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
             [this](const NewFileCommand&) { return m_Model.State(); },
             [this](const CloseCommand&) { return m_Model.State(); },
             [this](const RuleCommand& cmd) {
-                const auto oldWidth = m_Model.Grid().Width();
-                const auto oldHeight = m_Model.Grid().Height();
+                const auto oldWidth = m_Model.GridWidth();
+                const auto oldHeight = m_Model.GridHeight();
                 const auto state = m_Model.HandleRuleChange(cmd.RuleString);
-                if (m_Model.Grid().Width() != oldWidth ||
-                    m_Model.Grid().Height() != oldHeight) {
+                if (m_Model.GridWidth() != oldWidth ||
+                    m_Model.GridHeight() != oldHeight) {
                     m_Graphics.Camera.Center = {
-                        m_Model.Grid().Width() * DefaultCellWidth / 2.f,
-                        m_Model.Grid().Height() * DefaultCellHeight / 2.f};
+                        m_Model.GridWidth() * DefaultCellWidth / 2.f,
+                        m_Model.GridHeight() * DefaultCellHeight / 2.f};
                 }
 
                 return state;
@@ -506,7 +509,7 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                     m_CopyErrorWindow.Activate();
                     m_CopyErrorWindow.Message = std::format(
                         std::locale{""}, "Tried editing too many cells ({:L})",
-                        m_Model.Selection().SelectedPopulation());
+                        m_Model.SelectedPopulation());
                 }
                 return m_Model.State();
             }},
@@ -558,9 +561,8 @@ void SimulationEditor::UpdateMouseState(Vec2 gridPos) {
         !ImGui::IsKeyDown(ImGuiKey_RightShift)) {
         if (m_EditorMode == EditorMode::None ||
             m_EditorMode == EditorMode::Select) {
-            m_EditorMode = *m_Model.Grid().Get(gridPos.X, gridPos.Y)
-                               ? EditorMode::Delete
-                               : EditorMode::Insert;
+            m_EditorMode = *m_Model.CellAt(gridPos) ? EditorMode::Delete
+                                                    : EditorMode::Insert;
             m_Model.BeginPaintChange();
             m_LeftDeltaLast = {};
         }
@@ -599,7 +601,7 @@ void SimulationEditor::FillCells() {
         Vec2 gridPos = {lastGridPos->X + (gridDelta.X * i) / steps,
                         lastGridPos->Y + (gridDelta.Y * i) / steps};
 
-        if (!m_Model.Grid().InBounds(gridPos))
+        if (!m_Model.InBounds(gridPos))
             continue;
 
         m_Model.PaintCell(gridPos, m_EditorMode == EditorMode::Insert);
