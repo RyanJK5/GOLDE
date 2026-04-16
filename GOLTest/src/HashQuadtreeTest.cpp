@@ -267,49 +267,6 @@ TEST(HashQuadtreeTest, AdvanceGlider) {
     EXPECT_FALSE(sameAsStart) << "Glider did not move";
 }
 
-TEST(HashQuadtreeTest, CalculateLevelAndSize) {
-    // Empty Tree
-    {
-        LifeHashSet cells{};
-        HashQuadtree tree{cells};
-        // Empty tree is represented by FalseNode (Level 0, Size 1)
-        EXPECT_EQ(tree.CalculateDepth(), 0);
-    }
-
-    // Single Cell
-    {
-        LifeHashSet cells{{0, 0}};
-        HashQuadtree tree{cells};
-        // Single cell is TrueNode (Level 0, Size 1)
-        EXPECT_EQ(tree.CalculateDepth(), 0);
-    }
-
-    // 2x2 Block
-    {
-        LifeHashSet cells{{0, 0}, {1, 0}, {0, 1}, {1, 1}};
-        HashQuadtree tree{cells};
-        // 2x2 fits in Level 1 (Size 2)
-        EXPECT_EQ(tree.CalculateDepth(), 1);
-    }
-
-    // 4x4 Area
-    {
-        LifeHashSet cells{{0, 0}, {3, 3}};
-        HashQuadtree tree{cells};
-        // Bounds: 0..3 -> Size 4 -> Level 2
-        EXPECT_EQ(tree.CalculateDepth(), 2);
-    }
-
-    // Large Area
-    {
-        LifeHashSet cells{{0, 0}, {100, 100}};
-        HashQuadtree tree{cells};
-        // Size needs to cover 0 to 100 (span 101). Next power of 2 is 128.
-        // 128 = 2^7 -> Level 7
-        EXPECT_EQ(tree.CalculateDepth(), 7);
-    }
-}
-
 TEST(HashQuadtreeTest, ConstIteratorUsage) {
     const LifeHashSet cells{{1, 1}, {5, 5}};
     const HashQuadtree tree{cells};

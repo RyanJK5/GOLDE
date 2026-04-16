@@ -14,6 +14,7 @@
 #include "Graphics2D.hpp"
 #include "RLEEncoder.hpp"
 #include "SelectionManager.hpp"
+#include "SimulationCommand.hpp"
 #include "SimulationSettings.hpp"
 #include "SimulationWorker.hpp"
 #include "VersionManager.hpp"
@@ -27,6 +28,30 @@ enum class EditRejectReason { Busy, SimulationRunning, InvalidState };
 struct EditDispatchResult {
     bool Accepted = false;
     std::optional<EditRejectReason> RejectedReason{};
+};
+
+struct ExecuteCommandContext {
+    std::optional<Vec2> CursorPos{};
+    bool PrimaryMouseDown = false;
+    bool ForcePasteSelection = false;
+    bool ConfirmSaveAsWarning = false;
+};
+
+struct SaveAsWarningRequest {
+    std::filesystem::path FilePath;
+    BigInt Population{};
+};
+
+struct ExecuteCommandResult {
+    SimulationState State = SimulationState::Paint;
+    std::optional<Vec2> CameraPositionCell{};
+    std::optional<float> CameraZoom{};
+    bool RecenterCameraToGridCenter = false;
+    std::optional<std::string> FileError{};
+    std::optional<std::string> CopyError{};
+    std::optional<std::string> NoiseError{};
+    std::optional<FileEncoder::DecodeError> PasteError{};
+    std::optional<SaveAsWarningRequest> SaveAsWarning{};
 };
 
 class EditorModel {
@@ -120,12 +145,10 @@ class EditorModel {
     EditWorkState WorkState() const;
     bool IsEditBusy() const;
     EditDispatchResult CanDispatchEdit() const;
-
-    // Read-only accessors
-    const GameGrid& Grid() const { return m_Grid; }
-    const SelectionManager& Selection() const { return m_SelectionManager; }
-    const VersionManager& Versions() const { return m_VersionManager; }
-    SimulationWorker& Worker() { return *m_Worker; }
+    bool IsMutatingCommand(const SimulationCommand& cmd) const;
+    bool CanDispatchMutatingCommand(const SimulationCommand& cmd) const;
+    ExecuteCommandResult ExecuteCommand(const SimulationCommand& cmd,
+                                        const ExecuteCommandContext& context);
 
     SimulationState State() const { return m_State; }
     void SetState(SimulationState state) { m_State = state; }

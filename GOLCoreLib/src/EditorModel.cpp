@@ -1,6 +1,8 @@
 #include <cstdint>
 #include <filesystem>
+#include <format>
 #include <limits>
+#include <locale>
 #include <optional>
 #include <string>
 
@@ -8,6 +10,7 @@
 #include "GameEnums.hpp"
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
+#include "SimulationCommand.hpp"
 #include "SimulationWorker.hpp"
 #include "VersionManager.hpp"
 
@@ -300,6 +303,188 @@ EditDispatchResult EditorModel::CanDispatchEdit() const {
     }
 
     return {.Accepted = true, .RejectedReason = std::nullopt};
+}
+
+bool EditorModel::IsMutatingCommand(const SimulationCommand& cmd) const {
+    return std::visit(
+        Overloaded{[](const StartCommand&) { return false; },
+                   [](const PauseCommand&) { return false; },
+                   [](const ResumeCommand&) { return false; },
+                   [](const StepCommand&) { return false; },
+                   [](const CameraPositionCommand&) { return false; },
+                   [](const CameraZoomCommand&) { return false; },
+                   [](const SaveCommand&) { return false; },
+                   [](const SaveAsNewCommand&) { return false; },
+                   [](const NewFileCommand&) { return false; },
+                   [](const CloseCommand&) { return false; },
+                   [](const ClearCommand&) { return true; },
+                   [](const ResetCommand&) { return true; },
+                   [](const RestartCommand&) { return true; },
+                   [](const SelectionBoundsCommand&) { return true; },
+                   [](const GenerateNoiseCommand&) { return true; },
+                   [](const UndoCommand&) { return true; },
+                   [](const RedoCommand&) { return true; },
+                   [](const LoadCommand&) { return true; },
+                   [](const RuleCommand&) { return true; },
+                   [](const SelectionCommand&) { return true; }},
+        cmd);
+}
+
+bool EditorModel::CanDispatchMutatingCommand(
+    const SimulationCommand& cmd) const {
+    if (std::holds_alternative<ClearCommand>(cmd) ||
+        std::holds_alternative<ResetCommand>(cmd) ||
+        std::holds_alternative<RestartCommand>(cmd)) {
+        return true;
+    }
+
+    if (!IsMutatingCommand(cmd)) {
+        return true;
+    }
+    return CanDispatchEdit().Accepted;
+}
+
+ExecuteCommandResult
+EditorModel::ExecuteCommand(const SimulationCommand& cmd,
+                            const ExecuteCommandContext& context) {
+    const static BigInt threshold{10'000'000U};
+    return std::visit(
+        Overloaded{
+            [this](const StartCommand&) {
+                return ExecuteCommandResult{.State = HandleStart()};
+            },
+            [this](const ClearCommand&) {
+                return ExecuteCommandResult{.State = HandleClear()};
+            },
+            [this](const ResetCommand&) {
+                return ExecuteCommandResult{.State = HandleReset()};
+            },
+            [this](const RestartCommand&) {
+                return ExecuteCommandResult{.State = HandleRestart()};
+            },
+            [this](const PauseCommand&) {
+                return ExecuteCommandResult{.State = HandlePause()};
+            },
+            [this](const ResumeCommand&) {
+                return ExecuteCommandResult{.State = HandleResume()};
+            },
+            [this](const StepCommand&) {
+                return ExecuteCommandResult{.State = HandleStep()};
+            },
+            [this](const SelectionBoundsCommand& command) {
+                return ExecuteCommandResult{
+                    .State = SetSelectionBounds(command.Bounds)};
+            },
+            [this](const CameraPositionCommand& command) {
+                return ExecuteCommandResult{
+                    .State = m_State, .CameraPositionCell = command.Position};
+            },
+            [this](const CameraZoomCommand& command) {
+                return ExecuteCommandResult{.State = m_State,
+                                            .CameraZoom = command.Zoom};
+            },
+            [this](const GenerateNoiseCommand& command) {
+                const auto result = HandleGenerateNoise(
+                    command.Density, static_cast<uint32_t>(threshold));
+                if (!result) {
+                    return ExecuteCommandResult{
+                        .State = m_State,
+                        .NoiseError = "The region you have selected is too "
+                                      "large to generate noise.\n"};
+                }
+                return ExecuteCommandResult{.State = m_State};
+            },
+            [this, &context](const UndoCommand&) {
+                if (context.PrimaryMouseDown) {
+                    return ExecuteCommandResult{.State = m_State};
+                }
+                return ExecuteCommandResult{.State = HandleUndo()};
+            },
+            [this, &context](const RedoCommand&) {
+                if (context.PrimaryMouseDown) {
+                    return ExecuteCommandResult{.State = m_State};
+                }
+                return ExecuteCommandResult{.State = HandleRedo()};
+            },
+            [this](const SaveCommand& command) {
+                if (!SaveToFile(command.FilePath, true)) {
+                    return ExecuteCommandResult{
+                        .State = m_State,
+                        .FileError = std::format("Failed to save file to \n{}",
+                                                 command.FilePath.string())};
+                }
+                return ExecuteCommandResult{.State = m_State};
+            },
+            [this, &context](const SaveAsNewCommand& command) {
+                if (GridPopulation() > threshold &&
+                    command.FilePath.extension().string() == ".rle" &&
+                    !context.ConfirmSaveAsWarning) {
+                    return ExecuteCommandResult{
+                        .State = m_State,
+                        .SaveAsWarning = SaveAsWarningRequest{
+                            .FilePath = command.FilePath,
+                            .Population = GridPopulation()}};
+                }
+                if (!SaveToFile(command.FilePath, false)) {
+                    return ExecuteCommandResult{
+                        .State = m_State,
+                        .FileError = std::format("Failed to save file to \n{}",
+                                                 command.FilePath.string())};
+                }
+                return ExecuteCommandResult{.State = m_State};
+            },
+            [this](const LoadCommand& command) {
+                auto error = LoadFile(command.FilePath);
+                if (error) {
+                    return ExecuteCommandResult{
+                        .State = m_State,
+                        .FileError =
+                            std::format("Failed to load file:\n{}", *error)};
+                }
+                MarkSaved();
+                return ExecuteCommandResult{.State = m_State};
+            },
+            [this](const NewFileCommand&) {
+                return ExecuteCommandResult{.State = m_State};
+            },
+            [this](const CloseCommand&) {
+                return ExecuteCommandResult{.State = m_State};
+            },
+            [this](const RuleCommand& command) {
+                const auto oldWidth = GridWidth();
+                const auto oldHeight = GridHeight();
+                const auto state = HandleRuleChange(command.RuleString);
+                return ExecuteCommandResult{.State = state,
+                                            .RecenterCameraToGridCenter =
+                                                GridWidth() != oldWidth ||
+                                                GridHeight() != oldHeight};
+            },
+            [this, &context](const SelectionCommand& command) {
+                if (command.Action == SelectionAction::Paste) {
+                    if (context.ForcePasteSelection) {
+                        ForcePaste(context.CursorPos);
+                        return ExecuteCommandResult{.State = m_State};
+                    }
+
+                    auto result = PasteSelection(context.CursorPos);
+                    if (!result) {
+                        return ExecuteCommandResult{
+                            .State = m_State, .PasteError = result.error()};
+                    }
+                    return ExecuteCommandResult{.State = m_State};
+                }
+
+                if (!HandleSelectionAction(command.Action, command.NudgeSize)) {
+                    return ExecuteCommandResult{
+                        .State = m_State,
+                        .CopyError =
+                            std::format(std::locale{""},
+                                        "Tried editing too many cells ({:L})",
+                                        SelectedPopulation())};
+                }
+                return ExecuteCommandResult{.State = m_State};
+            }},
+        cmd);
 }
 
 } // namespace gol

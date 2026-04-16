@@ -55,9 +55,9 @@ class SimulationEditor {
     DisplayResult DisplaySimulation(bool grabFocus);
 
     SimulationState UpdateState(const SimulationControlResult& action);
-
-    void SaveWithErrorHandling(const std::filesystem::path& path,
-                               bool markAsSaved);
+    SimulationState ExecuteEditorCommand(const SimulationCommand& command,
+                                         const ExecuteCommandContext& context);
+    void ApplyCommandResult(const ExecuteCommandResult& result);
     void HandlePasteError(const FileEncoder::DecodeError& result);
 
     void UpdateViewport();

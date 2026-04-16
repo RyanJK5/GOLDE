@@ -127,8 +127,11 @@ SimulationEditor::Update(std::optional<bool> activeOverride,
     m_SaveWarning.Update();
 
     if (presetArgs.ClipboardText.length() > 0) {
-        ImGui::SetClipboardText(presetArgs.ClipboardText.c_str());
-        m_Model.InsertFromClipboard(Vec2{0, 0});
+        const auto dispatch = m_Model.CanDispatchEdit();
+        if (dispatch.Accepted) {
+            ImGui::SetClipboardText(presetArgs.ClipboardText.c_str());
+            m_Model.InsertFromClipboard(Vec2{0, 0});
+        }
     }
 
     m_Model.CheckStopStep();
@@ -395,68 +398,76 @@ SimulationState
 SimulationEditor::UpdateState(const SimulationControlResult& result) {
     if (result.FromShortcut && !m_TakeKeyboardInput)
         return m_Model.State();
+    if (!result.Command) {
+        return m_Model.State();
+    }
+    if (!m_Model.CanDispatchMutatingCommand(*result.Command)) {
+        return m_Model.State();
+    }
 
-    const static BigInt threshold{10'000'000U};
-    return std::visit(
-        Overloaded{
-            [this](const StartCommand&) { return m_Model.HandleStart(); },
-            [this](const ClearCommand&) { return m_Model.HandleClear(); },
-            [this](const ResetCommand&) { return m_Model.HandleReset(); },
-            [this](const RestartCommand&) { return m_Model.HandleRestart(); },
-            [this](const PauseCommand&) { return m_Model.HandlePause(); },
-            [this](const ResumeCommand&) { return m_Model.HandleResume(); },
-            [this](const StepCommand&) { return m_Model.HandleStep(); },
-            [this](const SelectionBoundsCommand& cmd) {
-                return m_Model.SetSelectionBounds(cmd.Bounds);
-            },
-            [this](const CameraPositionCommand& cmd) {
-                glm::dvec2 precisePos{cmd.Position.X * DefaultCellWidth,
-                                      cmd.Position.Y * DefaultCellHeight};
-                m_Graphics.Camera.Center = precisePos;
-                return m_Model.State();
-            },
-            [this](const CameraZoomCommand& cmd) {
-                m_Graphics.Camera.Zoom = std::clamp(
-                    cmd.Zoom, GraphicsCamera::MinZoom, GraphicsCamera::MaxZoom);
-                return m_Model.State();
-            },
-            [this](const GenerateNoiseCommand& cmd) {
-                auto result = m_Model.HandleGenerateNoise(
-                    cmd.Density, static_cast<uint32_t>(threshold));
-                if (!result) {
-                    m_GenerateNoiseError.Activate();
-                    m_GenerateNoiseError.Message =
-                        "The region you have selected is too large to generate "
-                        "noise.\n";
-                }
-                return m_Model.State();
-            },
-            [this](const UndoCommand&) {
-                if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
-                    return m_Model.State();
-                return m_Model.HandleUndo();
-            },
-            [this](const RedoCommand&) {
-                if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
-                    return m_Model.State();
-                return m_Model.HandleRedo();
-            },
-            [this](const SaveCommand& cmd) {
-                SaveWithErrorHandling(cmd.FilePath, true);
-                return m_Model.State();
-            },
-            [this](const SaveAsNewCommand& cmd) {
-                if (m_Model.GridPopulation() > threshold &&
-                    cmd.FilePath.extension().string() == ".rle") {
-                    m_SaveWarning.SetCallback(
-                        [this, path = cmd.FilePath](PopupWindowState state) {
-                            if (state != PopupWindowState::Success)
-                                return;
-                            SaveWithErrorHandling(path, false);
-                        });
-                    m_SaveWarning.Activate();
-                    m_SaveWarning.Message = std::format(
-                        std::locale{""},
+    return ExecuteEditorCommand(
+        *result.Command,
+        {.CursorPos = CursorGridPos(),
+         .PrimaryMouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Left)});
+}
+
+SimulationState
+SimulationEditor::ExecuteEditorCommand(const SimulationCommand& command,
+                                       const ExecuteCommandContext& context) {
+    const auto commandResult = m_Model.ExecuteCommand(command, context);
+    ApplyCommandResult(commandResult);
+    return commandResult.State;
+}
+
+void SimulationEditor::ApplyCommandResult(
+    const ExecuteCommandResult& commandResult) {
+    if (commandResult.CameraPositionCell) {
+        glm::dvec2 precisePos{
+            commandResult.CameraPositionCell->X * DefaultCellWidth,
+            commandResult.CameraPositionCell->Y * DefaultCellHeight};
+        m_Graphics.Camera.Center = precisePos;
+    }
+    if (commandResult.CameraZoom) {
+        m_Graphics.Camera.Zoom =
+            std::clamp(*commandResult.CameraZoom, GraphicsCamera::MinZoom,
+                       GraphicsCamera::MaxZoom);
+    }
+    if (commandResult.RecenterCameraToGridCenter) {
+        m_Graphics.Camera.Center = {
+            m_Model.GridWidth() * DefaultCellWidth / 2.f,
+            m_Model.GridHeight() * DefaultCellHeight / 2.f};
+    }
+
+    if (commandResult.NoiseError) {
+        m_GenerateNoiseError.Activate();
+        m_GenerateNoiseError.Message = *commandResult.NoiseError;
+    }
+    if (commandResult.FileError) {
+        m_FileErrorWindow.Activate();
+        m_FileErrorWindow.Message = *commandResult.FileError;
+    }
+    if (commandResult.CopyError) {
+        m_CopyErrorWindow.Activate();
+        m_CopyErrorWindow.Message = *commandResult.CopyError;
+    }
+    if (commandResult.PasteError) {
+        HandlePasteError(*commandResult.PasteError);
+    }
+    if (commandResult.SaveAsWarning) {
+        const auto saveAsRequest = *commandResult.SaveAsWarning;
+        m_SaveWarning.SetCallback([this, path = saveAsRequest.FilePath](
+                                      PopupWindowState state) {
+            if (state != PopupWindowState::Success)
+                return;
+            ExecuteEditorCommand(
+                SaveAsNewCommand{.FilePath = path},
+                {.CursorPos = CursorGridPos(),
+                 .PrimaryMouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Left),
+                 .ConfirmSaveAsWarning = true});
+        });
+        m_SaveWarning.Activate();
+        m_SaveWarning.Message =
+            std::format(std::locale{""},
                         "This file has {:L} total cells. The saved file will "
                         "be\n"
                         "large and may take a long time to save. The Macrocell "
@@ -464,64 +475,7 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                         "format may be more efficient. Are you sure you want "
                         "to \n"
                         "continue?",
-                        m_Model.GridPopulation());
-                    return m_Model.State();
-                }
-                SaveWithErrorHandling(cmd.FilePath, false);
-                return m_Model.State();
-            },
-            [this](const LoadCommand& cmd) {
-                auto error = m_Model.LoadFile(cmd.FilePath);
-                if (error) {
-                    m_FileErrorWindow.Activate();
-                    m_FileErrorWindow.Message =
-                        std::format("Failed to load file:\n{}", *error);
-                }
-                m_Model.MarkSaved();
-                return m_Model.State();
-            },
-            [this](const NewFileCommand&) { return m_Model.State(); },
-            [this](const CloseCommand&) { return m_Model.State(); },
-            [this](const RuleCommand& cmd) {
-                const auto oldWidth = m_Model.GridWidth();
-                const auto oldHeight = m_Model.GridHeight();
-                const auto state = m_Model.HandleRuleChange(cmd.RuleString);
-                if (m_Model.GridWidth() != oldWidth ||
-                    m_Model.GridHeight() != oldHeight) {
-                    m_Graphics.Camera.Center = {
-                        m_Model.GridWidth() * DefaultCellWidth / 2.f,
-                        m_Model.GridHeight() * DefaultCellHeight / 2.f};
-                }
-
-                return state;
-            },
-            [this](const SelectionCommand& cmd) {
-                if (cmd.Action == SelectionAction::Paste) {
-                    const auto result = m_Model.PasteSelection(CursorGridPos());
-                    if (!result) {
-                        HandlePasteError(result.error());
-                    }
-
-                    return m_Model.State();
-                }
-
-                if (!m_Model.HandleSelectionAction(cmd.Action, cmd.NudgeSize)) {
-                    m_CopyErrorWindow.Activate();
-                    m_CopyErrorWindow.Message = std::format(
-                        std::locale{""}, "Tried editing too many cells ({:L})",
-                        m_Model.SelectedPopulation());
-                }
-                return m_Model.State();
-            }},
-        *result.Command);
-}
-
-void SimulationEditor::SaveWithErrorHandling(const std::filesystem::path& path,
-                                             bool markAsSaved) {
-    if (!m_Model.SaveToFile(path, markAsSaved)) {
-        m_FileErrorWindow.Activate();
-        m_FileErrorWindow.Message =
-            std::format("Failed to save file to \n{}", path.string());
+                        saveAsRequest.Population);
     }
 }
 
@@ -543,13 +497,22 @@ void SimulationEditor::HandlePasteError(
 void SimulationEditor::PasteWarnUpdated(PopupWindowState state) {
     if (state != PopupWindowState::Success)
         return;
-    m_Model.ForcePaste(CursorGridPos());
+    ExecuteEditorCommand(
+        SelectionCommand{.Action = SelectionAction::Paste},
+        {.CursorPos = CursorGridPos(),
+         .PrimaryMouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Left),
+         .ForcePasteSelection = true});
 }
 
 void SimulationEditor::UpdateMouseState(Vec2 gridPos) {
     if (!m_TakeMouseInput ||
         ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId))
         return;
+
+    if (!m_Model.CanDispatchEdit().Accepted) {
+        m_EditorMode = EditorMode::None;
+        return;
+    }
 
     if (m_Model.UpdateSelectionAreaTracked(gridPos)) {
         m_EditorMode = EditorMode::Select;
