@@ -102,7 +102,7 @@ SimulationEditor::Update(std::optional<bool> activeOverride,
                          const SimulationControlResult& controlArgs,
                          const PresetSelectionResult& presetArgs) {
     HashQuadtree::SetCacheIndex(m_Model.EditorID());
-    
+
     auto displayResult = DisplaySimulation(
         (controlArgs.Command || !presetArgs.ClipboardText.empty()) &&
         activeOverride && (*activeOverride));
@@ -443,7 +443,8 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                 return m_Model.State();
             },
             [this](const SaveAsNewCommand& cmd) {
-                if (m_Model.Grid().Population() > threshold && cmd.FilePath.extension().string() == ".rle") {
+                if (m_Model.Grid().Population() > threshold &&
+                    cmd.FilePath.extension().string() == ".rle") {
                     m_SaveWarning.SetCallback(
                         [this, path = cmd.FilePath](PopupWindowState state) {
                             if (state != PopupWindowState::Success)
@@ -455,8 +456,10 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
                         std::locale{""},
                         "This file has {:L} total cells. The saved file will "
                         "be\n"
-                        "large and may take a long time to save. The Macrocell (.mc)\n"
-                        "format may be more efficient. Are you sure you want to \n"
+                        "large and may take a long time to save. The Macrocell "
+                        "(.mc)\n"
+                        "format may be more efficient. Are you sure you want "
+                        "to \n"
                         "continue?",
                         m_Model.Grid().Population());
                     return m_Model.State();

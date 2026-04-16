@@ -78,7 +78,8 @@ struct HashLifeCache {
 // many STL algorithms.
 class HashQuadtree : public LifeDataStructure {
   public:
-    // The maximum number of distinct caches that can be stored in static memory.
+    // The maximum number of distinct caches that can be stored in static
+    // memory.
     constexpr inline static auto MaxCacheCount = 200UZ;
 
     class Iterator {
@@ -132,6 +133,7 @@ class HashQuadtree : public LifeDataStructure {
     HashQuadtree(std::span<const Vec2> data, Vec2 offset = {});
 
     static void SetCacheIndex(size_t index);
+
   public:
     bool empty() const;
 
@@ -210,15 +212,15 @@ class HashQuadtree : public LifeDataStructure {
 
     template <std::invocable<Vec2, int64_t> Func>
     void ForEachImpl(const Func& func, const LifeNode* node, Vec2L pos,
-                            int32_t level, int32_t minLevel, Rect bounds) const;
+                     int32_t level, int32_t minLevel, Rect bounds) const;
 
     template <std::invocable<const BigVec2&, int64_t> Func>
-    void
-    ForEachBigImpl(const Func& func, const LifeNode* node, int32_t level,
-                   int32_t minLevel, const BigInt& left, const BigInt& top,
-                   const BigInt& right, const BigInt& bottom,
-                   const BigInt& boundsLeft, const BigInt& boundsTop,
-                   const BigInt& boundsRight, const BigInt& boundsBottom) const;
+    void ForEachBigImpl(const Func& func, const LifeNode* node, int32_t level,
+                        int32_t minLevel, const BigInt& left, const BigInt& top,
+                        const BigInt& right, const BigInt& bottom,
+                        const BigInt& boundsLeft, const BigInt& boundsTop,
+                        const BigInt& boundsRight,
+                        const BigInt& boundsBottom) const;
 
     BigInt PopulationOf(const LifeNode* node) const;
     int64_t PopulationOf(const LifeNode* node, bool) const;

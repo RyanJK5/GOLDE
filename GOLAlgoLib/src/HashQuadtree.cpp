@@ -30,7 +30,6 @@ HashLifeCache::HashLifeCache() {
 std::array<HashLifeCache, HashQuadtree::MaxCacheCount> HashQuadtree::s_Cache{};
 thread_local size_t HashQuadtree::s_CacheIndex{};
 
-
 // Mixes the node's precomputed hash with MaxAdvance. The node hash is already
 // well-distributed via splitmix64, so a single round of xor-shift mixing with
 // the advance count is sufficient.
@@ -71,10 +70,7 @@ HashQuadtree::HashQuadtree(std::span<const Vec2> data, Vec2 offset) {
     ExpandUniverse(4);
 }
 
-void HashQuadtree::SetCacheIndex(size_t index) {
-    s_CacheIndex = index;
-}
-
+void HashQuadtree::SetCacheIndex(size_t index) { s_CacheIndex = index; }
 
 const LifeNode* HashQuadtree::Data() const { return m_Root; }
 
@@ -794,7 +790,7 @@ void HashQuadtree::ExpandUniverse(int32_t targetLevel) {
 }
 
 const LifeNode* HashQuadtree::ExpandNode(const LifeNode* node,
-                                             int32_t level) const {
+                                         int32_t level) const {
     if (node == FalseNode)
         return EmptyTree(level + 1);
 
@@ -815,7 +811,8 @@ const LifeNode* HashQuadtree::EmptyTree(int32_t level) const {
         return FalseNode;
     }
 
-    if (level >= static_cast<int32_t>(s_Cache[s_CacheIndex].EmptyNodeCache.size())) {
+    if (level >=
+        static_cast<int32_t>(s_Cache[s_CacheIndex].EmptyNodeCache.size())) {
         s_Cache[s_CacheIndex].EmptyNodeCache.resize(level + 1, nullptr);
     } else if (s_Cache[s_CacheIndex].EmptyNodeCache[level] != nullptr) {
         return s_Cache[s_CacheIndex].EmptyNodeCache[level];

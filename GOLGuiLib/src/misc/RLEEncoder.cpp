@@ -489,10 +489,12 @@ std::expected<DecodeResult, DecodeError>
 DecodeMacrocell(std::string_view fileContents) {
     auto lines = SplitLines(fileContents);
     if (lines.empty())
-        return std::unexpected{DecodeError{DecodeError::Type::MissingHeader, "File is empty"}};
+        return std::unexpected{
+            DecodeError{DecodeError::Type::MissingHeader, "File is empty"}};
     if (!lines[0].starts_with("[M2]"))
-        return std::unexpected{DecodeError{DecodeError::Type::IncorrectHeader,
-                   std::format("Expected [M2] header, got '{}'", lines[0])}};
+        return std::unexpected{DecodeError{
+            DecodeError::Type::IncorrectHeader,
+            std::format("Expected [M2] header, got '{}'", lines[0])}};
 
     HashQuadtree qt({}, {0, 0});
 
@@ -508,7 +510,9 @@ DecodeMacrocell(std::string_view fileContents) {
     }
 
     if (lineIdx >= lines.size())
-        return std::unexpected{DecodeError{DecodeError::Type::NoData, "File contains a header but no tree data"}};
+        return std::unexpected{
+            DecodeError{DecodeError::Type::NoData,
+                        "File contains a header but no tree data"}};
 
     // ---- Tree parsing ----
     std::vector<const LifeNode*> nodeTable;
@@ -607,17 +611,21 @@ DecodeMacrocell(std::string_view fileContents) {
             rootLevel = level;
             root = node;
         } else {
-            return std::unexpected{DecodeError{DecodeError::Type::IncorrectHeader,
-                       std::format("Unexpected line: '{}'", line)}};
+            return std::unexpected{
+                DecodeError{DecodeError::Type::IncorrectHeader,
+                            std::format("Unexpected line: '{}'", line)}};
         }
     }
 
     if (root == FalseNode || rootLevel < 0)
-        return std::unexpected{DecodeError{DecodeError::Type::NoData, "File contained no nodes"}};
+        return std::unexpected{
+            DecodeError{DecodeError::Type::NoData, "File contained no nodes"}};
 
     qt.OverwriteData(root, rootLevel);
     const auto boundingBox = qt.FindBoundingBox();
-    return DecodeResult{GameGrid{std::move(qt), Size2{boundingBox.Width, boundingBox.Height}}, Vec2{}};
+    return DecodeResult{
+        GameGrid{std::move(qt), Size2{boundingBox.Width, boundingBox.Height}},
+        Vec2{}};
 }
 } // namespace
 

@@ -7,7 +7,8 @@
 namespace gol {
 
 SimulationWorker::SimulationWorker(size_t cacheIndex)
-    : m_CacheIndex(cacheIndex), m_Thread(std::bind_front(&SimulationWorker::ThreadLoop, this)) {}
+    : m_CacheIndex(cacheIndex),
+      m_Thread(std::bind_front(&SimulationWorker::ThreadLoop, this)) {}
 
 SimulationWorker::~SimulationWorker() {
     m_RunStopSource.request_stop();
