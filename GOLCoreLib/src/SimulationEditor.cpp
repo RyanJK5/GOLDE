@@ -102,6 +102,7 @@ EditorResult
 SimulationEditor::Update(std::optional<bool> activeOverride,
                          const SimulationControlResult& controlArgs,
                          const PresetSelectionResult& presetArgs) {
+    PollPendingCommandResult();
     HashQuadtree::SetCacheIndex(m_Model.EditorID());
 
     auto displayResult = DisplaySimulation(
@@ -131,12 +132,13 @@ SimulationEditor::Update(std::optional<bool> activeOverride,
         const auto dispatch = m_Model.CanDispatchEdit();
         if (dispatch.Accepted) {
             ImGui::SetClipboardText(presetArgs.ClipboardText.c_str());
-            m_Model.InsertFromClipboard(Vec2{0, 0});
+            m_Model.InsertFromClipboard(Vec2{0, 0}, presetArgs.ClipboardText);
         }
     }
 
     m_Model.CheckStopStep();
     m_Model.ApplySettings(controlArgs.Settings);
+    PollPendingCommandResult();
 
     if (controlArgs.Command &&
         ((activeOverride && *activeOverride) || displayResult.Selected))
@@ -238,6 +240,10 @@ SimulationState SimulationEditor::PauseUpdate(const GraphicsHandlerArgs& args) {
     return m_Model.State();
 }
 
+double lastTime = 0;
+int fps = 0;
+int frameCounter = 0;
+
 SimulationEditor::DisplayResult
 SimulationEditor::DisplaySimulation(bool grabFocus) {
     auto label = std::format(
@@ -280,9 +286,10 @@ SimulationEditor::DisplaySimulation(bool grabFocus) {
     m_TakeKeyboardInput = ImGui::IsItemFocused() || windowFocused;
     m_TakeMouseInput = ImGui::IsItemHovered();
 
-    if ((m_Model.State() == SimulationState::Simulation ||
-         m_Model.State() == SimulationState::Stepping) &&
-        m_Model.SimulationLag() >= std::chrono::seconds{3}) {
+    if (((m_Model.State() == SimulationState::Simulation ||
+          m_Model.State() == SimulationState::Stepping) &&
+         m_Model.SimulationLag() >= std::chrono::seconds{3}) ||
+        m_Model.IsEditBusy()) {
         constexpr static auto radius = 30.f;
         constexpr static auto thickness = 12.f;
         ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - radius * 2 -
@@ -310,6 +317,15 @@ SimulationEditor::DisplaySimulation(bool grabFocus) {
     ImGui::Text(
         "%s", std::format(std::locale{""}, "Population: {:L}", totalPopulation)
                   .c_str());
+
+    auto currentTime = glfwGetTime();
+    frameCounter++;
+    if (currentTime - lastTime > 1.0) {
+        fps = frameCounter;
+        frameCounter = 0;
+        lastTime += 1.0;
+    }
+    ImGui::Text("%d FPS", fps);
 
     const auto mousePos = Vec2F{ImGui::GetMousePos()};
     const auto viewportBounds = ViewportBounds();
@@ -406,22 +422,36 @@ SimulationEditor::UpdateState(const SimulationControlResult& result) {
         return m_Model.State();
     }
 
-    return ExecuteEditorCommand(
-        *result.Command,
-        {.CursorPos = CursorGridPos(),
-         .PrimaryMouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Left)});
+    ExecuteCommandContext context{
+        .CursorPos = CursorGridPos(),
+        .PrimaryMouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Left)};
+    if (const auto* selectionCommand =
+            std::get_if<SelectionCommand>(&*result.Command);
+        selectionCommand &&
+        selectionCommand->Action == SelectionAction::Paste) {
+        if (const char* clipboardText = ImGui::GetClipboardText();
+            clipboardText != nullptr) {
+            context.ClipboardText = clipboardText;
+        }
+    }
+
+    return ExecuteEditorCommand(*result.Command, context);
 }
 
 SimulationState
 SimulationEditor::ExecuteEditorCommand(const SimulationCommand& command,
                                        const ExecuteCommandContext& context) {
-    const auto commandResult = m_Model.ExecuteCommand(command, context);
-    ApplyCommandResult(commandResult);
-    return commandResult.State;
+    if (!m_Model.TryStartCommand(command, context)) {
+        return m_Model.State();
+    }
+    PollPendingCommandResult();
+    return m_Model.State();
 }
 
 void SimulationEditor::ApplyCommandResult(
     const ExecuteCommandResult& commandResult) {
+    m_Model.SetState(commandResult.State);
+
     if (commandResult.CameraPositionCell) {
         glm::dvec2 precisePos{
             commandResult.CameraPositionCell->X * DefaultCellWidth,
@@ -495,14 +525,28 @@ void SimulationEditor::ApplyCommandResult(
     }
 }
 
+void SimulationEditor::PollPendingCommandResult() {
+    auto result = m_Model.PollCommandResult();
+    if (result) {
+        ApplyCommandResult(*result);
+    }
+}
+
 void SimulationEditor::PasteWarnUpdated(PopupWindowState state) {
     if (state != PopupWindowState::Success)
         return;
-    ExecuteEditorCommand(
-        SelectionCommand{.Action = SelectionAction::Paste},
-        {.CursorPos = CursorGridPos(),
-         .PrimaryMouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Left),
-         .ForcePasteSelection = true});
+
+    ExecuteCommandContext context{.CursorPos = CursorGridPos(),
+                                  .PrimaryMouseDown =
+                                      ImGui::IsMouseDown(ImGuiMouseButton_Left),
+                                  .ForcePasteSelection = true};
+    if (const char* clipboardText = ImGui::GetClipboardText();
+        clipboardText != nullptr) {
+        context.ClipboardText = clipboardText;
+    }
+
+    ExecuteEditorCommand(SelectionCommand{.Action = SelectionAction::Paste},
+                         context);
 }
 
 void SimulationEditor::UpdateMouseState(Vec2 gridPos) {

@@ -131,6 +131,7 @@ void GraphicsHandler::GenerateGLBuffer(
     }
 
     const auto maxPop = std::exp2(static_cast<double>(2 * minLevel));
+    const auto cellScale = std::powf(2.f, static_cast<float>(minLevel));
 
     const auto pushToBuffer = [&]<typename VecType>(const VecType& vec,
                                                     int64_t population) {
@@ -142,7 +143,6 @@ void GraphicsHandler::GenerateGLBuffer(
 
         const auto opacity =
             std::clamp(static_cast<float>(population / maxPop), 0.f, 1.f);
-        const auto cellScale = std::powf(2.f, static_cast<float>(minLevel));
         m_GLBuffer.push_back(
             static_cast<float>(x - Camera.Center.x / args.CellSize.Width) /
             cellScale);

@@ -1,12 +1,16 @@
 #ifndef EditorModel_hpp_
 #define EditorModel_hpp_
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <future>
 #include <memory>
+#include <mutex>
 #include <optional>
+#include <stop_token>
 #include <string>
 
 #include "GameEnums.hpp"
@@ -69,6 +73,10 @@ class EditorModel {
     SimulationState StartSimulation();
     void StopSimulation(bool stealGrid);
 
+    bool TryStartCommand(const SimulationCommand& cmd,
+                         const ExecuteCommandContext& context);
+    std::optional<ExecuteCommandResult> PollCommandResult();
+
     // Process and clear the end-of-step flag (call once per frame)
     void CheckStopStep();
 
@@ -95,11 +103,13 @@ class EditorModel {
 
     // Paste operations
     std::expected<void, FileEncoder::DecodeError>
-    PasteSelection(std::optional<Vec2> cursorPos);
-    void ForcePaste(std::optional<Vec2> cursorPos);
+    PasteSelection(std::optional<Vec2> cursorPos,
+                   std::string_view clipboardText);
+    void ForcePaste(std::optional<Vec2> cursorPos,
+                    std::string_view clipboardText);
 
     // Deselect and paste from clipboard at the given position
-    void InsertFromClipboard(Vec2 position);
+    void InsertFromClipboard(Vec2 position, std::string_view clipboardText);
 
     SimulationState SetSelectionBounds(Rect bounds);
 
@@ -170,12 +180,20 @@ class EditorModel {
     bool operator==(const EditorModel& other) const;
 
   private:
+    ExecuteCommandResult
+    ExecuteCommandImmediate(const SimulationCommand& cmd,
+                            const ExecuteCommandContext& context);
+
     SelectionManager m_SelectionManager;
 
     GameGrid m_Grid;
     GameGrid m_InitialGrid;
 
     VersionManager m_VersionManager;
+
+    std::mutex m_CommandMutex;
+    std::optional<std::future<ExecuteCommandResult>> m_InFlightCommand;
+    std::atomic<bool> m_EditBusy = false;
 
     std::unique_ptr<SimulationWorker> m_Worker;
 
@@ -184,7 +202,7 @@ class EditorModel {
     uint32_t m_EditorID;
 
     SimulationState m_State = SimulationState::Paint;
-    bool m_StopStepCommand = false;
+    std::atomic<bool> m_StopStepCommand = false;
 };
 
 } // namespace gol

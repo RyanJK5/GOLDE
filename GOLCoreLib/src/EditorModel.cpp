@@ -44,9 +44,9 @@ void EditorModel::StopSimulation(bool stealGrid) {
 }
 
 void EditorModel::CheckStopStep() {
-    if (!m_StopStepCommand)
+    if (!m_StopStepCommand.load(std::memory_order_acquire))
         return;
-    m_StopStepCommand = false;
+    m_StopStepCommand.store(false, std::memory_order_release);
     const auto ogState = m_State;
     m_State = SimulationState::Simulation;
     if (ogState == SimulationState::Stepping) {
@@ -106,7 +106,9 @@ SimulationState EditorModel::HandleStep() {
     m_SelectionManager.Deselect(m_Grid);
     if (m_State == SimulationState::Paint)
         m_InitialGrid = m_Grid;
-    m_Worker->Start(m_Grid, true, [this] { m_StopStepCommand = true; });
+    m_Worker->Start(m_Grid, true, [this] {
+        m_StopStepCommand.store(true, std::memory_order_release);
+    });
     return SimulationState::Stepping;
 }
 
@@ -282,7 +284,7 @@ void EditorModel::PaintCell(Vec2 pos, bool value) {
 void EditorModel::MarkSaved() { m_VersionManager.Save(); }
 
 EditWorkState EditorModel::WorkState() const {
-    if (m_Worker->IsRunning()) {
+    if (m_EditBusy.load(std::memory_order_acquire)) {
         return EditWorkState::Working;
     }
     return EditWorkState::Idle;
@@ -345,9 +347,51 @@ bool EditorModel::CanDispatchMutatingCommand(
     return CanDispatchEdit().Accepted;
 }
 
+bool EditorModel::TryStartCommand(const SimulationCommand& cmd,
+                                  const ExecuteCommandContext& context) {
+    if (m_EditBusy.exchange(true, std::memory_order_acq_rel)) {
+        return false;
+    }
+
+    auto commandCopy = cmd;
+    auto contextCopy = context;
+    std::scoped_lock lock{m_CommandMutex};
+    m_InFlightCommand = std::async(
+        std::launch::async, [this, command = std::move(commandCopy),
+                             commandContext = std::move(contextCopy)]() {
+            HashQuadtree::SetCacheIndex(m_EditorID);
+            return ExecuteCommandImmediate(command, commandContext);
+        });
+    return true;
+}
+
+std::optional<ExecuteCommandResult> EditorModel::PollCommandResult() {
+    std::scoped_lock lock{m_CommandMutex};
+    if (!m_InFlightCommand) {
+        return std::nullopt;
+    }
+
+    if (m_InFlightCommand->wait_for(std::chrono::seconds{0}) !=
+        std::future_status::ready) {
+        return std::nullopt;
+    }
+
+    auto result = m_InFlightCommand->get();
+    m_InFlightCommand.reset();
+    m_EditBusy.store(false, std::memory_order_release);
+    return result;
+}
+
 ExecuteCommandResult
 EditorModel::ExecuteCommand(const SimulationCommand& cmd,
                             const ExecuteCommandContext& context) {
+    HashQuadtree::SetCacheIndex(m_EditorID);
+    return ExecuteCommandImmediate(cmd, context);
+}
+
+ExecuteCommandResult
+EditorModel::ExecuteCommandImmediate(const SimulationCommand& cmd,
+                                     const ExecuteCommandContext& context) {
     const static BigInt threshold{10'000'000U};
     return std::visit(
         Overloaded{
@@ -469,12 +513,15 @@ EditorModel::ExecuteCommand(const SimulationCommand& cmd,
             },
             [this, &context](const SelectionCommand& command) {
                 if (command.Action == SelectionAction::Paste) {
+                    const auto clipboardText =
+                        context.ClipboardText.value_or("");
                     if (context.ForcePasteSelection) {
-                        ForcePaste(context.CursorPos);
+                        ForcePaste(context.CursorPos, clipboardText);
                         return ExecuteCommandResult{.State = m_State};
                     }
 
-                    auto result = PasteSelection(context.CursorPos);
+                    auto result =
+                        PasteSelection(context.CursorPos, clipboardText);
                     if (!result) {
                         const auto errorType =
                             result.error().ErrorType ==

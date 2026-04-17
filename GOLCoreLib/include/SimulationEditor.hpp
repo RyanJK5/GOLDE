@@ -2,6 +2,7 @@
 #define SimulationEditor_hpp_
 
 #include <cstdint>
+#include <future>
 #include <glm/glm.hpp>
 #include <optional>
 
@@ -58,6 +59,7 @@ class SimulationEditor {
     SimulationState ExecuteEditorCommand(const SimulationCommand& command,
                                          const ExecuteCommandContext& context);
     void ApplyCommandResult(const ExecuteCommandResult& result);
+    void PollPendingCommandResult();
 
     void UpdateViewport();
 
@@ -90,6 +92,7 @@ class SimulationEditor {
     Vec2F m_LeftDeltaLast;
     Vec2F m_RightDeltaLast;
     bool m_BeginPaintStroke = false;
+    std::optional<std::future<ExecuteCommandResult>> m_PendingCommandResult;
 
     EditorMode m_EditorMode = EditorMode::None;
 

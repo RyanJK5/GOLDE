@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <imgui.h>
+#include <memory>
 #include <vector>
 
 #include "GameEnums.hpp"
@@ -86,7 +87,8 @@ class Game {
 
     OpenGLWindow m_Window; // Underlying window backend
 
-    std::vector<SimulationEditor> m_Editors; // The various open editors
+    std::vector<std::unique_ptr<SimulationEditor>>
+        m_Editors; // The various open editors
     uint32_t m_EditorCounter =
         0; // Counter for assigning unique IDs to each editor
 

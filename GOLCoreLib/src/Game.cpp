@@ -76,9 +76,10 @@ Game::Game()
       m_Control(ConfigLoader::LoadYAML<ImVec4>(std::filesystem::path{"config"} /
                                                "shortcuts.yml")),
       m_PresetSelection(std::filesystem::current_path() / "presets") {
-    m_Editors.emplace_back(m_EditorCounter++, std::filesystem::path{},
-                           Size2{DefaultWindowWidth, DefaultWindowHeight},
-                           Size2{DefaultGridWidth, DefaultGridHeight});
+    m_Editors.emplace_back(std::make_unique<SimulationEditor>(
+        m_EditorCounter++, std::filesystem::path{},
+        Size2{DefaultWindowWidth, DefaultWindowHeight},
+        Size2{DefaultGridWidth, DefaultGridHeight}));
     NFD::Init();
     InitImGUI(std::filesystem::path{"config"} / "style.yml");
 }
@@ -136,7 +137,7 @@ void Game::UpdateEditors(SimulationControlResult& controlResult,
         }();
 
         auto result =
-            m_Editors[i].Update(activeOverride, controlResult, presetResult);
+            m_Editors[i]->Update(activeOverride, controlResult, presetResult);
 
         if (result.Active) {
             m_State = result;
@@ -155,7 +156,7 @@ void Game::UpdateEditors(SimulationControlResult& controlResult,
                           "{} has unsaved changes. Are you sure you want to "
                           "close it without saving?",
                           result.File.CurrentFilePath.filename().string());
-            m_Unsaved = &m_Editors[i];
+            m_Unsaved = m_Editors[i].get();
         }
     }
 
@@ -211,7 +212,9 @@ void Game::HandleUnsaved(PopupWindowState state) {
         m_Editors.clear();
         glfwSetWindowShouldClose(m_Window.Get(), true);
     } else
-        std::erase(m_Editors, *m_Unsaved);
+        std::erase_if(m_Editors, [this](const auto& editor) {
+            return editor.get() == m_Unsaved;
+        });
     m_Unsaved = nullptr;
 }
 
@@ -286,8 +289,11 @@ void Game::HandleWindowClose(PopupWindowState state) {
         if (!m_Unsaved) {
             m_Editors.clear();
             glfwSetWindowShouldClose(m_Window.Get(), true);
-        } else
-            std::erase(m_Editors, *m_Unsaved);
+        } else {
+            std::erase_if(m_Editors, [this](const auto& editor) {
+                return editor.get() == m_Unsaved;
+            });
+        }
         m_Unsaved = nullptr;
         break;
     }
@@ -295,7 +301,7 @@ void Game::HandleWindowClose(PopupWindowState state) {
 
 bool Game::WindowCanClose() {
     if (std::ranges::all_of(
-            m_Editors, [](const auto& editor) { return editor.IsSaved(); }))
+            m_Editors, [](const auto& editor) { return editor->IsSaved(); }))
         return true;
 
     const auto fileStringRepresentation = [](const SimulationEditor& editor) {
@@ -305,9 +311,11 @@ bool Game::WindowCanClose() {
     };
 
     auto fileNames = m_Editors | std::views::filter([](const auto& editor) {
-                         return !editor.IsSaved();
+                         return !editor->IsSaved();
                      }) |
-                     std::views::transform(fileStringRepresentation) |
+                     std::views::transform([&](const auto& editor) {
+                         return fileStringRepresentation(*editor);
+                     }) |
                      std::ranges::to<std::vector>();
     std::ranges::sort(fileNames);
 
@@ -335,19 +343,20 @@ bool Game::CheckForNewEditors(const SimulationControlResult& controlResult) {
     const auto& filePath = loadCmd ? loadCmd->FilePath : newFileCmd->FilePath;
 
     const bool fileOpen =
-        loadCmd && std::ranges::any_of(
-                       m_Editors, [&filePath](const SimulationEditor& editor) {
-                           return editor.CurrentFilePath() == filePath;
-                       });
+        loadCmd &&
+        std::ranges::any_of(m_Editors, [&filePath](const auto& editor) {
+            return editor->CurrentFilePath() == filePath;
+        });
     if (fileOpen)
         return false;
 
     if (m_EditorCounter >= HashQuadtree::MaxCacheCount) {
         return false;
     }
-    m_Editors.emplace_back(m_EditorCounter++, filePath,
-                           Size2{DefaultWindowWidth, DefaultWindowHeight},
-                           Size2{DefaultGridWidth, DefaultGridHeight});
+    m_Editors.emplace_back(std::make_unique<SimulationEditor>(
+        m_EditorCounter++, filePath,
+        Size2{DefaultWindowWidth, DefaultWindowHeight},
+        Size2{DefaultGridWidth, DefaultGridHeight}));
 
     CreateEditorDockspace();
 
@@ -363,7 +372,7 @@ void Game::CreateEditorDockspace() {
 
     for (size_t i = 0; i < m_Editors.size(); i++) {
         ImGui::DockBuilderDockWindow(
-            std::format("###Simulation{}", m_Editors[i].EditorID()).c_str(),
+            std::format("###Simulation{}", m_Editors[i]->EditorID()).c_str(),
             editorDockspaceID);
     }
     ImGui::DockBuilderFinish(editorDockspaceID);
