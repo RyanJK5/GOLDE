@@ -48,7 +48,8 @@ WidgetResult ButtonlessShortcuts::UpdateImpl(const EditorResult& state) {
         }
         if (resultActive && !result.Command) {
             if (selectionAction)
-                result.Command = SelectionCommand{*selectionAction, nudgeSize};
+                result.Command = SelectionCommand{.Action = *selectionAction,
+                                                  .NudgeSize = nudgeSize};
             else
                 result.Command = CloseCommand{};
         }

@@ -28,6 +28,10 @@ HashLifeCache::HashLifeCache() {
 }
 
 std::array<HashLifeCache, HashQuadtree::MaxCacheCount> HashQuadtree::s_Cache{};
+
+thread_local ankerl::unordered_dense::map<const LifeNode*, BigInt, LifeNodeHash,
+                                          LifeNodeEqual>
+    HashQuadtree::s_PopulationCache{};
 thread_local size_t HashQuadtree::s_CacheIndex{};
 
 // Mixes the node's precomputed hash with MaxAdvance. The node hash is already
@@ -590,7 +594,7 @@ int64_t HashQuadtree::CalculateTreeSize() const {
     return Pow2(m_Depth);
 }
 
-bool HashQuadtree::empty() const { return m_Root == EmptyTree(m_Depth); }
+bool HashQuadtree::empty() const { return m_Root->IsEmpty; }
 
 BigInt HashQuadtree::PopulationOf(const LifeNode* node) const {
     if (node == FalseNode) {
@@ -600,13 +604,12 @@ BigInt HashQuadtree::PopulationOf(const LifeNode* node) const {
         return BigOne;
     }
 
-    if (auto it = s_Cache[s_CacheIndex].PopulationCache.find(node);
-        it != s_Cache[s_CacheIndex].PopulationCache.end()) {
+    if (auto it = s_PopulationCache.find(node); it != s_PopulationCache.end()) {
         return it->second;
     }
 
     // 4. Insert and return a copy
-    return s_Cache[s_CacheIndex].PopulationCache[node] =
+    return s_PopulationCache[node] =
                PopulationOf(node->NorthWest) + PopulationOf(node->NorthEast) +
                PopulationOf(node->SouthWest) + PopulationOf(node->SouthEast);
 }
@@ -757,7 +760,7 @@ void HashQuadtree::CacheResult(const LifeNode* key,
 
 void HashQuadtree::ClearCache() {
     s_Cache[s_CacheIndex].NodeMap.clear();
-    s_Cache[s_CacheIndex].PopulationCache.clear();
+    s_PopulationCache.clear();
 }
 
 void HashQuadtree::ExpandUniverse(int32_t targetLevel) {

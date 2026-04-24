@@ -186,11 +186,9 @@ bool EditorModel::HandleSelectionAction(SelectionAction action,
         m_SelectionManager.HandleAction(action, m_Grid, nudgeSize);
     m_VersionManager.TryPushChange(actionResult, m_State);
 
-    if (!actionResult &&
-        (action == SelectionAction::Copy || action == SelectionAction::Cut ||
-         action == SelectionAction::FlipHorizontally ||
-         action == SelectionAction::FlipVertically ||
-         action == SelectionAction::Rotate)) {
+    if (!actionResult && (action == SelectionAction::FlipHorizontally ||
+                          action == SelectionAction::FlipVertically ||
+                          action == SelectionAction::Rotate)) {
         return false;
     } else {
         return true;
@@ -222,13 +220,14 @@ bool EditorModel::SaveToFile(const std::filesystem::path& path,
 }
 
 std::expected<void, FileEncoder::DecodeError>
-EditorModel::PasteSelection(std::optional<Vec2> cursorPos) {
+EditorModel::PasteSelection(std::optional<Vec2> cursorPos,
+                            std::string_view clipboardText) {
     if (cursorPos || m_SelectionManager.CanDrawGrid()) {
         m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
                                        m_State);
     }
-    auto pasteResult =
-        m_SelectionManager.Paste(m_Grid, cursorPos, 100'000'000U);
+    auto pasteResult = m_SelectionManager.Paste(m_Grid, clipboardText,
+                                                cursorPos, 100'000'000U);
     if (pasteResult) {
         m_VersionManager.TryPushChange(*pasteResult, m_State);
         return {};
@@ -236,18 +235,21 @@ EditorModel::PasteSelection(std::optional<Vec2> cursorPos) {
     return std::unexpected{pasteResult.error()};
 }
 
-void EditorModel::ForcePaste(std::optional<Vec2> cursorPos) {
+void EditorModel::ForcePaste(std::optional<Vec2> cursorPos,
+                             std::string_view clipboardText) {
     auto pasteResult = m_SelectionManager.Paste(
-        m_Grid, cursorPos, std::numeric_limits<uint32_t>::max());
+        m_Grid, clipboardText, cursorPos, std::numeric_limits<uint32_t>::max());
     if (pasteResult)
         m_VersionManager.TryPushChange(*pasteResult, m_State);
 }
 
-void EditorModel::InsertFromClipboard(Vec2 position) {
+void EditorModel::InsertFromClipboard(Vec2 position,
+                                      std::string_view clipboardText) {
     m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
                                    m_State);
-    auto result = m_SelectionManager.Paste(
-        m_Grid, position, std::numeric_limits<uint32_t>::max(), true);
+    auto result =
+        m_SelectionManager.Paste(m_Grid, clipboardText, position,
+                                 std::numeric_limits<uint32_t>::max(), true);
     if (result)
         m_VersionManager.TryPushChange(*result, m_State);
 }
@@ -515,11 +517,12 @@ EditorModel::ExecuteCommandImmediate(const SimulationCommand& cmd,
             [this, &context](const SelectionCommand& command) {
                 if (command.Action == SelectionAction::Paste) {
                     if (context.ForcePasteSelection) {
-                        ForcePaste(context.CursorPos);
+                        ForcePaste(context.CursorPos, command.ClipboardText);
                         return ExecuteCommandResult{.State = m_State};
                     }
 
-                    auto result = PasteSelection(context.CursorPos);
+                    auto result = PasteSelection(context.CursorPos,
+                                                 command.ClipboardText);
                     if (!result) {
                         const auto errorType =
                             result.error().ErrorType ==
@@ -532,6 +535,24 @@ EditorModel::ExecuteCommandImmediate(const SimulationCommand& cmd,
                                                         result.error().Message};
                     }
                     return ExecuteCommandResult{.State = m_State};
+                }
+
+                {
+                    const auto actionResult = [&] -> std::optional<CopyResult> {
+                        if (command.Action == SelectionAction::Copy) {
+                            return m_SelectionManager.Copy(m_Grid);
+                        } else if (command.Action == SelectionAction::Cut) {
+                            return m_SelectionManager.Cut(m_Grid);
+                        } else {
+                            return std::nullopt;
+                        }
+                    }();
+                    if (actionResult) {
+                        m_VersionManager.TryPushChange(actionResult->Change,
+                                                       m_State);
+                        ImGui::SetClipboardText(
+                            actionResult->ClipboardText.c_str());
+                    }
                 }
 
                 if (!HandleSelectionAction(command.Action, command.NudgeSize)) {

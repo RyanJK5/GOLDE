@@ -132,7 +132,7 @@ SimulationEditor::Update(std::optional<bool> activeOverride,
         const auto dispatch = m_Model.CanDispatchEdit();
         if (dispatch.Accepted) {
             ImGui::SetClipboardText(presetArgs.ClipboardText.c_str());
-            m_Model.InsertFromClipboard(Vec2{0, 0});
+            m_Model.InsertFromClipboard(Vec2{0, 0}, ImGui::GetClipboardText());
         }
     }
 
@@ -530,8 +530,10 @@ void SimulationEditor::PasteWarnUpdated(PopupWindowState state) {
                                   .PrimaryMouseDown =
                                       ImGui::IsMouseDown(ImGuiMouseButton_Left),
                                   .ForcePasteSelection = true};
-    ExecuteEditorCommand(SelectionCommand{.Action = SelectionAction::Paste},
-                         context);
+    ExecuteEditorCommand(
+        SelectionCommand{.ClipboardText = ImGui::GetClipboardText(),
+                         .Action = SelectionAction::Paste},
+        context);
 }
 
 void SimulationEditor::UpdateMouseState(Vec2 gridPos) {
@@ -542,6 +544,11 @@ void SimulationEditor::UpdateMouseState(Vec2 gridPos) {
     const auto paintingInput = ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
                                !ImGui::IsKeyDown(ImGuiKey_LeftShift) &&
                                !ImGui::IsKeyDown(ImGuiKey_RightShift);
+
+    if (m_Model.UpdateSelectionAreaTracked(gridPos)) {
+        m_EditorMode = EditorMode::Select;
+        return;
+    }
 
     if (m_Graphics.Camera.Zoom < 0.001f) {
         return;
@@ -561,11 +568,6 @@ void SimulationEditor::UpdateMouseState(Vec2 gridPos) {
         m_LastPaintGridPos = std::nullopt;
         m_BufferedPaintPoints.clear();
         m_EditorMode = EditorMode::None;
-        return;
-    }
-
-    if (m_Model.UpdateSelectionAreaTracked(gridPos)) {
-        m_EditorMode = EditorMode::Select;
         return;
     }
 

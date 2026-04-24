@@ -19,6 +19,11 @@ struct SelectionUpdateResult {
     bool BeginSelection = false;
 };
 
+struct CopyResult {
+    VersionState Change{};
+    std::string ClipboardText{};
+};
+
 class SelectionManager {
   public:
     SelectionUpdateResult UpdateSelectionArea(GameGrid& grid, Vec2 gridPos);
@@ -29,13 +34,14 @@ class SelectionManager {
 
     std::optional<VersionState> SelectAll(GameGrid& grid);
 
-    std::optional<VersionState> Copy(GameGrid& grid);
+    std::optional<CopyResult> Copy(GameGrid& grid);
 
-    std::optional<VersionState> Cut(const GameGrid& grid);
+    std::optional<CopyResult> Cut(const GameGrid& grid);
 
     std::expected<VersionState, FileEncoder::DecodeError>
-    Paste(const GameGrid& grid, std::optional<Vec2> gridPos,
-          uint32_t warnThreshold, bool unlock = false);
+    Paste(const GameGrid& grid, std::string_view clipboardText,
+          std::optional<Vec2> gridPos, uint32_t warnThreshold,
+          bool unlock = false);
 
     std::optional<VersionState> Delete(const GameGrid& grid);
 

@@ -229,6 +229,12 @@ WidgetResult EditorWidget::UpdateImpl(const EditorResult& state) {
     UpdateResult(result, m_RedoButton.Update(state));
     ImGui::PopStyleVar();
 
+    if (result.Command) {
+        if (auto* cmd = std::get_if<SelectionCommand>(&*result.Command)) {
+            cmd->ClipboardText = ImGui::GetClipboardText();
+        }
+    }
+
     return result;
 }
 

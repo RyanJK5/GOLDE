@@ -106,7 +106,7 @@ std::optional<VersionState> SelectionManager::SelectAll(GameGrid& grid) {
     return CaptureState(grid);
 }
 
-std::optional<VersionState> SelectionManager::Copy(GameGrid& grid) {
+std::optional<CopyResult> SelectionManager::Copy(GameGrid& grid) {
     if (!m_Selected) {
         return std::nullopt;
     }
@@ -114,31 +114,36 @@ std::optional<VersionState> SelectionManager::Copy(GameGrid& grid) {
     const auto fileFormat = m_Selected->ShouldValidateCache()
                                 ? FileEncoder::FileFormat::RLE
                                 : FileEncoder::FileFormat::Macrocell;
-    ImGui::SetClipboardText(
+    std::string clipboardText{
         FileEncoder::EncodeRegion(*m_Selected, {{0, 0}, m_Selected->Size()},
                                   Vec2{}, fileFormat)
-            .c_str());
-    return Deselect(grid);
+            .c_str()};
+
+    return CopyResult{.Change = std::move(*Deselect(grid)),
+                      .ClipboardText = std::move(clipboardText)};
 }
 
-std::optional<VersionState> SelectionManager::Cut(const GameGrid& grid) {
+std::optional<CopyResult> SelectionManager::Cut(const GameGrid& grid) {
     if (!m_Selected)
         return std::nullopt;
 
     const auto fileFormat = m_Selected->ShouldValidateCache()
                                 ? FileEncoder::FileFormat::RLE
                                 : FileEncoder::FileFormat::Macrocell;
-    ImGui::SetClipboardText(
+    std::string clipboardText{
         FileEncoder::EncodeRegion(
             *m_Selected, {0, 0, m_Selected->Width(), m_Selected->Height()},
             Vec2{}, fileFormat)
-            .c_str());
-    return Delete(grid);
+            .c_str()};
+
+    return CopyResult{.Change = std::move(*Delete(grid)),
+                      .ClipboardText = std::move(clipboardText)};
 }
 
 std::expected<VersionState, FileEncoder::DecodeError>
-SelectionManager::Paste(const GameGrid& grid, std::optional<Vec2> gridPos,
-                        uint32_t warnThreshold, bool unlock) {
+SelectionManager::Paste(const GameGrid& grid, std::string_view clipboardText,
+                        std::optional<Vec2> gridPos, uint32_t warnThreshold,
+                        bool unlock) {
     if (unlock)
         m_LockSelection = false;
 
@@ -149,7 +154,7 @@ SelectionManager::Paste(const GameGrid& grid, std::optional<Vec2> gridPos,
                                         FileEncoder::FileFormat::Macrocell};
     for (auto i = 0UZ; i < formats.size(); i++) {
         auto decodeResult = FileEncoder::DecodeRegion(
-            ImGui::GetClipboardText(), warnThreshold, formats[i]);
+            clipboardText.data(), warnThreshold, formats[i]);
         if (decodeResult) {
             if (!gridPos) {
                 gridPos = decodeResult->Offset;
@@ -275,10 +280,6 @@ SelectionManager::HandleAction(SelectionAction action, GameGrid& grid,
                                int32_t nudgeSize) {
     switch (action) {
         using enum SelectionAction;
-    case Copy:
-        return this->Copy(grid);
-    case Cut:
-        return this->Cut(grid);
     case Delete:
         return this->Delete(grid);
     case Deselect:

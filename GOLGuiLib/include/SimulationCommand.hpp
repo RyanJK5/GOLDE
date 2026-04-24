@@ -62,6 +62,7 @@ struct CameraZoomCommand {
 
 // Selection command — wraps the existing SelectionAction enum
 struct SelectionCommand {
+    std::string ClipboardText;
     SelectionAction Action;
     int32_t NudgeSize = 1;
 };
@@ -133,7 +134,7 @@ inline SimulationCommand ToCommand(EditorAction action) {
 }
 
 inline SimulationCommand ToCommand(SelectionAction action) {
-    return SelectionCommand{action};
+    return SelectionCommand{.Action = action};
 }
 
 } // namespace gol

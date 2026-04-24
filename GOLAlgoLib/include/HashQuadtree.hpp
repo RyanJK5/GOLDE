@@ -56,14 +56,10 @@ struct HashLifeCache {
 
     ankerl::unordered_dense::map<const LifeNode*, const LifeNode*, LifeNodeHash,
                                  LifeNodeEqual>
-        NodeMap;
-
-    ankerl::unordered_dense::map<const LifeNode*, BigInt, LifeNodeHash,
-                                 LifeNodeEqual>
-        PopulationCache{};
+        NodeMap{};
 
     // Level-indexed cache for empty nodes. Index i holds the empty node for
-    // size 2^i. At most 64 entries needed (levels 0..63).
+    // size 2^i
     std::vector<const LifeNode*> EmptyNodeCache{};
 
     HashLifeCache();
@@ -254,6 +250,10 @@ class HashQuadtree : public LifeDataStructure {
 
   private:
     static std::array<HashLifeCache, MaxCacheCount> s_Cache;
+
+    static thread_local ankerl::unordered_dense::map<
+        const LifeNode*, BigInt, LifeNodeHash, LifeNodeEqual>
+        s_PopulationCache;
     static thread_local size_t s_CacheIndex;
 
     const LifeNode* m_Root = FalseNode;
