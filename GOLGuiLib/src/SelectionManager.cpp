@@ -309,14 +309,8 @@ SelectionManager::HandleAction(SelectionAction action, GameGrid& grid,
     return std::nullopt;
 }
 
-void SelectionManager::HandleVersionChange(EditorAction undoRedo,
-                                           GameGrid& grid,
+void SelectionManager::HandleVersionChange(GameGrid& grid,
                                            const VersionState& state) {
-    RestoreGridVersion(undoRedo, grid, state);
-}
-
-void SelectionManager::RestoreGridVersion(EditorAction, GameGrid& grid,
-                                          const VersionState& state) {
     m_UnlockedOriginalPosition = std::nullopt;
     grid = state.Universe;
 

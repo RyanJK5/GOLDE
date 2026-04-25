@@ -159,6 +159,9 @@ class EditorModel {
     bool RedosAvailable() const { return m_VersionManager.RedosAvailable(); }
     BigInt GridPopulation() const { return m_Grid.Population(); }
     BigInt GridGeneration() const { return m_Grid.Generation(); }
+    std::string_view CurrentRuleString() const {
+        return m_Grid.GetRuleString();
+    }
 
     EditWorkState WorkState() const;
     bool IsEditBusy() const;
@@ -186,6 +189,9 @@ class EditorModel {
     ExecuteCommandResult
     ExecuteCommandImmediate(const SimulationCommand& cmd,
                             const ExecuteCommandContext& context);
+
+    void TryPushVersionChange(const std::optional<VersionState>& change);
+    void TryPushVersionChange(const VersionState& change);
 
     SelectionManager m_SelectionManager;
 

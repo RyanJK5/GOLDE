@@ -3,6 +3,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <string>
 
 #include "GameEnums.hpp"
 #include "Graphics2D.hpp"
@@ -11,6 +12,7 @@ namespace gol {
 struct SimulationStatus {
     SimulationState State = SimulationState::Paint;
     bool OutOfBounds = false;
+    std::string_view RuleString = "B3/S23";
 };
 
 struct EditingStatus {

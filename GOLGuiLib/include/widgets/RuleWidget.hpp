@@ -16,6 +16,7 @@ class RuleWidget : public Widget {
   private:
     WidgetResult UpdateImpl(const EditorResult& state);
     void SetShortcutsImpl(const ShortcutMap&) {}
+    bool HasPendingRuleChange() const { return m_InputText != m_LastValid; }
 
     struct RuleInfoChange {
         std::optional<Size2> NewSize;

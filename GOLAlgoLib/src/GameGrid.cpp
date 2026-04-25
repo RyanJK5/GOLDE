@@ -89,6 +89,7 @@ GameGrid::GameGrid(const GameGrid& other, Size2 size)
         std::views::filter([this](Vec2 pos) { return InBounds(pos); }) |
         std::ranges::to<std::vector<Vec2>>();
     m_HashLifeData = HashQuadtree{cropped};
+    m_RuleString = other.m_RuleString;
     m_Algorithm = other.m_Algorithm->Clone();
     m_Algorithm->SetTopology(
         std::make_unique<Plane>(Rect{0, 0, size.Width, size.Height}));
@@ -96,9 +97,10 @@ GameGrid::GameGrid(const GameGrid& other, Size2 size)
 }
 
 GameGrid::GameGrid(const GameGrid& other)
-    : m_HashLifeData(other.m_HashLifeData), m_Width(other.m_Width),
-      m_Height(other.m_Height), m_Algorithm(other.m_Algorithm->Clone()),
-      m_Population(other.m_Population), m_Generation(other.m_Generation) {}
+    : m_HashLifeData(other.m_HashLifeData), m_RuleString(other.m_RuleString),
+      m_Width(other.m_Width), m_Height(other.m_Height),
+      m_Algorithm(other.m_Algorithm->Clone()), m_Population(other.m_Population),
+      m_Generation(other.m_Generation) {}
 
 GameGrid& GameGrid::operator=(const GameGrid& other) {
     if (this == &other) {
@@ -106,6 +108,7 @@ GameGrid& GameGrid::operator=(const GameGrid& other) {
     }
 
     m_HashLifeData = other.m_HashLifeData;
+    m_RuleString = other.m_RuleString;
     m_Width = other.m_Width;
     m_Height = other.m_Height;
     m_Algorithm = other.m_Algorithm->Clone();
@@ -145,6 +148,13 @@ std::span<Vec2> GameGrid::SortedData() const {
 const HashQuadtree& GameGrid::Data() const { return m_HashLifeData; }
 
 void GameGrid::SetRule(const LifeRule& rule) { m_Algorithm->SetRule(rule); }
+
+void GameGrid::SetRule(const LifeRule& rule, std::string_view ruleString) {
+    SetRule(rule);
+    m_RuleString = ruleString;
+}
+
+std::string_view GameGrid::GetRuleString() const { return m_RuleString; }
 
 BigInt GameGrid::Update(const BigInt& numSteps, std::stop_token stopToken) {
     m_SortedCacheInvalidated = true;

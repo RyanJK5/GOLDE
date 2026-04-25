@@ -165,7 +165,8 @@ SimulationEditor::Update(std::optional<bool> activeOverride,
 
     return {
         .Simulation = {.State = m_Model.State(),
-                       .OutOfBounds = m_Model.IsSimulationOutOfBounds()},
+                       .OutOfBounds = m_Model.IsSimulationOutOfBounds(),
+                       .RuleString = m_Model.CurrentRuleString()},
         .Editing = {.SelectionActive = m_Model.SelectionActive(),
                     .UndosAvailable = m_Model.UndosAvailable(),
                     .RedosAvailable = m_Model.RedosAvailable()},

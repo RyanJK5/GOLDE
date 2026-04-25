@@ -81,6 +81,15 @@ void EditorModel::ApplySettings(const SimulationSettings& settings) {
     m_Worker->SetStepCount(settings.StepCount);
 }
 
+void EditorModel::TryPushVersionChange(
+    const std::optional<VersionState>& change) {
+    m_VersionManager.TryPushChange(change, m_State);
+}
+
+void EditorModel::TryPushVersionChange(const VersionState& change) {
+    TryPushVersionChange(std::optional<VersionState>{change});
+}
+
 SimulationState EditorModel::HandleStart() {
     m_SelectionManager.Deselect(m_Grid);
     m_InitialGrid = m_Grid;
@@ -89,10 +98,13 @@ SimulationState EditorModel::HandleStart() {
 
 SimulationState EditorModel::HandleClear() {
     StopSimulation(false);
-    m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
-                                   m_State);
+    TryPushVersionChange(m_SelectionManager.Deselect(m_Grid));
+
+    const std::string oldRuleStr{m_Grid.GetRuleString()};
     m_Grid = GameGrid{m_Grid.Size()};
-    m_VersionManager.TryPushChange(VersionState{.Universe = m_Grid}, m_State);
+    m_Grid.SetRule(*LifeRule::Make(oldRuleStr), oldRuleStr);
+
+    TryPushVersionChange(VersionState{.Universe = m_Grid});
     return SimulationState::Paint;
 }
 
@@ -134,19 +146,24 @@ SimulationState EditorModel::HandleRuleChange(std::string_view ruleStr) {
     const auto rule = *LifeRule::Make(ruleStr);
     m_Worker->BufferRule(std::make_unique<LifeRule>(rule));
 
+    const auto oldSize = m_Grid.Size();
     m_Grid = GameGrid{std::move(m_Grid),
                       rule.Bounds() ? rule.Bounds()->Size() : Size2{}};
-    m_Grid.SetRule(rule);
+    m_Grid.SetRule(rule, ruleStr);
 
-    m_VersionManager.TryPushChange(VersionState{.Universe = m_Grid}, m_State);
+    TryPushVersionChange(VersionState{.Universe = m_Grid});
+
+    if (m_Grid.Size() == oldSize) {
+        return m_State;
+    }
+
     if (m_SelectionManager.CanDrawSelection()) {
         auto selection = m_SelectionManager.SelectionBounds();
         if (!m_Grid.InBounds(selection.UpperLeft()) ||
             !m_Grid.InBounds(selection.UpperRight()) ||
             !m_Grid.InBounds(selection.LowerLeft()) ||
             !m_Grid.InBounds(selection.LowerRight()))
-            m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
-                                           m_State);
+            TryPushVersionChange(m_SelectionManager.Deselect(m_Grid));
     }
     return m_State;
 }
@@ -155,13 +172,12 @@ bool EditorModel::HandleGenerateNoise(float density, uint32_t warnThreshold) {
     if (!m_SelectionManager.CanDrawGrid())
         return false;
     const auto selectionBounds = m_SelectionManager.SelectionBounds();
-    m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
-                                   m_State);
+    TryPushVersionChange(m_SelectionManager.Deselect(m_Grid));
 
     const auto result = m_SelectionManager.InsertNoise(m_Grid, selectionBounds,
                                                        warnThreshold, density);
     if (result) {
-        m_VersionManager.TryPushChange(result, m_State);
+        TryPushVersionChange(result);
         return true;
     } else {
         m_SelectionManager.ModifySelectionBounds(m_Grid, selectionBounds);
@@ -171,29 +187,34 @@ bool EditorModel::HandleGenerateNoise(float density, uint32_t warnThreshold) {
 
 SimulationState EditorModel::HandleUndo() {
     auto versionChanges = m_VersionManager.Undo();
-    if (versionChanges)
-        m_SelectionManager.HandleVersionChange(EditorAction::Undo, m_Grid,
-                                               *versionChanges);
+    if (versionChanges) {
+        std::print("Undo: {}", m_Grid.GetRuleString());
+        m_SelectionManager.HandleVersionChange(m_Grid, *versionChanges);
+        std::println(" -> {} from {}", m_Grid.GetRuleString(),
+                     versionChanges->Universe.GetRuleString());
+    }
     return m_State;
 }
 
 SimulationState EditorModel::HandleRedo() {
     auto versionChanges = m_VersionManager.Redo();
-    if (versionChanges)
-        m_SelectionManager.HandleVersionChange(EditorAction::Redo, m_Grid,
-                                               *versionChanges);
+    if (versionChanges) {
+        std::print("Redo: {}", m_Grid.GetRuleString());
+        m_SelectionManager.HandleVersionChange(m_Grid, *versionChanges);
+        std::println(" -> {} from {}", m_Grid.GetRuleString(),
+                     versionChanges->Universe.GetRuleString());
+    }
     return m_State;
 }
 
 bool EditorModel::HandleSelectionAction(SelectionAction action,
                                         int32_t nudgeSize) {
     if (action == SelectionAction::SelectAll)
-        m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
-                                       m_State);
+        TryPushVersionChange(m_SelectionManager.Deselect(m_Grid));
 
     const auto actionResult =
         m_SelectionManager.HandleAction(action, m_Grid, nudgeSize);
-    m_VersionManager.TryPushChange(actionResult, m_State);
+    TryPushVersionChange(actionResult);
 
     if (!actionResult && (action == SelectionAction::FlipHorizontally ||
                           action == SelectionAction::FlipVertically ||
@@ -206,11 +227,10 @@ bool EditorModel::HandleSelectionAction(SelectionAction action,
 
 std::optional<std::string>
 EditorModel::LoadFile(const std::filesystem::path& path) {
-    m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
-                                   m_State);
+    TryPushVersionChange(m_SelectionManager.Deselect(m_Grid));
     auto loadResult = m_SelectionManager.Load(m_Grid, path);
     if (loadResult) {
-        m_VersionManager.TryPushChange(*loadResult, m_State);
+        TryPushVersionChange(*loadResult);
         return std::nullopt;
     }
     return loadResult.error().Message;
@@ -232,13 +252,12 @@ std::expected<void, FileEncoder::DecodeError>
 EditorModel::PasteSelection(std::optional<Vec2> cursorPos,
                             std::string_view clipboardText) {
     if (cursorPos || m_SelectionManager.CanDrawGrid()) {
-        m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
-                                       m_State);
+        TryPushVersionChange(m_SelectionManager.Deselect(m_Grid));
     }
     auto pasteResult = m_SelectionManager.Paste(m_Grid, clipboardText,
                                                 cursorPos, 100'000'000U);
     if (pasteResult) {
-        m_VersionManager.TryPushChange(*pasteResult, m_State);
+        TryPushVersionChange(*pasteResult);
         return {};
     }
     return std::unexpected{pasteResult.error()};
@@ -249,25 +268,24 @@ void EditorModel::ForcePaste(std::optional<Vec2> cursorPos,
     auto pasteResult = m_SelectionManager.Paste(
         m_Grid, clipboardText, cursorPos, std::numeric_limits<uint32_t>::max());
     if (pasteResult)
-        m_VersionManager.TryPushChange(*pasteResult, m_State);
+        TryPushVersionChange(*pasteResult);
 }
 
 void EditorModel::InsertFromClipboard(Vec2 position,
                                       std::string_view clipboardText) {
-    m_VersionManager.TryPushChange(m_SelectionManager.Deselect(m_Grid),
-                                   m_State);
+    TryPushVersionChange(m_SelectionManager.Deselect(m_Grid));
     auto result =
         m_SelectionManager.Paste(m_Grid, clipboardText, position,
                                  std::numeric_limits<uint32_t>::max(), true);
     if (result)
-        m_VersionManager.TryPushChange(*result, m_State);
+        TryPushVersionChange(*result);
 }
 
 SimulationState EditorModel::SetSelectionBounds(Rect bounds) {
     auto [change1, change2] =
         m_SelectionManager.ModifySelectionBounds(m_Grid, bounds);
-    m_VersionManager.TryPushChange(change1, m_State);
-    m_VersionManager.TryPushChange(change2, m_State);
+    TryPushVersionChange(change1);
+    TryPushVersionChange(change2);
 
     return m_State;
 }
@@ -278,7 +296,7 @@ bool EditorModel::UpdateSelectionAreaTracked(Vec2 gridPos) {
     }
 
     auto result = m_SelectionManager.UpdateSelectionArea(m_Grid, gridPos);
-    m_VersionManager.TryPushChange(result.Change, m_State);
+    TryPushVersionChange(result.Change);
     return result.BeginSelection;
 }
 
@@ -286,7 +304,6 @@ void EditorModel::TryResetSelection() {
     m_SelectionManager.TryResetSelection();
 }
 
-// TODO: Make sure this works
 void EditorModel::BeginPaintChange() {
     m_VersionManager.BeginPaintChange(m_Grid, m_State);
 }
@@ -564,7 +581,7 @@ EditorModel::ExecuteCommandImmediate(const SimulationCommand& cmd,
                 }
 
                 {
-                    const auto actionResult = [&] -> std::optional<CopyResult> {
+                    auto actionResult = [&] -> std::optional<CopyResult> {
                         if (command.Action == SelectionAction::Copy) {
                             return m_SelectionManager.Copy(m_Grid);
                         } else if (command.Action == SelectionAction::Cut) {
@@ -574,8 +591,7 @@ EditorModel::ExecuteCommandImmediate(const SimulationCommand& cmd,
                         }
                     }();
                     if (actionResult) {
-                        m_VersionManager.TryPushChange(actionResult->Change,
-                                                       m_State);
+                        TryPushVersionChange(actionResult->Change);
                         return ExecuteCommandResult{
                             .State = m_State,
                             .ClipboardText =

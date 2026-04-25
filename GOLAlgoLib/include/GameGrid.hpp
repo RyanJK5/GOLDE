@@ -118,6 +118,9 @@ class GameGrid {
     const HashQuadtree& Data() const;
 
     void SetRule(const LifeRule& rule);
+    void SetRule(const LifeRule& rule, std::string_view ruleString);
+
+    std::string_view GetRuleString() const;
 
     bool ShouldValidateCache() const;
 
@@ -126,11 +129,12 @@ class GameGrid {
 
   private:
     HashQuadtree m_HashLifeData;
+    std::string m_RuleString = "B3/S23";
+
     std::unique_ptr<LifeAlgorithm> m_Algorithm;
 
     mutable std::vector<Vec2>
         m_SortedData; // Declared mutable due to hidden cache validation
-
     mutable bool m_SortedCacheInvalidated = true;
 
     int32_t m_Width;

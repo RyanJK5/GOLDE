@@ -1,4 +1,5 @@
 #include <optional>
+#include <string_view>
 #include <utility>
 
 #include "GameEnums.hpp"
@@ -43,6 +44,7 @@ void VersionManager::TryPushChange(const std::optional<VersionState>& change,
     if (state != SimulationState::Paint && state != SimulationState::Empty) {
         return;
     }
+
     PushChange(*change);
 }
 

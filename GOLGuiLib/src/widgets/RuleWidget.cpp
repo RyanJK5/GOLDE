@@ -81,8 +81,13 @@ RuleWidget::RuleInfoChange RuleWidget::ResizeComponent(const EditorResult&) {
 }
 
 WidgetResult RuleWidget::UpdateImpl(const EditorResult& state) {
+    if (state.Simulation.RuleString != m_LastValid) {
+        m_LastValid = state.Simulation.RuleString;
+        m_InputText = m_LastValid;
+    }
+
     ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding, 10.f);
-    ImGui::Text("Rule");
+    ImGui::TextUnformatted(HasPendingRuleChange() ? "Rule*" : "Rule");
 
     const bool pressedEnter = ImGui::InputTextWithHint(
         "##RuleWidgetInput", "Enter Rule...", &m_InputText,

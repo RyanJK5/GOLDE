@@ -68,8 +68,7 @@ class SelectionManager {
 
     std::optional<VersionState> HandleAction(SelectionAction action,
                                              GameGrid& grid, int32_t nudgeSize);
-    void HandleVersionChange(EditorAction undoRedo, GameGrid& grid,
-                             const VersionState& state);
+    void HandleVersionChange(GameGrid& grid, const VersionState& state);
 
     Rect SelectionBounds() const;
 
@@ -85,9 +84,6 @@ class SelectionManager {
     std::optional<VersionState> Select(GameGrid& grid);
 
     SelectionUpdateResult UpdateUnlockedSelection(GameGrid& grid, Vec2 gridPos);
-
-    void RestoreGridVersion(EditorAction undoRedo, GameGrid& grid,
-                            const VersionState& state);
 
     VersionState CaptureState(const GameGrid& grid) const;
 
