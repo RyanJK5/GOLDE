@@ -1,6 +1,7 @@
 #ifndef Combo_hpp_
 #define Combo_hpp_
 
+#include <cstdint>
 #include <span>
 #include <string_view>
 #include <vector>
