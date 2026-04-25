@@ -80,9 +80,13 @@ const LifeNode* HashQuadtree::Data() const { return m_Root; }
 
 void HashQuadtree::OverwriteData(const LifeNode* root, int32_t level,
                                  Vec2 offset) {
+    OverwriteData(root, level);
+    m_SeedOffset = Vec2L{int64_t{offset.X}, int64_t{offset.Y}};
+}
+
+void HashQuadtree::OverwriteData(const LifeNode* root, int32_t level) {
     m_Root = root;
     m_Depth = level;
-    m_SeedOffset = Vec2L{int64_t{offset.X}, int64_t{offset.Y}};
 }
 
 int32_t HashQuadtree::CalculateDepth() const { return m_Depth; }

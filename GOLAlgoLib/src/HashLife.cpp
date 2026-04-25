@@ -557,7 +557,6 @@ void HashLife::SetRule(const LifeRule& rule) {
     s_SlowCache.clear();
 
     if (rule.Bounds()) {
-
         m_Topology = [&] -> std::unique_ptr<Topology> {
             switch (rule.GetTopology()) {
             case TopologyKind::Plane:

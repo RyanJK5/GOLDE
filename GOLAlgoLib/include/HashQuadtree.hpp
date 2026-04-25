@@ -187,7 +187,8 @@ class HashQuadtree : public LifeDataStructure {
     const LifeNode* ExpandNode(const LifeNode* node, int32_t level) const;
 
     const LifeNode* Data() const;
-    void OverwriteData(const LifeNode* root, int32_t level, Vec2 offset = {});
+    void OverwriteData(const LifeNode* root, int32_t level);
+    void OverwriteData(const LifeNode* root, int32_t level, Vec2 offset);
 
   private:
     const LifeNode* SetImpl(const LifeNode* node, Vec2L pos, Vec2 targetPos,
