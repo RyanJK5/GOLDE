@@ -3,13 +3,12 @@ add_library(gol_compiler_options INTERFACE)
 if(MSVC)
     target_compile_options(gol_compiler_options INTERFACE 
         /W4 
-        /WX 
         /FS
     )
     
     target_compile_options(gol_compiler_options INTERFACE
-        $<$<CONFIG:Debug>:/Od;/Zi;/RTC1>
-        $<$<CONFIG:Release>:/O2;/DNDEBUG>
+        $<$<CONFIG:Debug>:/WX;/Od;/Zi;/RTC1>
+        $<$<CONFIG:Release>:/WX-;/O2;/DNDEBUG>
     )
 
     target_link_options(gol_compiler_options INTERFACE
@@ -17,13 +16,12 @@ if(MSVC)
     )
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(gol_compiler_options INTERFACE 
-        -Werror 
         $<$<CXX_COMPILER_ID:GNU>:-Wno-nontrivial-memcall>
     )
 
     target_compile_options(gol_compiler_options INTERFACE
-        $<$<CONFIG:Debug>:-g3;-O0;-Wall;-Wextra;-Wpedantic;-fno-omit-frame-pointer>
-        $<$<CONFIG:Release>:-O3;-DNDEBUG>
+        $<$<CONFIG:Debug>:-g3;-O0;-Wall;-Wextra;-Wpedantic;-Werror;-fno-omit-frame-pointer>
+        $<$<CONFIG:Release>:-O3;-DNDEBUG;-Wno-error>
     )
 
     if(WIN32)
