@@ -63,6 +63,7 @@ struct ExecuteCommandResult {
     ExecuteCommandErrorType ErrorType = ExecuteCommandErrorType::None;
     std::optional<std::string> ErrorMessage{};
     std::optional<SaveAsWarningRequest> SaveAsWarning{};
+    std::optional<std::string> ClipboardText{};
 };
 
 class EditorModel {
@@ -194,6 +195,7 @@ class EditorModel {
     VersionManager m_VersionManager;
 
     std::mutex m_CommandMutex;
+    std::optional<ExecuteCommandResult> m_InlineCommandResult;
     std::optional<std::future<ExecuteCommandResult>> m_InFlightCommand;
     std::atomic<bool> m_EditBusy = false;
 

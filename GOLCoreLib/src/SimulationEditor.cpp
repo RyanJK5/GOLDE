@@ -215,9 +215,9 @@ SimulationState SimulationEditor::PaintUpdate(const GraphicsHandlerArgs& args) {
 
 SimulationState SimulationEditor::PauseUpdate(const GraphicsHandlerArgs& args) {
     const auto gridPos = CursorGridPos();
-    const auto selectionBounds = m_Model.SelectionBoundsOpt();
     if (gridPos)
         m_Model.UpdateSelectionAreaTracked(*gridPos);
+    const auto selectionBounds = m_Model.SelectionBoundsOpt();
 
     m_Graphics.DrawGrid({0, 0}, m_Model.GridData(), args);
 
@@ -442,6 +442,9 @@ void SimulationEditor::ApplyCommandResult(
     const ExecuteCommandResult& commandResult) {
     m_Model.SetState(commandResult.State);
 
+    if (commandResult.ClipboardText) {
+        ImGui::SetClipboardText(commandResult.ClipboardText->c_str());
+    }
     if (commandResult.CameraPositionCell) {
         glm::dvec2 precisePos{
             commandResult.CameraPositionCell->X * DefaultCellWidth,

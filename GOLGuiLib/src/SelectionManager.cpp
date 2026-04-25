@@ -96,6 +96,9 @@ std::optional<VersionState> SelectionManager::Deselect(GameGrid& grid) {
 }
 
 std::optional<VersionState> SelectionManager::SelectAll(GameGrid& grid) {
+    m_LockSelection = true;
+    m_UnlockedOriginalPosition = std::nullopt;
+
     const auto bounds = grid.BoundingBox();
     m_AnchorSelection = bounds.UpperLeft();
     m_SentinelSelection = bounds.LowerRight() - Vec2{1, 1};
@@ -318,6 +321,7 @@ void SelectionManager::RestoreGridVersion(EditorAction, GameGrid& grid,
     grid = state.Universe;
 
     if (state.SelectionBounds.has_value()) {
+        m_LockSelection = true;
         SetSelectionBounds(*state.SelectionBounds);
         m_Selected = state.SelectionUniverse;
     } else {

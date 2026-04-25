@@ -15,6 +15,20 @@
 #include "VersionManager.hpp"
 
 namespace gol {
+namespace {
+bool ShouldExecuteInline(const SimulationCommand& cmd) {
+    if (std::holds_alternative<UndoCommand>(cmd) ||
+        std::holds_alternative<RedoCommand>(cmd)) {
+        return true;
+    }
+
+    if (const auto* selection = std::get_if<SelectionCommand>(&cmd)) {
+        return selection->Action == SelectionAction::SelectAll;
+    }
+
+    return false;
+}
+} // namespace
 
 EditorModel::EditorModel(uint32_t id, const std::filesystem::path& path,
                          Size2 gridSize)
@@ -360,6 +374,12 @@ bool EditorModel::TryStartCommand(const SimulationCommand& cmd,
     }
 
     std::scoped_lock lock{m_CommandMutex};
+    if (ShouldExecuteInline(cmd)) {
+        HashQuadtree::SetCacheIndex(m_EditorID);
+        m_InlineCommandResult = ExecuteCommandImmediate(cmd, context);
+        return true;
+    }
+
     m_InFlightCommand = std::async(
         std::launch::async, [this, command = cmd, commandContext = context]() {
             HashQuadtree::SetCacheIndex(m_EditorID);
@@ -370,6 +390,13 @@ bool EditorModel::TryStartCommand(const SimulationCommand& cmd,
 
 std::optional<ExecuteCommandResult> EditorModel::PollCommandResult() {
     std::scoped_lock lock{m_CommandMutex};
+    if (m_InlineCommandResult) {
+        auto result = std::move(*m_InlineCommandResult);
+        m_InlineCommandResult.reset();
+        m_EditBusy.store(false, std::memory_order_release);
+        return result;
+    }
+
     if (!m_InFlightCommand) {
         return std::nullopt;
     }
@@ -550,8 +577,10 @@ EditorModel::ExecuteCommandImmediate(const SimulationCommand& cmd,
                     if (actionResult) {
                         m_VersionManager.TryPushChange(actionResult->Change,
                                                        m_State);
-                        ImGui::SetClipboardText(
-                            actionResult->ClipboardText.c_str());
+                        return ExecuteCommandResult{
+                            .State = m_State,
+                            .ClipboardText =
+                                std::move(actionResult->ClipboardText)};
                     }
                 }
 
