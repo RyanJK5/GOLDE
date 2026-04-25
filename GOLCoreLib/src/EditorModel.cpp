@@ -112,6 +112,8 @@ SimulationState EditorModel::HandleReset() {
     StopSimulation(false);
     m_SelectionManager.Deselect(m_Grid);
     m_Grid = m_InitialGrid;
+    m_Worker->BufferRule(
+        std::make_unique<LifeRule>(*LifeRule::Make(m_Grid.GetRuleString())));
     return SimulationState::Paint;
 }
 
@@ -188,10 +190,9 @@ bool EditorModel::HandleGenerateNoise(float density, uint32_t warnThreshold) {
 SimulationState EditorModel::HandleUndo() {
     auto versionChanges = m_VersionManager.Undo();
     if (versionChanges) {
-        std::print("Undo: {}", m_Grid.GetRuleString());
         m_SelectionManager.HandleVersionChange(m_Grid, *versionChanges);
-        std::println(" -> {} from {}", m_Grid.GetRuleString(),
-                     versionChanges->Universe.GetRuleString());
+        m_Worker->BufferRule(std::make_unique<LifeRule>(
+            *LifeRule::Make(m_Grid.GetRuleString())));
     }
     return m_State;
 }
@@ -199,10 +200,9 @@ SimulationState EditorModel::HandleUndo() {
 SimulationState EditorModel::HandleRedo() {
     auto versionChanges = m_VersionManager.Redo();
     if (versionChanges) {
-        std::print("Redo: {}", m_Grid.GetRuleString());
         m_SelectionManager.HandleVersionChange(m_Grid, *versionChanges);
-        std::println(" -> {} from {}", m_Grid.GetRuleString(),
-                     versionChanges->Universe.GetRuleString());
+        m_Worker->BufferRule(std::make_unique<LifeRule>(
+            *LifeRule::Make(m_Grid.GetRuleString())));
     }
     return m_State;
 }
