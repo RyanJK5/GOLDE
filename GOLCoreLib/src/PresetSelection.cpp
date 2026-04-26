@@ -10,6 +10,7 @@
 #include "DisabledScope.hpp"
 #include "EditorResult.hpp"
 #include "FileDialog.hpp"
+#include "FileFormatHandler.hpp"
 #include "GameEnums.hpp"
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
@@ -17,7 +18,6 @@
 #include "Logging.hpp"
 #include "PresetSelection.hpp"
 #include "PresetSelectionResult.hpp"
-#include "RLEEncoder.hpp"
 
 namespace gol {
 PresetDisplay::PresetDisplay(const GameGrid& grid, const std::string& fileName,

@@ -5,10 +5,10 @@
 #include <random>
 #include <ranges>
 
+#include "FileFormatHandler.hpp"
 #include "HashLife.hpp"
 #include "HashQuadtree.hpp"
 #include "LifeAlgorithm.hpp"
-#include "RLEEncoder.hpp"
 
 namespace gol {
 // Helper to verify the tree iterator yields exactly the expected points

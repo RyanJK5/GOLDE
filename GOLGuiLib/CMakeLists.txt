@@ -5,8 +5,8 @@ set(SOURCES
     src/dialogs/WarnWindow.cpp
     src/misc/Combo.cpp
     src/misc/DisabledScope.cpp
+    src/misc/FileFormatHandler.cpp
     src/misc/LoadingSpinner.cpp
-    src/misc/RLEEncoder.cpp
     src/widgets/CameraPositionWidget.cpp
     src/widgets/DelayWidget.cpp
     src/widgets/EditorWidget.cpp
@@ -30,8 +30,8 @@ set(HEADERS
     include/misc/ConfigLoader.hpp
     include/misc/Combo.hpp
     include/misc/DisabledScope.hpp
+    include/misc/FileFormatHandler.hpp
     include/misc/LoadingSpinner.hpp
-    include/misc/RLEEncoder.hpp
     include/widgets/ActionButton.hpp
     include/widgets/CameraPositionWidget.hpp
     include/widgets/DelayWidget.hpp

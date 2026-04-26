@@ -1,5 +1,5 @@
-#ifndef RLEEncoder_hpp_
-#define RLEEncoder_hpp_
+#ifndef FileFormatHandler_hpp_
+#define FileFormatHandler_hpp_
 
 #include <algorithm>
 #include <concepts>

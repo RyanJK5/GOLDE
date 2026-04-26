@@ -2,8 +2,8 @@
 #include <gtest/gtest.h>
 #include <print>
 
+#include "FileFormatHandler.hpp"
 #include "Graphics2D.hpp"
-#include "RLEEncoder.hpp"
 
 namespace gol {
 

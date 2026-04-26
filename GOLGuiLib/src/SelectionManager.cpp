@@ -9,10 +9,10 @@
 #include <utility>
 #include <variant>
 
+#include "FileFormatHandler.hpp"
 #include "GameEnums.hpp"
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
-#include "RLEEncoder.hpp"
 #include "SelectionManager.hpp"
 #include "VersionManager.hpp"
 

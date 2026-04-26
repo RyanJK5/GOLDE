@@ -13,10 +13,10 @@
 #include <stop_token>
 #include <string>
 
+#include "FileFormatHandler.hpp"
 #include "GameEnums.hpp"
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
-#include "RLEEncoder.hpp"
 #include "SelectionManager.hpp"
 #include "SimulationCommand.hpp"
 #include "SimulationSettings.hpp"
