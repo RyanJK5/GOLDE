@@ -92,9 +92,11 @@ LifeRule::TryMake(std::string_view ruleString) {
 
     const auto topologyKind =
         [&] -> std::expected<TopologyKind, std::string_view> {
-        if (surviveEnd == ruleString.size() ||
-            surviveEnd == ruleString.size() - 1) {
+        if (surviveEnd == ruleString.size()) {
             return TopologyKind::Plane;
+        }
+        if (surviveEnd + 3 >= ruleString.size()) {
+            return std::unexpected{"Invalid topology specification."sv};
         }
 
         const auto topologyChar = ruleString[surviveEnd + 1];
