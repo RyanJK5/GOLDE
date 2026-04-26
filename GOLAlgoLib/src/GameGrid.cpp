@@ -47,7 +47,6 @@ GameGrid::GenerateNoise(Rect bounds, float density, uint32_t warnThreshold) {
 
         GameGrid ret{bounds.Width, bounds.Height};
         ret.m_HashLifeData = HashQuadtree{cells};
-        ret.m_Population = ret.m_HashLifeData.Population();
         return ret;
     }
 
@@ -69,7 +68,6 @@ GameGrid::GenerateNoise(Rect bounds, float density, uint32_t warnThreshold) {
 
     GameGrid ret{bounds.Width, bounds.Height};
     ret.m_HashLifeData = HashQuadtree{cells};
-    ret.m_Population = ret.m_HashLifeData.Population();
     return ret;
 }
 
@@ -93,13 +91,12 @@ GameGrid::GameGrid(const GameGrid& other, Size2 size)
     m_Algorithm = other.m_Algorithm->Clone();
     m_Algorithm->SetTopology(
         std::make_unique<Plane>(Rect{0, 0, size.Width, size.Height}));
-    m_Population = m_HashLifeData.Population();
 }
 
 GameGrid::GameGrid(const GameGrid& other)
     : m_HashLifeData(other.m_HashLifeData), m_RuleString(other.m_RuleString),
       m_Width(other.m_Width), m_Height(other.m_Height),
-      m_Algorithm(other.m_Algorithm->Clone()), m_Population(other.m_Population),
+      m_Algorithm(other.m_Algorithm->Clone()),
       m_Generation(other.m_Generation) {}
 
 GameGrid& GameGrid::operator=(const GameGrid& other) {
@@ -112,7 +109,6 @@ GameGrid& GameGrid::operator=(const GameGrid& other) {
     m_Width = other.m_Width;
     m_Height = other.m_Height;
     m_Algorithm = other.m_Algorithm->Clone();
-    m_Population = other.m_Population;
     m_Generation = other.m_Generation;
 
     return *this;
@@ -120,7 +116,6 @@ GameGrid& GameGrid::operator=(const GameGrid& other) {
 
 GameGrid::GameGrid(const HashQuadtree& data, Size2 size)
     : m_Width(size.Width), m_Height(size.Height), m_HashLifeData(data),
-      m_Population(data.Population()),
       m_Algorithm(std::make_unique<HashLife>()) {
     m_Algorithm->SetTopology(
         std::make_unique<Plane>(Rect{0, 0, size.Width, size.Height}));
@@ -162,7 +157,6 @@ BigInt GameGrid::Update(const BigInt& numSteps, std::stop_token stopToken) {
     const auto generations =
         m_Algorithm->Step(m_HashLifeData, numSteps, stopToken);
     m_Generation += generations;
-    m_Population = m_HashLifeData.Population();
     m_SortedCacheInvalidated = true;
 
     return generations;
@@ -189,7 +183,6 @@ bool GameGrid::Set(int32_t x, int32_t y, bool active) {
     }
 
     m_HashLifeData.Set({x, y}, active);
-    m_Population += active ? BigOne : -BigOne;
 
     return true;
 }
@@ -200,13 +193,11 @@ GameGrid GameGrid::SubRegion(Rect region) const {
 
 void GameGrid::ClearRegion(Rect region) {
     m_HashLifeData.Clear(region);
-    m_Population = m_HashLifeData.Population();
     m_SortedCacheInvalidated = true;
 }
 
 void GameGrid::InsertGrid(const GameGrid& region, Vec2 pos) {
     m_HashLifeData.Insert(region.Data(), pos);
-    m_Population = m_HashLifeData.Population();
     m_SortedCacheInvalidated = true;
 }
 
@@ -214,7 +205,7 @@ void GameGrid::RotateGrid(bool clockwise) {
     // Probably more easily read as ((width - 1) / 2, (height - 1) / 2)
     const Vec2F center{((m_Width / 2.f) - 0.5f), ((m_Height / 2.f) - 0.5F)};
     std::vector<Vec2> newSet{};
-    newSet.reserve(static_cast<size_t>(m_Population.convert_to<int64_t>()));
+    newSet.reserve(Population().convert_to<size_t>());
 
     for (const auto cellPos : m_HashLifeData) {
         const auto offset = Vec2F{static_cast<float>(cellPos.X),
@@ -230,12 +221,11 @@ void GameGrid::RotateGrid(bool clockwise) {
     m_SortedCacheInvalidated = true;
 
     m_HashLifeData = HashQuadtree{newSet};
-    m_Population = m_HashLifeData.Population();
 }
 
 void GameGrid::FlipGrid(bool vertical) {
     std::vector<Vec2> newData{};
-    newData.reserve(static_cast<size_t>(m_Population.convert_to<int64_t>()));
+    newData.reserve(Population().convert_to<size_t>());
     if (!Bounded()) {
         for (const auto pos : m_HashLifeData) {
             if (vertical) {
@@ -256,7 +246,6 @@ void GameGrid::FlipGrid(bool vertical) {
     m_SortedCacheInvalidated = true;
 
     m_HashLifeData = HashQuadtree{newData};
-    m_Population = m_HashLifeData.Population();
 }
 
 std::optional<bool> GameGrid::Get(int32_t x, int32_t y) const {

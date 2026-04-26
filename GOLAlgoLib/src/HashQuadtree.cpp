@@ -715,7 +715,10 @@ const LifeNode* HashQuadtree::SetCenteredNode(const LifeNode* outer,
     return FindOrCreate(nw, ne, sw, se);
 }
 
-BigInt HashQuadtree::Population() const { return PopulationOf(m_Root); }
+const BigInt& HashQuadtree::Population() const {
+    [[maybe_unused]] auto x = PopulationOf(m_Root);
+    return s_PopulationCache[m_Root];
+}
 
 HashQuadtree::Iterator HashQuadtree::begin() const {
     if (m_Root == FalseNode) {

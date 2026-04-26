@@ -136,7 +136,7 @@ class HashQuadtree : public LifeDataStructure {
     // interaction and display of a small subsection of the universe.
     Iterator begin(Rect bounds) const;
 
-    BigInt Population() const;
+    const BigInt& Population() const;
 
     // Applies func to all cells within the given bounds. More efficient than
     // iterators because recursion can be used.

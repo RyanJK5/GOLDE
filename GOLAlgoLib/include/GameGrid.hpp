@@ -78,7 +78,7 @@ class GameGrid {
     }
 
     const BigInt& Generation() const { return m_Generation; }
-    const BigInt& Population() const { return m_Population; }
+    const BigInt& Population() const { return m_HashLifeData.Population(); }
 
     // Indicates if the universe contains any live cells
     bool Dead() const;
@@ -141,7 +141,6 @@ class GameGrid {
     int32_t m_Width;
     int32_t m_Height;
 
-    BigInt m_Population{};
     BigInt m_Generation{};
 };
 } // namespace gol
