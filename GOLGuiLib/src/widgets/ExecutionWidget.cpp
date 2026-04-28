@@ -13,7 +13,7 @@
 namespace gol {
 Size2F StartButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x / 4.f,
-            MultiActionButton::DefaultButtonHeight};
+            MultiActionButton::DefaultButtonHeight()};
 }
 std::string StartButton::Label(const EditorResult& state) const {
     switch (state.Simulation.State) {
@@ -46,7 +46,7 @@ bool StartButton::Enabled(const EditorResult& state) const {
 
 Size2F ResetButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x / 3.f,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 std::string ResetButton::Label(const EditorResult&) const {
     return ICON_FA_STOP;
@@ -59,7 +59,7 @@ bool ResetButton::Enabled(const EditorResult& state) const {
 
 Size2F RestartButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x / 2.f,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 std::string RestartButton::Label(const EditorResult&) const {
     return ICON_FA_REPEAT;
@@ -71,7 +71,7 @@ bool RestartButton::Enabled(const EditorResult& state) const {
 
 Size2F ClearButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 std::string ClearButton::Label(const EditorResult&) const {
     return ICON_FA_TRASH;

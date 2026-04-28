@@ -29,7 +29,7 @@ using ShortcutMap =
 template <ActionType ActType, bool LineBreak>
 class MultiActionButton {
   public:
-    constexpr static int32_t DefaultButtonHeight = 50;
+    static float DefaultButtonHeight() { return ImGui::GetFontSize() * 4.f /3.f; }
 
     MultiActionButton(
         const std::unordered_map<ActType, std::vector<KeyShortcut>>& shortcuts)

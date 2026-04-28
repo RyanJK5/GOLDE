@@ -5,7 +5,7 @@
 namespace gol {
 Size2F GenerateNoiseButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 
 std::string GenerateNoiseButton::Label(const EditorResult&) const {

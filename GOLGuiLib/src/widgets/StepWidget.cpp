@@ -16,7 +16,7 @@
 namespace gol {
 Size2F StepButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 std::string StepButton::Label(const EditorResult&) const {
     return ICON_FA_FORWARD_STEP;

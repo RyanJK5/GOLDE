@@ -13,7 +13,7 @@ CopyButton::CopyButton(std::span<const ImGuiKeyChord> shortcuts)
 
 Size2F CopyButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x / 4.f,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 
 std::string CopyButton::Label(const EditorResult&) const {
@@ -29,7 +29,7 @@ CutButton::CutButton(std::span<const ImGuiKeyChord> shortcuts)
 
 Size2F CutButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x / 2.f,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 
 std::string CutButton::Label(const EditorResult&) const {
@@ -46,7 +46,7 @@ PasteButton::PasteButton(std::span<const ImGuiKeyChord> shortcuts)
 
 Size2F PasteButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x / 3.f,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 
 std::string PasteButton::Label(const EditorResult&) const {
@@ -63,7 +63,7 @@ DeleteButton::DeleteButton(std::span<const ImGuiKeyChord> shortcuts)
 
 Size2F DeleteButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 
 std::string DeleteButton::Label(const EditorResult&) const {
@@ -80,7 +80,7 @@ DeselectButton::DeselectButton(std::span<const ImGuiKeyChord> shortcuts)
 
 Size2F DeselectButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x / 4.f,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 
 std::string DeselectButton::Label(const EditorResult&) const {
@@ -96,7 +96,7 @@ RotateButton::RotateButton(std::span<const ImGuiKeyChord> shortcuts)
 
 Size2F RotateButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x / 3.f,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 
 std::string RotateButton::Label(const EditorResult&) const {
@@ -113,7 +113,7 @@ FlipVerticalButton::FlipVerticalButton(std::span<const ImGuiKeyChord> shortcuts)
 
 Size2F FlipVerticalButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x / 2.f,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 
 std::string FlipVerticalButton::Label(const EditorResult&) const {
@@ -131,7 +131,7 @@ FlipHorizontalButton::FlipHorizontalButton(
 
 Size2F FlipHorizontalButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 
 std::string FlipHorizontalButton::Label(const EditorResult&) const {
@@ -148,7 +148,7 @@ SelectAllButton::SelectAllButton(std::span<const ImGuiKeyChord> shortcuts)
 
 Size2F SelectAllButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x / 4.f,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 
 std::string SelectAllButton::Label(const EditorResult&) const {
@@ -165,7 +165,7 @@ UndoButton::UndoButton(std::span<const ImGuiKeyChord> shortcuts)
 
 Size2F UndoButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x / 3.f,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 
 std::string UndoButton::Label(const EditorResult&) const {
@@ -183,7 +183,7 @@ RedoButton::RedoButton(std::span<const ImGuiKeyChord> shortcuts)
 
 Size2F RedoButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x / 2.f,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 
 std::string RedoButton::Label(const EditorResult&) const {

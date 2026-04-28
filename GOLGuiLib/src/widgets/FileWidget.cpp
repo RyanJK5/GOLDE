@@ -19,7 +19,7 @@ NewFileButton::NewFileButton(std::span<const ImGuiKeyChord> shortcuts)
     : ActionButton(EditorAction::NewFile, shortcuts) {}
 Size2F NewFileButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x / 4.f,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 std::string NewFileButton::Label(const EditorResult&) const {
     return ICON_FA_FILE_CIRCLE_PLUS;
@@ -30,7 +30,7 @@ UpdateFileButton::UpdateFileButton(std::span<const ImGuiKeyChord> shortcuts)
     : ActionButton(EditorAction::Save, shortcuts) {}
 Size2F UpdateFileButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x / 3.f,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 std::string UpdateFileButton::Label(const EditorResult&) const {
     return ICON_FA_FILE_ARROW_UP;
@@ -48,7 +48,7 @@ SaveButton::SaveButton(std::span<const ImGuiKeyChord> shortcuts)
 
 Size2F SaveButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x / 2.f,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 
 std::string SaveButton::Label(const EditorResult&) const {
@@ -64,7 +64,7 @@ LoadButton::LoadButton(std::span<const ImGuiKeyChord> shortcuts)
     : ActionButton(EditorAction::Load, shortcuts) {}
 Size2F LoadButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x,
-            ActionButton::DefaultButtonHeight};
+            ActionButton::DefaultButtonHeight()};
 }
 
 std::string LoadButton::Label(const EditorResult&) const {
