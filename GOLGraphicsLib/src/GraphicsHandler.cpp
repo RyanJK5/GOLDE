@@ -59,7 +59,7 @@ GraphicsHandler::GraphicsHandler(const std::filesystem::path& shaderDirectory,
 
     GL_DEBUG(glBindTexture(GL_TEXTURE_2D, m_Texture.ID()));
     GL_DEBUG(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight,
-                          0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL));
+                          0, GL_RGB, GL_UNSIGNED_BYTE, NULL));
     GL_DEBUG(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
     GL_DEBUG(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
     GL_DEBUG(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
@@ -94,6 +94,13 @@ void GraphicsHandler::InitGridBuffer() {
     GL_DEBUG(glVertexAttribPointer(
         1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4,
         reinterpret_cast<const void*>(sizeof(float) * 2)));
+
+    GL_DEBUG(glBindVertexArray(m_SelectionVAO.ID()));
+    GL_DEBUG(glBindBuffer(GL_ARRAY_BUFFER, m_SelectionBuffer.ID()));
+    GL_DEBUG(glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW));
+    GL_DEBUG(glEnableVertexAttribArray(0));
+    GL_DEBUG(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2,
+                                   nullptr));
 
     GL_DEBUG(glBindVertexArray(0));
 }
@@ -328,6 +335,8 @@ void GraphicsHandler::DrawSelection(Rect region,
                                rect.LowerLeft().X,  rect.LowerLeft().Y,
                                rect.LowerRight().X, rect.LowerRight().Y,
                                rect.UpperRight().X, rect.UpperRight().Y};
+
+    GL_DEBUG(glBindVertexArray(m_SelectionVAO.ID()));
 
     GL_DEBUG(glBindBuffer(GL_ARRAY_BUFFER, m_SelectionBuffer.ID()));
     GL_DEBUG(glBufferData(GL_ARRAY_BUFFER, 2 * 4 * sizeof(float),

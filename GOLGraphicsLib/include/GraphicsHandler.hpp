@@ -106,6 +106,8 @@ class GraphicsHandler {
     std::vector<uint8_t> m_StateBuffer;
 
     GLVertexArray m_GridVAO;
+    GLVertexArray m_SelectionVAO;
+
     GLBuffer m_CellBuffer;
     GLTexture m_GridStateTexture;
     Size2 m_GridStateTextureSize{};
