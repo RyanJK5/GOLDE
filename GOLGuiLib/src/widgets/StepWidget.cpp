@@ -108,7 +108,8 @@ WidgetResult StepWidget::UpdateImpl(const EditorResult& state) {
     {
         DisabledScope disableIf{m_HyperSpeed};
 
-        ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding, 10.f);
+        ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding,
+                             Widget::DefaultInputPadding());
 
         ShowInputText();
 

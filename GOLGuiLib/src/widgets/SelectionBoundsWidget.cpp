@@ -14,7 +14,7 @@ WidgetResult SelectionBoundsWidget::UpdateImpl(const EditorResult& state) {
 
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
     ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding,
-                         ImGui::GetFontSize() / 3.0f);
+                         Widget::DefaultInputPadding());
 
     ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, ImGui::GetFontSize());
     ImGui::InputInt4("##SelectionBoundsLabel", data.data());

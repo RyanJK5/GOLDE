@@ -11,7 +11,8 @@ WidgetResult CameraPositionWidget::UpdateImpl(const EditorResult& info) {
     ImGui::Text("Camera Position");
 
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x / 3.f * 2.f + 5);
-    ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding, 10.f);
+    ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding,
+                         Widget::DefaultInputPadding());
 
     ImGui::InputInt2("##CameraPositionLabel", data.data());
     m_Position.X = data[0];

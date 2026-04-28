@@ -18,7 +18,8 @@ bool GenerateNoiseButton::Enabled(const EditorResult& state) const {
 }
 
 WidgetResult NoiseWidget::UpdateImpl(const EditorResult& state) {
-    ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding, 10.f);
+    ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding,
+                         Widget::DefaultInputPadding());
 
     ImGui::Text("Noise Density");
 

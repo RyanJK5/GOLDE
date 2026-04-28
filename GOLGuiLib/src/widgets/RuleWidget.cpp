@@ -14,7 +14,8 @@ RuleWidget::RuleWidget()
 RuleWidget::RuleInfoChange RuleWidget::ResizeComponent(const EditorResult&) {
     const auto totalWidth = ImGui::GetContentRegionAvail().x / 2.f;
 
-    ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding, 10.f);
+    ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding,
+                         Widget::DefaultInputPadding());
     ImGui::SetNextItemWidth(totalWidth);
 
     const auto dimensions =
@@ -86,7 +87,8 @@ WidgetResult RuleWidget::UpdateImpl(const EditorResult& state) {
         m_InputText = m_LastValid;
     }
 
-    ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding, 10.f);
+    ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding,
+                         Widget::DefaultInputPadding());
     ImGui::TextUnformatted(HasPendingRuleChange() ? "Rule*" : "Rule");
 
     const bool pressedEnter = ImGui::InputTextWithHint(

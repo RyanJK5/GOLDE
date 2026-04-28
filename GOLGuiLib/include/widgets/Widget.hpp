@@ -14,6 +14,8 @@ class Widget;
 
 class Widget {
   public:
+    static float DefaultInputPadding() { return ImGui::GetFontSize() / 2.0f; }
+
     WidgetResult Update(this auto&& self, const EditorResult& state) {
         return self.UpdateImpl(state);
     }
