@@ -21,7 +21,7 @@ class OpenGLWindow {
   public:
     Rect Bounds;
 
-    OpenGLWindow(int32_t width, int32_t height);
+    OpenGLWindow();
     ~OpenGLWindow();
 
     OpenGLWindow(const OpenGLWindow& other) = delete;
@@ -39,8 +39,6 @@ class OpenGLWindow {
 // A single instance of GOLDE. The core event loop runs through here.
 class Game {
   public:
-    static constexpr int32_t DefaultWindowWidth = 1920;
-    static constexpr int32_t DefaultWindowHeight = 1080;
     static constexpr int32_t DefaultGridWidth = 0;  // Unbounded
     static constexpr int32_t DefaultGridHeight = 0; // Unbounded
 

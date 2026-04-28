@@ -30,8 +30,7 @@
 #include <vector>
 
 namespace gol {
-OpenGLWindow::OpenGLWindow(int32_t width, int32_t height)
-    : Bounds(0, 0, width, height) {
+OpenGLWindow::OpenGLWindow() : Bounds(0, 0, 0, 0) {
     if (!glfwInit())
         throw GLException("Failed to initialize glfw");
 
@@ -39,8 +38,17 @@ OpenGLWindow::OpenGLWindow(int32_t width, int32_t height)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+    int32_t width = mode->width;
+    int32_t height = mode->height;
+
     m_Underlying = glfwCreateWindow(width, height, "GOLDE", NULL, NULL);
     glfwMaximizeWindow(m_Underlying);
+
+    Bounds.Width = width;
+    Bounds.Height = height;
 
     const auto deleteStbiImage = [](unsigned char* pixels) {
         stbi_image_free(pixels);
@@ -75,7 +83,7 @@ OpenGLWindow::OpenGLWindow(int32_t width, int32_t height)
 OpenGLWindow::~OpenGLWindow() { glfwTerminate(); }
 
 Game::Game()
-    : m_Window(DefaultWindowWidth, DefaultWindowHeight),
+    : m_Window(),
       m_UnsavedWarning("Unsaved Changes",
                        std::bind_front(&Game::HandleWindowClose, this)),
       m_Control(ConfigLoader::LoadYAML<ImVec4>(std::filesystem::path{"config"} /
@@ -83,7 +91,7 @@ Game::Game()
       m_PresetSelection(std::filesystem::current_path() / "presets") {
     m_Editors.emplace_back(std::make_unique<SimulationEditor>(
         m_EditorCounter++, std::filesystem::path{},
-        Size2{DefaultWindowWidth, DefaultWindowHeight},
+        Size2{m_Window.Bounds.Width, m_Window.Bounds.Height},
         Size2{DefaultGridWidth, DefaultGridHeight}));
     NFD::Init();
     InitImGUI(std::filesystem::path{"config"} / "style.yml");
@@ -280,9 +288,15 @@ void Game::InitDockspace(uint32_t dockspaceID, ImVec2 windowSize) {
     ImGui::DockBuilderSetNodeSize(dockspaceID, windowSize);
 
     ImGuiID leftID{}, rightID{};
-    ImGui::DockBuilderSplitNode(dockspaceID, ImGuiDir_Left, 0.15f, &leftID,
+
+    // Scale panel sizes relative to the window size so they look appropriate
+    // consistently across fullscreen resolutions.
+    float leftRatio = std::clamp(540.0f / windowSize.x, 0.15f, 0.35f);
+    float downRatio = std::clamp(350.0f / windowSize.y, 0.15f, 0.35f);
+
+    ImGui::DockBuilderSplitNode(dockspaceID, ImGuiDir_Left, leftRatio, &leftID,
                                 &rightID);
-    auto downID = ImGui::DockBuilderSplitNode(rightID, ImGuiDir_Down, 0.15f,
+    auto downID = ImGui::DockBuilderSplitNode(rightID, ImGuiDir_Down, downRatio,
                                               nullptr, &rightID);
 
     ImGui::DockBuilderDockWindow("Presets", downID);
@@ -366,7 +380,7 @@ bool Game::CheckForNewEditors(const SimulationControlResult& controlResult) {
     }
     m_Editors.emplace_back(std::make_unique<SimulationEditor>(
         m_EditorCounter++, filePath,
-        Size2{DefaultWindowWidth, DefaultWindowHeight},
+        Size2{m_Window.Bounds.Width, m_Window.Bounds.Height},
         Size2{DefaultGridWidth, DefaultGridHeight}));
 
     CreateEditorDockspace();
