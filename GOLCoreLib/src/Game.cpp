@@ -264,19 +264,10 @@ void Game::EndFrame() {
 }
 
 void Game::CreateDockspace() {
-    ImGui::SetNextWindowPos({0, 0}, ImGuiCond_Once);
-
-    int32_t windowWidth, windowHeight;
-    GL_DEBUG(
-        glfwGetFramebufferSize(m_Window.Get(), &windowWidth, &windowHeight));
-    const ImVec2 windowSize = {static_cast<float>(windowWidth),
-                               static_cast<float>(windowHeight)};
-    ImGui::SetNextWindowSize(windowSize);
-
     ImGuiID dockspaceID = ImGui::GetID("DockSpace");
     ImGui::DockSpaceOverViewport(dockspaceID, ImGui::GetMainViewport());
     if (m_Startup)
-        InitDockspace(dockspaceID, windowSize);
+        InitDockspace(dockspaceID, ImGui::GetMainViewport()->Size);
 }
 
 void Game::InitDockspace(uint32_t dockspaceID, ImVec2 windowSize) {
