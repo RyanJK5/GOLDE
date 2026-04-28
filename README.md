@@ -98,7 +98,7 @@ Game of Life simulating itself in GOLDE.
 
 ## What's Next?
 
-GOLDE will continue receiving updates and is moving towards the goal of supporting modular extensions to the editor. In order of priority, the major features that GOLDE is next targeting are:
+GOLDE will continue receiving updates and is moving towards the goal of supporting modular extensions to the editor. In order of priority, the next major features that GOLDE is targeting are:
 1. Support for multi-state rules
 2. Support for Python and Lua scripting
 3. Robust extension support for adding rules, algorithms, topologies, and data structures (both in C++ and Lua)
