@@ -153,9 +153,11 @@ SimulationState EditorModel::HandleRuleChange(std::string_view ruleStr) {
 
     const auto oldSize = m_Grid.Size();
     const auto ruleBounds = rule.Bounds().value_or(Rect{});
-    if (oldSize != ruleBounds.Size()) {
 
-        m_Grid.SetRule(rule, ruleStr);
+    // Always set the rule on the grid
+    m_Grid.SetRule(rule, ruleStr);
+
+    if (oldSize != ruleBounds.Size()) {
         m_Grid = GameGrid{std::move(m_Grid),
                           rule.Bounds() ? rule.Bounds()->Size() : Size2{}};
     }
