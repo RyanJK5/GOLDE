@@ -48,7 +48,6 @@ void SimulationWorker::ThreadLoop(std::stop_token threadStopToken) {
 
 size_t SimulationWorker::SimulationLoop(std::stop_token runStopToken) {
     auto workerIndex = 1UZ;
-    auto backIndex = 2UZ;
 
     std::condition_variable_any sleepCondition{};
     std::mutex sleepMutex{};
@@ -57,6 +56,12 @@ size_t SimulationWorker::SimulationLoop(std::stop_token runStopToken) {
     while (!runStopToken.stop_requested()) {
         m_LastUpdate.store(std::chrono::steady_clock::now(),
                            std::memory_order_relaxed);
+
+        // SYNC WITH LATEST SNAPSHOT:
+        // This ensures both independent buffers don't desynchronize or maintain
+        // separate generation lineages when `stepCount` changes mid-flight.
+        auto snapshot = m_SnapshotIndex.load(std::memory_order_acquire);
+        m_Buffers[workerIndex] = m_Buffers[snapshot];
 
         auto stepCount = [&] {
             std::scoped_lock locK{m_StepCountMutex};
@@ -69,10 +74,14 @@ size_t SimulationWorker::SimulationLoop(std::stop_token runStopToken) {
             break;
         }
 
-        // Publish workerIndex as the new snapshot, get back the old one
-        backIndex =
-            m_SnapshotIndex.exchange(workerIndex, std::memory_order_acq_rel);
-        workerIndex = backIndex;
+        // Publish workerIndex as the new snapshot
+        m_SnapshotIndex.store(workerIndex, std::memory_order_release);
+
+        // Wait for UI to finish reading the old snapshot.
+        // We select the one buffer that is NOT the new snapshot, and NOT the
+        // old snapshot. Since we have buffers 0, 1, 2, the remaining is `3 -
+        // workerIndex - snapshot`.
+        workerIndex = 3UZ - workerIndex - snapshot;
 
         if (m_OneStep) {
             break;

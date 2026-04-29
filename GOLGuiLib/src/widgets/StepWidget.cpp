@@ -28,7 +28,7 @@ bool StepButton::Enabled(const EditorResult& state) const {
 
 void StepWidget::SetStepCount(const BigInt& stepCount) {
     m_StepCount = std::max(BigOne, stepCount);
-    m_InputText = std::format("{}", stepCount);
+    m_InputText = std::format("{}", m_StepCount);
 }
 
 void StepWidget::ShowInputText() {
@@ -78,11 +78,12 @@ void StepWidget::ShowInputText() {
                 const static auto isSpace = [](char c) {
                     return std::isspace(c);
                 };
-                m_StepCount.assign(
-                    std::string{std::ranges::find_if_not(str, isSpace),
+                m_StepCount = std::max(
+                    BigOne, BigInt{std::string{
+                                std::ranges::find_if_not(str, isSpace),
                                 std::ranges::find_if_not(
                                     std::ranges::reverse_view(str), isSpace)
-                                    .base()});
+                                    .base()}});
             }
 
             m_InputText = std::format("{}", m_StepCount);
