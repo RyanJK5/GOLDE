@@ -221,9 +221,10 @@ LifeRule::Canonicalize(std::string_view ruleString) {
     colonPos = result.find(':');
 
     if (auto dimensions = ExtractDimensions(ruleString)) {
-        if (dimensions->Width == 0 && dimensions->Height == 0 &&
-            colonPos != std::string::npos) {
-            result.erase(result.begin() + colonPos, result.end());
+        if (dimensions->Width == 0 && dimensions->Height == 0) {
+            if (colonPos != std::string::npos) {
+                result.erase(result.begin() + colonPos, result.end());
+            }
         } else if (dimensions->Width == dimensions->Height &&
                    result.find(',') == std::string::npos) {
             const auto endPos = result.size();

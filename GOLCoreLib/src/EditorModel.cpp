@@ -569,7 +569,7 @@ EditorModel::ExecuteCommandImmediate(const SimulationCommand& cmd,
             },
             [this](const LoadCommand& command) {
                 const bool hadExistingUniverseData =
-                    !m_Grid.Dead() || !SelectedPopulation().is_zero();
+                    !m_Grid.Dead() || !SelectedPopulation().is_zero() || m_Grid.Size() != Size2{};
                 auto error = LoadFile(command.FilePath);
                 if (error) {
                     return ExecuteCommandResult{
@@ -606,7 +606,7 @@ EditorModel::ExecuteCommandImmediate(const SimulationCommand& cmd,
             [this, &context](const SelectionCommand& command) {
                 if (command.Action == SelectionAction::Paste) {
                     const bool hadExistingUniverseData =
-                        !m_Grid.Dead() || !SelectedPopulation().is_zero();
+                        !m_Grid.Dead() || !SelectedPopulation().is_zero() || m_Grid.Size() != Size2{};
                     if (context.ForcePasteSelection) {
                         ForcePaste(context.CursorPos, command.ClipboardText);
                         return ExecuteCommandResult{.State = m_State};
