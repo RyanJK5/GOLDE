@@ -68,4 +68,33 @@ TEST(LifeRuleTest, BirthZeroCheck) {
     EXPECT_FALSE(rule.has_value());
 }
 
+TEST(LifeRuleTest, CanonicalizeNormalizesDigitOrderAndDuplicates) {
+    const auto canonical = LifeRule::Canonicalize("B323/S421");
+    ASSERT_TRUE(canonical.has_value());
+    EXPECT_EQ(*canonical, "B23/S124"sv);
+}
+
+TEST(LifeRuleTest, CanonicalizeNormalizesCase) {
+    const auto canonical = LifeRule::Canonicalize("b36/s23");
+    ASSERT_TRUE(canonical.has_value());
+    EXPECT_EQ(*canonical, "B36/S23"sv);
+}
+
+TEST(LifeRuleTest, CanonicalizePreservesZeroInSurviveMask) {
+    const auto canonical = LifeRule::Canonicalize("B8/S023");
+    ASSERT_TRUE(canonical.has_value());
+    EXPECT_EQ(*canonical, "B8/S023"sv);
+}
+
+TEST(LifeRuleTest, CanonicalizeRejectsInvalidRules) {
+    EXPECT_FALSE(LifeRule::Canonicalize("B0/S23").has_value());
+    EXPECT_FALSE(LifeRule::Canonicalize("not-a-rule").has_value());
+}
+
+TEST(LifeRuleTest, RejectZeroBounds) {
+    EXPECT_EQ(LifeRule::Canonicalize("B423/S222:P0"), "B234/S2"sv);
+    EXPECT_EQ(LifeRule::Canonicalize("B1/S0:P0,0"), "B1/S0"sv);
+    EXPECT_EQ(LifeRule::Canonicalize("B1/S000:T0,0"), "B1/S0"sv);
+}
+
 } // namespace gol

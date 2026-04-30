@@ -177,6 +177,7 @@ WidgetResult RuleWidget::UpdateImpl(const EditorResult& state) {
         return {};
     }
 
+    m_InputText = *LifeRule::Canonicalize(m_InputText);
     m_LastValid = m_InputText;
     return WidgetResult{.Command = RuleCommand{m_InputText}};
 }

@@ -1,5 +1,7 @@
 #ifndef LifeRule_hpp_
 #define LifeRule_hpp_
+
+#include <algorithm>
 #include <array>
 #include <charconv>
 #include <expected>
@@ -20,6 +22,9 @@ class LifeRule {
 
     constexpr static std::expected<LifeRule, std::string_view>
     Make(std::string_view ruleString);
+
+    constexpr static std::expected<std::string, std::string_view>
+    Canonicalize(std::string_view ruleString);
 
     constexpr static std::expected<void, std::string_view>
     IsValidRule(std::string_view ruleString);
@@ -96,7 +101,7 @@ LifeRule::TryMake(std::string_view ruleString) {
         if (surviveEnd == ruleString.size()) {
             return TopologyKind::Plane;
         }
-        if (surviveEnd + 3 >= ruleString.size()) {
+        if (surviveEnd + 2 >= ruleString.size()) {
             return std::unexpected{"Invalid topology specification."sv};
         }
 
@@ -180,6 +185,53 @@ LifeRule::TryMake(std::string_view ruleString) {
     } else {
         return std::expected<void, std::string_view>{};
     }
+}
+
+constexpr std::expected<std::string, std::string_view>
+LifeRule::Canonicalize(std::string_view ruleString) {
+    if (auto isValid = IsValidRule(ruleString); !isValid) {
+        return std::unexpected{isValid.error()};
+    }
+
+    std::string result{};
+    result.reserve(ruleString.size());
+    std::ranges::remove_copy_if(ruleString, std::back_inserter(result),
+                                [](char c) { return std::isspace(c); });
+
+    for (auto& c : result) {
+        if (std::islower(c)) {
+            c = std::toupper(c);
+        }
+    }
+
+    const auto canonicalizeSegment = [&](size_t start, size_t end) {
+        auto sub =
+            std::ranges::subrange(result.begin() + start, result.begin() + end);
+        std::ranges::sort(sub);
+
+        auto [newEnd, oldEnd] = std::ranges::unique(sub);
+        result.erase(newEnd, oldEnd);
+    };
+
+    auto colonPos = result.find(':');
+    canonicalizeSegment(result.find('S') + 1, colonPos == std::string::npos
+                                                  ? result.size()
+                                                  : colonPos);
+    canonicalizeSegment(result.find('B') + 1, result.find('/'));
+    colonPos = result.find(':');
+
+    if (auto dimensions = ExtractDimensions(ruleString)) {
+        if (dimensions->Width == 0 && dimensions->Height == 0 &&
+            colonPos != std::string::npos) {
+            result.erase(result.begin() + colonPos, result.end());
+        }
+    }
+
+    if (!colonPos) {
+        return result;
+    }
+
+    return result;
 }
 
 constexpr std::expected<LifeRule, std::string_view>

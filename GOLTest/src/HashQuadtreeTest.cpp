@@ -246,6 +246,7 @@ TEST(HashQuadtreeTest, AdvanceGlider) {
     LifeHashSet start{{1, 0}, {2, 1}, {0, 2}, {1, 2}, {2, 2}};
 
     HashQuadtree tree{start};
+    
     auto gens = HashLife{}.Step(tree, 0);
     EXPECT_GT(gens, 0);
 
