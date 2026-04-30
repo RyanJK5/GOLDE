@@ -33,8 +33,6 @@ class SimulationWorker {
     const GameGrid* GetResult() const;
     std::chrono::duration<float> GetTimeSinceLastUpdate() const;
 
-    void BufferRule(std::unique_ptr<LifeRule> rule);
-
   private:
     void ThreadLoop(std::stop_token threadStopToken);
 
@@ -45,8 +43,6 @@ class SimulationWorker {
 
     std::mutex m_StepCountMutex;
     BigInt m_StepCount = 1;
-
-    std::unique_ptr<LifeRule> m_BufferedRule;
 
     std::atomic<int64_t> m_TickDelayMs = 0;
 

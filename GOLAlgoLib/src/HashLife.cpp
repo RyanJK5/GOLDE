@@ -554,6 +554,7 @@ void HashLife::SetTopology(std::unique_ptr<Topology> topology) {
 
 void HashLife::SetRule(const LifeRule& rule) {
     s_Rule = rule;
+    HashQuadtree::ClearCache();
     s_SlowCache.clear();
 
     if (rule.Bounds()) {
