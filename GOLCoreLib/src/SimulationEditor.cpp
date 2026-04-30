@@ -139,7 +139,7 @@ SimulationEditor::Update(std::optional<bool> activeOverride,
             ExecuteEditorCommand(
                 SelectionCommand{.ClipboardText = presetArgs.ClipboardText,
                                  .Action = SelectionAction::Paste},
-                {.CursorPos = Vec2{0, 0}});
+                {.CursorPos = Vec2{0, 0}, .UnlockPasteSelection = true});
         }
     }
 

@@ -253,12 +253,12 @@ bool EditorModel::SaveToFile(const std::filesystem::path& path,
 
 std::expected<void, FileEncoder::DecodeError>
 EditorModel::PasteSelection(std::optional<Vec2> cursorPos,
-                            std::string_view clipboardText) {
+                            std::string_view clipboardText, bool unlock) {
     if (cursorPos || m_SelectionManager.CanDrawGrid()) {
         TryPushVersionChange(m_SelectionManager.Deselect(m_Grid));
     }
-    auto pasteResult = m_SelectionManager.Paste(m_Grid, clipboardText,
-                                                cursorPos, 100'000'000U);
+    auto pasteResult = m_SelectionManager.Paste(
+        m_Grid, clipboardText, cursorPos, 100'000'000U, unlock);
     if (pasteResult) {
         TryPushVersionChange(*pasteResult);
         return {};
@@ -569,7 +569,8 @@ EditorModel::ExecuteCommandImmediate(const SimulationCommand& cmd,
             },
             [this](const LoadCommand& command) {
                 const bool hadExistingUniverseData =
-                    !m_Grid.Dead() || !SelectedPopulation().is_zero() || m_Grid.Size() != Size2{};
+                    !m_Grid.Dead() || !SelectedPopulation().is_zero() ||
+                    m_Grid.Size() != Size2{};
                 auto error = LoadFile(command.FilePath);
                 if (error) {
                     return ExecuteCommandResult{
@@ -606,14 +607,16 @@ EditorModel::ExecuteCommandImmediate(const SimulationCommand& cmd,
             [this, &context](const SelectionCommand& command) {
                 if (command.Action == SelectionAction::Paste) {
                     const bool hadExistingUniverseData =
-                        !m_Grid.Dead() || !SelectedPopulation().is_zero() || m_Grid.Size() != Size2{};
+                        !m_Grid.Dead() || !SelectedPopulation().is_zero() ||
+                        m_Grid.Size() != Size2{};
                     if (context.ForcePasteSelection) {
                         ForcePaste(context.CursorPos, command.ClipboardText);
                         return ExecuteCommandResult{.State = m_State};
                     }
 
-                    auto result = PasteSelection(context.CursorPos,
-                                                 command.ClipboardText);
+                    auto result =
+                        PasteSelection(context.CursorPos, command.ClipboardText,
+                                       context.UnlockPasteSelection);
                     if (!result) {
                         const auto errorType =
                             result.error().ErrorType ==

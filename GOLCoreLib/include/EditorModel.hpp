@@ -38,6 +38,7 @@ struct ExecuteCommandContext {
     std::optional<Vec2> CursorPos{};
     bool PrimaryMouseDown = false;
     bool ForcePasteSelection = false;
+    bool UnlockPasteSelection = false;
     bool ConfirmSaveAsWarning = false;
 };
 
@@ -111,7 +112,7 @@ class EditorModel {
     // Paste operations
     std::expected<void, FileEncoder::DecodeError>
     PasteSelection(std::optional<Vec2> cursorPos,
-                   std::string_view clipboardText);
+                   std::string_view clipboardText, bool unlock = false);
     void ForcePaste(std::optional<Vec2> cursorPos,
                     std::string_view clipboardText);
 

@@ -23,7 +23,7 @@ RuleWidget::RuleInfoChange RuleWidget::ResizeComponent(const EditorResult&) {
     std::array wrapper{dimensions.Width, dimensions.Height};
     ImGui::InputInt2("##BoundsLabel", wrapper.data());
     ImGui::SetItemTooltip("If a dimension is set to 0, the universe will "
-                          "unbounded along that dimension.");
+                          "be unbounded along that dimension.");
 
     ImGui::SameLine();
 
