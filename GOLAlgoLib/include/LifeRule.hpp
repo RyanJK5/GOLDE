@@ -224,11 +224,14 @@ LifeRule::Canonicalize(std::string_view ruleString) {
         if (dimensions->Width == 0 && dimensions->Height == 0 &&
             colonPos != std::string::npos) {
             result.erase(result.begin() + colonPos, result.end());
+        } else if (dimensions->Width == dimensions->Height &&
+                   result.find(',') == std::string::npos) {
+            const auto endPos = result.size();
+            result.push_back(',');
+            for (auto i = colonPos + 2; i < endPos; i++) {
+                result.push_back(result[i]);
+            }
         }
-    }
-
-    if (!colonPos) {
-        return result;
     }
 
     return result;
