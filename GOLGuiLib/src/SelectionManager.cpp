@@ -57,10 +57,10 @@ SelectionUpdateResult SelectionManager::UpdateUnlockedSelection(GameGrid& grid,
         return {.BeginSelection = false};
 
     if (!m_UnlockedOriginalPosition)
-        m_UnlockedOriginalPosition = m_SentinelSelection;
+        m_UnlockedOriginalPosition = m_AnchorSelection;
     auto sentinelOffset = *m_SentinelSelection - *m_AnchorSelection;
-    m_SentinelSelection = gridPos;
-    m_AnchorSelection = gridPos - sentinelOffset;
+    m_AnchorSelection = gridPos;
+    m_SentinelSelection = gridPos + sentinelOffset;
 
     return {.BeginSelection = false};
 }
