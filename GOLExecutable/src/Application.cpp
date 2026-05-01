@@ -8,6 +8,6 @@ int main(int argc, char* argv[]) {
         std::filesystem::current_path(executablePath.parent_path());
     }
 
-    gol::Game game{};
+    Golde::Game game{};
     game.Begin();
 }

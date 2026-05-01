@@ -23,7 +23,7 @@
 #include "StepWidget.hpp"
 #include "WidgetResult.hpp"
 
-namespace gol {
+namespace Golde {
 struct ButtonlessShortcuts : public Widget {
     std::unordered_map<ActionVariant, std::vector<KeyShortcut>> Shortcuts;
 
@@ -83,6 +83,6 @@ void SimulationControl::ForEachWidget(auto&& widgetFunc) {
     widgetFunc(m_DelayWidget);
     widgetFunc(m_NoiseWidget);
 }
-} // namespace gol
+} // namespace Golde
 
 #endif

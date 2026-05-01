@@ -6,7 +6,7 @@
 #include "GameEnums.hpp"
 #include "PopupWindow.hpp"
 
-namespace gol {
+namespace Golde {
 
 std::optional<PopupWindowState> ErrorWindow::ShowButtons() const {
     const float height =
@@ -19,4 +19,4 @@ std::optional<PopupWindowState> ErrorWindow::ShowButtons() const {
     return {};
 }
 
-} // namespace gol
+} // namespace Golde

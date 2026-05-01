@@ -2,7 +2,7 @@
 #include "HashQuadtree.hpp"
 #include <iostream>
 
-namespace gol {
+namespace Golde {
 Plane::Plane(Rect bounds) : Topology(bounds) {}
 
 std::string_view Plane::GetIdentifier() const { return "Plane"; }
@@ -40,4 +40,4 @@ void Plane::CleanupBorderCells(LifeDataStructure& data) {
     const auto newData = hashQuadtree.Extract(*bounds);
     hashQuadtree.OverwriteData(newData.Data(), newData.CalculateDepth());
 }
-} // namespace gol
+} // namespace Golde

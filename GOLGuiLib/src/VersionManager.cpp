@@ -6,7 +6,7 @@
 #include "Graphics2D.hpp"
 #include "VersionManager.hpp"
 
-namespace gol {
+namespace Golde {
 void VersionManager::BeginPaintChange(const GameGrid& universe,
                                       SimulationState state) {
     if (state != SimulationState::Paint && state != SimulationState::Empty) {
@@ -80,4 +80,4 @@ void VersionManager::ClearRedos() {
     while (!m_RedoStack.empty())
         m_RedoStack.pop();
 }
-} // namespace gol
+} // namespace Golde

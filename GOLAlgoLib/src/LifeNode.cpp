@@ -2,7 +2,7 @@
 #include <bit>
 #include <functional>
 
-namespace gol {
+namespace Golde {
 
 namespace {
 // Directly encodes a level-1 quadrant's cells into the known bit positions
@@ -233,4 +233,4 @@ void LifeNodeArena::clear() {
 void LifeNodeArena::BlockDeleter::operator()(LifeNode* p) const {
     ::operator delete(p);
 }
-} // namespace gol
+} // namespace Golde

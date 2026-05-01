@@ -5,11 +5,11 @@
 #include <string_view>
 #include <utility>
 
-namespace gol {
+namespace Golde {
 class GLException : public std::runtime_error {
   public:
     GLException(std::string_view str) : std::runtime_error(str.data()) {}
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

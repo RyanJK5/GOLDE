@@ -3,7 +3,7 @@
 
 #include <imgui.h>
 
-namespace gol {
+namespace Golde {
 void LoadingSpinner(const char* label, float radius, float thickness,
                     ImU32 color);
 }

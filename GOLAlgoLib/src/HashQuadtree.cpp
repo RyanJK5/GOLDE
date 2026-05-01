@@ -19,7 +19,7 @@
 #include "LifeHashSet.hpp"
 #include "LifeRule.hpp"
 
-namespace gol {
+namespace Golde {
 constexpr static auto ViewportMaxLevel = 31;
 
 HashLifeCache::HashLifeCache() {
@@ -899,4 +899,4 @@ const LifeNode* HashQuadtree::BuildTree(std::span<const Vec2> cells) {
     EmptyTree(ViewportMaxLevel);
     return result;
 }
-} // namespace gol
+} // namespace Golde

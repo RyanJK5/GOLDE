@@ -3,7 +3,7 @@
 
 #include "Widget.hpp"
 
-namespace gol {
+namespace Golde {
 
 class CameraPositionWidget : public Widget {
   public:
@@ -17,6 +17,6 @@ class CameraPositionWidget : public Widget {
     Vec2 m_Position;
 };
 
-} // namespace gol
+} // namespace Golde
 
 #endif

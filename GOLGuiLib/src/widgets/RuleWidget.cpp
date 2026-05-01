@@ -5,7 +5,7 @@
 #include <imgui.h>
 #include <imgui_stdlib.h>
 
-namespace gol {
+namespace Golde {
 RuleWidget::RuleWidget()
     : m_TopologyCombo("##TopologyLabel", "Plane", "Torus"),
       m_InputError("Invalid Rule",
@@ -181,4 +181,4 @@ WidgetResult RuleWidget::UpdateImpl(const EditorResult& state) {
     m_LastValid = m_InputText;
     return WidgetResult{.Command = RuleCommand{m_InputText}};
 }
-} // namespace gol
+} // namespace Golde

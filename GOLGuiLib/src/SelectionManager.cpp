@@ -16,7 +16,7 @@
 #include "SelectionManager.hpp"
 #include "VersionManager.hpp"
 
-namespace gol {
+namespace Golde {
 SelectionUpdateResult SelectionManager::UpdateSelectionArea(GameGrid& grid,
                                                             Vec2 gridPos) {
     const bool shiftDown = ImGui::IsKeyDown(ImGuiKey_LeftShift) ||
@@ -455,4 +455,4 @@ Vec2 SelectionManager::RotatePoint(Vec2F center, Vec2F point, bool clockwise) {
     m_RotationParity = !m_RotationParity;
     return retValue;
 }
-} // namespace gol
+} // namespace Golde

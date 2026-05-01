@@ -5,7 +5,7 @@
 #include "GameEnums.hpp"
 #include "WidgetResult.hpp"
 
-namespace gol {
+namespace Golde {
 
 WidgetResult DelayWidget::UpdateImpl(const EditorResult&) {
 
@@ -28,4 +28,4 @@ WidgetResult DelayWidget::UpdateImpl(const EditorResult&) {
     return {};
 }
 
-} // namespace gol
+} // namespace Golde

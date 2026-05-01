@@ -5,7 +5,7 @@
 #include "FileFormatHandler.hpp"
 #include "Graphics2D.hpp"
 
-namespace gol {
+namespace Golde {
 
 static std::expected<FileEncoder::DecodeResult, std::string>
 EncodeDecodeRegionTest(const GameGrid& grid, Rect region, Vec2 offset) {
@@ -135,4 +135,4 @@ TEST(EncodeTest, IgnoresCellsOutsideRegionTest) {
     EXPECT_EQ(result->Grid.Data(), expected.Data());
     EXPECT_EQ(result->Offset, offset);
 }
-} // namespace gol
+} // namespace Golde

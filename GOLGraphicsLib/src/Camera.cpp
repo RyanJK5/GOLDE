@@ -6,7 +6,7 @@
 #include "Camera.hpp"
 #include "Graphics2D.hpp"
 
-namespace gol {
+namespace Golde {
 void GraphicsCamera::ZoomBy(Vec2F screenPos, RectF viewBounds, float zoom) {
     const auto scale = 1.f + zoom;
     if (!std::isfinite(scale) || scale <= 0.f) {
@@ -59,4 +59,4 @@ glm::mat4 GraphicsCamera::OrthographicProjection(Size2 viewSize) const {
                       -(viewSize.Height / 2.f) / Zoom, -1.f, 1.f);
 }
 
-} // namespace gol
+} // namespace Golde

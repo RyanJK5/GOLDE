@@ -36,7 +36,7 @@
 // canonicalizes nodes in a hash table. The recursive nature of the algorithm
 // also allows it to jump many generations in one step.
 
-namespace gol {
+namespace Golde {
 // The key used for caching when HashLife has a bounded step size.
 struct SlowKey {
     const LifeNode* Node;
@@ -379,6 +379,6 @@ void HashQuadtree::ForEachCell(const Func& func, Rect bounds,
     return ForEachImpl(func, node, offset, std::min(m_Depth, 32), minLevel,
                        bounds);
 }
-} // namespace gol
+} // namespace Golde
 
 #endif

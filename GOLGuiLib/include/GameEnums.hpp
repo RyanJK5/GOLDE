@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <variant>
 
-namespace gol {
+namespace Golde {
 enum class SimulationState { None, Paint, Simulation, Paused, Stepping, Empty };
 
 enum class GameAction { Start, Pause, Resume, Restart, Reset, Clear, Step };
@@ -106,6 +106,6 @@ concept ActionType =
     std::same_as<T, SelectionAction>;
 
 enum class EditorMode { None, Insert, Delete, Select };
-} // namespace gol
+} // namespace Golde
 
 #endif

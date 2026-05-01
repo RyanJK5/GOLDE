@@ -2,7 +2,7 @@
 #include "SimulationCommand.hpp"
 #include "WidgetResult.hpp"
 
-namespace gol {
+namespace Golde {
 Size2F GenerateNoiseButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x,
             ActionButton::DefaultButtonHeight()};
@@ -48,4 +48,4 @@ void NoiseWidget::SetShortcutsImpl(const ShortcutMap& shortcuts) {
     m_Button.SetShortcuts(shortcuts.at(EditorAction::GenerateNoise));
 }
 
-} // namespace gol
+} // namespace Golde

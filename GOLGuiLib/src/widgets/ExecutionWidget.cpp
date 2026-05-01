@@ -10,7 +10,7 @@
 #include "Graphics2D.hpp"
 #include "WidgetResult.hpp"
 
-namespace gol {
+namespace Golde {
 Size2F StartButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x / 4.f,
             MultiActionButton::DefaultButtonHeight()};
@@ -108,4 +108,4 @@ void ExecutionWidget::SetShortcutsImpl(const ShortcutMap& shortcuts) {
     m_ResetButton.SetShortcuts(shortcuts.at(GameAction::Reset));
     m_RestartButton.SetShortcuts(shortcuts.at(GameAction::Restart));
 }
-} // namespace gol
+} // namespace Golde

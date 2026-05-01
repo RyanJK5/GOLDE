@@ -9,7 +9,7 @@
 #include "GameEnums.hpp"
 #include "Graphics2D.hpp"
 
-namespace gol {
+namespace Golde {
 
 // Helper for std::visit with multiple lambdas
 template <class... Ts>
@@ -137,6 +137,6 @@ inline SimulationCommand ToCommand(SelectionAction action) {
     return SelectionCommand{.Action = action};
 }
 
-} // namespace gol
+} // namespace Golde
 
 #endif

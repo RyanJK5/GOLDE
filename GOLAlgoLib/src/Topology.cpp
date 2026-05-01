@@ -1,6 +1,6 @@
 #include "Topology.hpp"
 
-namespace gol {
+namespace Golde {
 Topology::Topology(Rect bounds) : m_Bounds(bounds) {}
 
 std::optional<Rect> Topology::GetBounds() const {
@@ -9,4 +9,4 @@ std::optional<Rect> Topology::GetBounds() const {
     }
     return m_Bounds;
 }
-} // namespace gol
+} // namespace Golde

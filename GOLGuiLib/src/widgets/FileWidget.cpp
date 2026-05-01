@@ -14,7 +14,7 @@
 #include "SimulationCommand.hpp"
 #include "WidgetResult.hpp"
 
-namespace gol {
+namespace Golde {
 NewFileButton::NewFileButton(std::span<const ImGuiKeyChord> shortcuts)
     : ActionButton(EditorAction::NewFile, shortcuts) {}
 Size2F NewFileButton::Dimensions() const {
@@ -167,4 +167,4 @@ void FileWidget::SetShortcutsImpl(const ShortcutMap& shortcutInfo) {
     m_SaveButton.SetShortcuts(shortcutInfo.at(EditorAction::SaveAsNew));
     m_LoadButton.SetShortcuts(shortcutInfo.at(EditorAction::Load));
 }
-} // namespace gol
+} // namespace Golde

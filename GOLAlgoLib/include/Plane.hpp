@@ -3,7 +3,7 @@
 
 #include "Topology.hpp"
 
-namespace gol {
+namespace Golde {
 class Plane : public Topology {
   public:
     Plane(Rect bounds = {});
@@ -20,6 +20,6 @@ class Plane : public Topology {
 
     void CleanupBorderCells(LifeDataStructure& data) override;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

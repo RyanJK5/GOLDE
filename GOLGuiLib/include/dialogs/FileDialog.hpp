@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-namespace gol {
+namespace Golde {
 enum class FileFailureType { Cancelled, Error };
 
 struct FileDialogFailure {
@@ -32,6 +32,6 @@ SaveFileDialog(std::span<const FilterItem> filters,
 std::expected<std::filesystem::path, FileDialogFailure>
 SelectFolderDialog(const std::string& defaultPath);
 }; // namespace FileDialog
-} // namespace gol
+} // namespace Golde
 
 #endif

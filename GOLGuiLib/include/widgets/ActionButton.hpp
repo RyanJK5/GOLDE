@@ -16,7 +16,7 @@
 #include "Graphics2D.hpp"
 #include "KeyShortcut.hpp"
 
-namespace gol {
+namespace Golde {
 template <ActionType ActType>
 struct ActionButtonResult {
     std::optional<ActType> Action;
@@ -119,6 +119,6 @@ class ActionButton : public MultiActionButton<ActType, LineBreak> {
     ActType m_Action;
     bool m_AllowRepeats;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

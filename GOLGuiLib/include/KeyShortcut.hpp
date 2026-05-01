@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace gol {
+namespace Golde {
 class KeyShortcut {
   public:
     constexpr static auto MapChordsToVector =
@@ -34,6 +34,6 @@ class KeyShortcut {
     bool m_AllowRepeats;
     bool m_Down;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

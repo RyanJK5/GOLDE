@@ -6,7 +6,7 @@
 #include <string_view>
 #include <vector>
 
-namespace gol {
+namespace Golde {
 class Combo {
   public:
     constexpr Combo(std::string_view label,
@@ -51,6 +51,6 @@ constexpr Combo::Combo(std::string_view label, Args&&... options)
         ...);
     m_Data.push_back('\0');
 }
-} // namespace gol
+} // namespace Golde
 
 #endif

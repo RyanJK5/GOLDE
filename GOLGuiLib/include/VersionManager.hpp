@@ -12,7 +12,7 @@
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
 
-namespace gol {
+namespace Golde {
 struct VersionState {
     GameGrid Universe{};
     GameGrid SelectionUniverse{};
@@ -47,6 +47,6 @@ class VersionManager {
     std::stack<VersionState> m_UndoStack;
     std::stack<VersionState> m_RedoStack;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

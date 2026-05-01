@@ -6,12 +6,12 @@
 #include "SimulationCommand.hpp"
 #include "SimulationSettings.hpp"
 
-namespace gol {
+namespace Golde {
 struct SimulationControlResult {
     std::optional<SimulationCommand> Command{};
     SimulationSettings Settings{};
     bool FromShortcut = false;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

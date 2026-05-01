@@ -14,7 +14,7 @@
 #include "SimulationWorker.hpp"
 #include "VersionManager.hpp"
 
-namespace gol {
+namespace Golde {
 namespace {
 bool ShouldExecuteInline(const SimulationCommand& cmd) {
     if (std::holds_alternative<UndoCommand>(cmd) ||
@@ -689,4 +689,4 @@ EditorModel::ExecuteCommandImmediate(const SimulationCommand& cmd,
         cmd);
 }
 
-} // namespace gol
+} // namespace Golde

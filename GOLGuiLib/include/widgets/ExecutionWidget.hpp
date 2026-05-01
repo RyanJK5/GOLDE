@@ -14,7 +14,7 @@
 #include "Widget.hpp"
 #include "WidgetResult.hpp"
 
-namespace gol {
+namespace Golde {
 class StartButton : public MultiActionButton<GameAction, true> {
   public:
     StartButton(const std::unordered_map<ActionVariant,
@@ -87,6 +87,6 @@ class ExecutionWidget : public Widget {
     ResetButton m_ResetButton;
     RestartButton m_RestartButton;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

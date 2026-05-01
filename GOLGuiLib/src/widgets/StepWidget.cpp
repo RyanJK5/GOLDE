@@ -13,7 +13,7 @@
 #include "StepWidget.hpp"
 #include "WidgetResult.hpp"
 
-namespace gol {
+namespace Golde {
 Size2F StepButton::Dimensions() const {
     return {ImGui::GetContentRegionAvail().x,
             ActionButton::DefaultButtonHeight()};
@@ -156,4 +156,4 @@ WidgetResult StepWidget::UpdateImpl(const EditorResult& state) {
 
     return retValue;
 }
-} // namespace gol
+} // namespace Golde

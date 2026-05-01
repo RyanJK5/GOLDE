@@ -37,7 +37,7 @@
 #include "SimulationWorker.hpp"
 #include "VersionManager.hpp"
 
-namespace gol {
+namespace Golde {
 namespace {
 constexpr int32_t SelectionCoordLimit = std::numeric_limits<int32_t>::max() / 2;
 
@@ -715,4 +715,4 @@ void SimulationEditor::UpdateViewport() {
         m_Graphics.Camera.ZoomBy(mousePos, bounds,
                                  ImGui::GetIO().MouseWheel / 10.f);
 }
-} // namespace gol
+} // namespace Golde

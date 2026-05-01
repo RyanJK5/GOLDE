@@ -8,7 +8,7 @@
 #include <cstdlib>
 #include <numbers>
 
-namespace gol {
+namespace Golde {
 void LoadingSpinner(const char* label, float radius, float thickness,
                     ImU32 color) {
     auto* window = ImGui::GetCurrentWindow();
@@ -49,4 +49,4 @@ void LoadingSpinner(const char* label, float radius, float thickness,
 
     window->DrawList->PathStroke(color, false, thickness);
 }
-} // namespace gol
+} // namespace Golde

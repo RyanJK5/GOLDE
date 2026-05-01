@@ -19,7 +19,7 @@
 #include "PresetSelection.hpp"
 #include "PresetSelectionResult.hpp"
 
-namespace gol {
+namespace Golde {
 PresetDisplay::PresetDisplay(const GameGrid& grid, const std::string& fileName,
                              Size2 windowSize)
     : Grid(grid), FileName(fileName),
@@ -162,4 +162,4 @@ void PresetSelection::ReadFiles(const std::filesystem::path& path) {
                                file.path().filename().string(), m_WindowSize);
     }
 }
-} // namespace gol
+} // namespace Golde

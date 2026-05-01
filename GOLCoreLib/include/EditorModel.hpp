@@ -23,7 +23,7 @@
 #include "SimulationWorker.hpp"
 #include "VersionManager.hpp"
 
-namespace gol {
+namespace Golde {
 
 enum class EditWorkState { Idle, Working, PublishPending, Failed };
 
@@ -227,6 +227,6 @@ class EditorModel {
     std::atomic<bool> m_StopStepCommand = false;
 };
 
-} // namespace gol
+} // namespace Golde
 
 #endif

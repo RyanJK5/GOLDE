@@ -15,7 +15,7 @@
 #include "Widget.hpp"
 #include "WidgetResult.hpp"
 
-namespace gol {
+namespace Golde {
 class StepButton : public ActionButton<GameAction, false> {
   public:
     StepButton(std::span<const ImGuiKeyChord> shortcuts = {})
@@ -61,6 +61,6 @@ class StepWidget : public Widget {
 
     StepButton m_Button;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

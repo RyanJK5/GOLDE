@@ -9,7 +9,7 @@
 #include "Widget.hpp"
 #include "WidgetResult.hpp"
 
-namespace gol {
+namespace Golde {
 class DelayWidget : public Widget {
   public:
     DelayWidget(std::span<const ImGuiKeyChord> = {}) {}
@@ -27,6 +27,6 @@ class DelayWidget : public Widget {
     int32_t m_TickDelayMs = 1;
     bool m_GridLines = false;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

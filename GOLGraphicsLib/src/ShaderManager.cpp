@@ -13,7 +13,7 @@
 #include "Logging.hpp"
 #include "ShaderManager.hpp"
 
-namespace gol {
+namespace Golde {
 ShaderManager::ShaderManager(const std::filesystem::path& shaderFilePath) {
     if (const auto it = s_Shaders.find(shaderFilePath); it != s_Shaders.end()) {
         it->second.RefCount++;
@@ -200,4 +200,4 @@ void ShaderManager::CreateShader(uint32_t program, uint32_t shaderId) {
     GL_DEBUG(glDeleteShader(shaderId));
 }
 
-} // namespace gol
+} // namespace Golde

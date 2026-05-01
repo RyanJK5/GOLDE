@@ -15,7 +15,7 @@
 #include "SimulationControl.hpp"
 #include "SimulationEditor.hpp"
 
-namespace gol {
+namespace Golde {
 // Simple RAII wrapper for the GLFWwindow handle.
 class OpenGLWindow {
   public:
@@ -104,6 +104,6 @@ class Game {
     // Check for establishing the dockspace on startup
     bool m_Startup = true;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

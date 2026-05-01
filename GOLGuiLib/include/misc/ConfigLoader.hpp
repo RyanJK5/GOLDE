@@ -23,7 +23,7 @@
 
 #include "GameEnums.hpp"
 
-namespace gol::ConfigLoader {
+namespace Golde::ConfigLoader {
 template <typename T>
 concept Vector4 =
     std::floating_point<decltype(T::x)> &&
@@ -536,6 +536,6 @@ StyleInfo<Vec> LoadYAML(const std::filesystem::path& styleInfoPath) {
         throw StyleLoaderException{result.error().Description};
     return *result;
 }
-} // namespace gol::ConfigLoader
+} // namespace Golde::ConfigLoader
 
 #endif

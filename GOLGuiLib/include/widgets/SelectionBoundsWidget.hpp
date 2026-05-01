@@ -6,7 +6,7 @@
 
 #include "Widget.hpp"
 
-namespace gol {
+namespace Golde {
 class SelectionBoundsWidget : public Widget {
   public:
     friend Widget;
@@ -15,6 +15,6 @@ class SelectionBoundsWidget : public Widget {
     WidgetResult UpdateImpl(const EditorResult& state);
     void SetShortcutsImpl(const ShortcutMap&) {}
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

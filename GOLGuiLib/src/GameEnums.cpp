@@ -6,7 +6,7 @@
 
 #include "GameEnums.hpp"
 
-namespace gol {
+namespace Golde {
 std::string Actions::ToString(ActionVariant action) {
     std::string result{[action]() {
         if (auto* value = std::get_if<GameAction>(&action))
@@ -43,4 +43,4 @@ std::string Actions::ToString(ActionVariant action) {
 
     return result;
 }
-} // namespace gol
+} // namespace Golde

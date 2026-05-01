@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-namespace gol {
+namespace Golde {
 enum class PopupWindowState { Success, Failure };
 
 class PopupWindow {
@@ -33,6 +33,6 @@ class PopupWindow {
     bool Active = false;
     std::string m_Title;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

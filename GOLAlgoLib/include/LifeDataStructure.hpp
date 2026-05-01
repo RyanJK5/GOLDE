@@ -9,7 +9,7 @@
 
 #include "Graphics2D.hpp"
 
-namespace gol {
+namespace Golde {
 
 class LifeDataStructure {
   public:
@@ -24,6 +24,6 @@ class LifeDataStructure {
     virtual ~LifeDataStructure() = default;
 };
 
-} // namespace gol
+} // namespace Golde
 
 #endif

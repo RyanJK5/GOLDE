@@ -13,7 +13,7 @@
 #include "Graphics2D.hpp"
 #include "VersionManager.hpp"
 
-namespace gol {
+namespace Golde {
 struct SelectionUpdateResult {
     std::optional<VersionState> Change{};
     bool BeginSelection = false;
@@ -103,6 +103,6 @@ class SelectionManager {
     std::optional<Vec2> m_SentinelSelection;
     std::optional<GameGrid> m_Selected;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

@@ -3,7 +3,7 @@
 
 #include "Topology.hpp"
 
-namespace gol {
+namespace Golde {
 class Torus : public Topology {
   public:
     Torus(Rect bounds = {});
@@ -20,6 +20,6 @@ class Torus : public Topology {
 
     void CleanupBorderCells(LifeDataStructure& data) override;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

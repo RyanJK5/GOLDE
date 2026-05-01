@@ -8,7 +8,7 @@
 
 #include "FileDialog.hpp"
 
-namespace gol {
+namespace Golde {
 
 std::expected<std::filesystem::path, FileDialogFailure>
 FileDialog::OpenFileDialog(std::span<const FilterItem> filters,
@@ -101,4 +101,4 @@ FileDialog::SelectFolderDialog(const std::string& defaultPath) {
     return std::unexpected<FileDialogFailure>{
         {.Type = FileFailureType::Error, .Message = NFD::GetError()}};
 }
-} // namespace gol
+} // namespace Golde

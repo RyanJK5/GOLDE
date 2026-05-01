@@ -9,7 +9,7 @@
 
 #include "Logging.hpp"
 
-namespace gol {
+namespace Golde {
 template <typename T>
 concept GLGenerator = std::same_as<T, decltype(&glGenBuffers)> ||
                       std::same_as<T, decltype(&glGenTextures)>;
@@ -77,5 +77,5 @@ template <auto Generator, auto Deleter>
 GLWrapper<Generator, Deleter>::~GLWrapper() {
     GL_DEBUG((*Deleter)(1, &m_ID));
 }
-} // namespace gol
+} // namespace Golde
 #endif

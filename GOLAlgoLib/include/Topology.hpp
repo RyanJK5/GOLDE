@@ -10,7 +10,7 @@
 #include <optional>
 #include <string_view>
 
-namespace gol {
+namespace Golde {
 class Topology {
   public:
     Topology(Rect bounds = {});
@@ -38,6 +38,6 @@ class Topology {
   private:
     Rect m_Bounds;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

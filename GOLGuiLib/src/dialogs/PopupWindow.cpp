@@ -4,7 +4,7 @@
 
 #include "PopupWindow.hpp"
 
-namespace gol {
+namespace Golde {
 PopupWindow::PopupWindow(std::string_view title,
                          std::function<void(PopupWindowState)> onUpdate)
     : Message(""), m_UpdateCallback(onUpdate), m_Title(title) {}
@@ -35,4 +35,4 @@ void PopupWindow::SetCallback(std::function<void(PopupWindowState)> onUpdate) {
     m_UpdateCallback = onUpdate;
 }
 
-} // namespace gol
+} // namespace Golde

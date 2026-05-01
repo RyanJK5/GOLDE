@@ -7,7 +7,7 @@
 
 #include "PopupWindow.hpp"
 
-namespace gol {
+namespace Golde {
 class WarnWindow : public PopupWindow {
   public:
     WarnWindow(std::string_view title,
@@ -17,6 +17,6 @@ class WarnWindow : public PopupWindow {
   protected:
     virtual std::optional<PopupWindowState> ShowButtons() const override final;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

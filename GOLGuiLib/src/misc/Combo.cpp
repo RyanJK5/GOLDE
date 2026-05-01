@@ -2,8 +2,8 @@
 
 #include <imgui.h>
 
-namespace gol {
+namespace Golde {
 void Combo::Update() {
     ImGui::Combo(m_Label.data(), &ActiveIndex, m_Data.data());
 }
-} // namespace gol
+} // namespace Golde

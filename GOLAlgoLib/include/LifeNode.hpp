@@ -8,7 +8,7 @@
 #include "BigInt.hpp"
 #include "Graphics2D.hpp"
 
-namespace gol {
+namespace Golde {
 // Represents one node of the quadtree structure.
 struct LifeNode {
     // Raw pointers are used with care here. For cache efficiency, all nodes are
@@ -149,6 +149,6 @@ constexpr int64_t Pow2(T exponent) {
     return int64_t{1} << exponent;
 }
 
-} // namespace gol
+} // namespace Golde
 
 #endif

@@ -1,7 +1,7 @@
 #include "Torus.hpp"
 #include "HashQuadtree.hpp"
 
-namespace gol {
+namespace Golde {
 Torus::Torus(Rect bounds) : Topology(bounds) {}
 
 std::string_view Torus::GetIdentifier() const { return "Torus"; }
@@ -102,4 +102,4 @@ void Torus::CleanupBorderCells(LifeDataStructure& data) {
     const auto newData = hashQuadtree.Extract(*bounds);
     hashQuadtree.OverwriteData(newData.Data(), newData.CalculateDepth());
 }
-} // namespace gol
+} // namespace Golde

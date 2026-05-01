@@ -6,7 +6,7 @@
 #include "GameEnums.hpp"
 #include "WidgetResult.hpp"
 
-namespace gol {
+namespace Golde {
 
 CopyButton::CopyButton(std::span<const ImGuiKeyChord> shortcuts)
     : ActionButton(SelectionAction::Copy, shortcuts) {}
@@ -278,4 +278,4 @@ void EditorWidget::SetShortcutsImpl(const ShortcutMap& shortcuts) {
     m_RedoButton.SetShortcuts(shortcuts.at(EditorAction::Redo));
 }
 
-} // namespace gol
+} // namespace Golde

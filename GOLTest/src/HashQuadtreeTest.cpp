@@ -10,7 +10,7 @@
 #include "HashQuadtree.hpp"
 #include "LifeAlgorithm.hpp"
 
-namespace gol {
+namespace Golde {
 // Helper to verify the tree iterator yields exactly the expected points
 static void VerifyContent(HashQuadtree& tree, const LifeHashSet& expected) {
     LifeHashSet actual{};
@@ -750,4 +750,4 @@ TEST(HashQuadtreeTest, Vec2LIteratorConstness) {
     EXPECT_TRUE(actual.contains({100, 200}));
     EXPECT_TRUE(actual.contains({-100, -200}));
 }
-} // namespace gol
+} // namespace Golde

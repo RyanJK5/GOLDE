@@ -9,7 +9,7 @@
 #include <imgui.h>
 #include <utility>
 
-namespace gol {
+namespace Golde {
 struct Color {
     float Red;
     float Green;
@@ -216,16 +216,16 @@ struct RowMajorEqual {
         return a.Y != b.Y ? a.Y < b.Y : a.X < b.X;
     }
 };
-} // namespace gol
+} // namespace Golde
 
 template <std::totally_ordered T>
-struct std::formatter<gol::GenericVec<T>> {
+struct std::formatter<Golde::GenericVec<T>> {
     constexpr auto parse(std::format_parse_context& context) {
         return context.begin();
     }
 
     template <typename Context>
-    auto format(const gol::GenericVec<T>& vec, Context& context) const {
+    auto format(const Golde::GenericVec<T>& vec, Context& context) const {
         return std::format_to(context.out(), "({}, {})", vec.X, vec.Y);
     }
 };

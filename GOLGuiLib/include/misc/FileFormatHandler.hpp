@@ -17,7 +17,7 @@
 #include "Graphics2D.hpp"
 #include "Logging.hpp"
 
-namespace gol::FileEncoder {
+namespace Golde::FileEncoder {
 struct DecodeResult {
     GameGrid Grid;
     Vec2 Offset;
@@ -55,6 +55,6 @@ bool WriteRegion(const GameGrid& grid, Rect region,
 
 std::expected<DecodeResult, DecodeError>
 ReadRegion(const std::filesystem::path& filePath);
-} // namespace gol::FileEncoder
+} // namespace Golde::FileEncoder
 
 #endif

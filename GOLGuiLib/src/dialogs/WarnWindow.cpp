@@ -7,7 +7,7 @@
 #include "PopupWindow.hpp"
 #include "WarnWindow.hpp"
 
-namespace gol {
+namespace Golde {
 
 std::optional<PopupWindowState> WarnWindow::ShowButtons() const {
     const float height =
@@ -22,4 +22,4 @@ std::optional<PopupWindowState> WarnWindow::ShowButtons() const {
     return {};
 }
 
-} // namespace gol
+} // namespace Golde

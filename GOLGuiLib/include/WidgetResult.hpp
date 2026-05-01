@@ -5,13 +5,13 @@
 
 #include "SimulationCommand.hpp"
 
-namespace gol {
+namespace Golde {
 
 struct WidgetResult {
     std::optional<SimulationCommand> Command{};
     bool FromShortcut = false;
 };
 
-} // namespace gol
+} // namespace Golde
 
 #endif

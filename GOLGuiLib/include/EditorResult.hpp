@@ -8,7 +8,7 @@
 #include "GameEnums.hpp"
 #include "Graphics2D.hpp"
 
-namespace gol {
+namespace Golde {
 struct SimulationStatus {
     SimulationState State = SimulationState::Paint;
     bool OutOfBounds = false;
@@ -35,6 +35,6 @@ struct EditorResult {
     bool Active = true;
     bool Closing = false;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

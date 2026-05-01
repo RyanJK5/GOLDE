@@ -4,7 +4,7 @@
 #include <condition_variable>
 #include <print>
 
-namespace gol {
+namespace Golde {
 
 SimulationWorker::SimulationWorker(size_t cacheIndex)
     : m_CacheIndex(cacheIndex),
@@ -156,4 +156,4 @@ std::chrono::duration<float> SimulationWorker::GetTimeSinceLastUpdate() const {
     return std::chrono::steady_clock::now() -
            m_LastUpdate.load(std::memory_order_relaxed);
 }
-} // namespace gol
+} // namespace Golde

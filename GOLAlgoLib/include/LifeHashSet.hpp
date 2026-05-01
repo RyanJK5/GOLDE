@@ -6,12 +6,12 @@
 #include "Graphics2D.hpp"
 
 template <>
-struct std::hash<gol::Vec2> {
-    size_t operator()(gol::Vec2 vec) const;
+struct std::hash<Golde::Vec2> {
+    size_t operator()(Golde::Vec2 vec) const;
 };
 
-namespace gol {
+namespace Golde {
 using LifeHashSet = ankerl::unordered_dense::set<Vec2>;
-} // namespace gol
+} // namespace Golde
 
 #endif

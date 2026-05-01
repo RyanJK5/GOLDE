@@ -12,7 +12,7 @@
 #include <string_view>
 #include <unordered_map>
 
-namespace gol {
+namespace Golde {
 class LifeAlgorithm {
   public:
     virtual ~LifeAlgorithm() = default;
@@ -30,6 +30,6 @@ class LifeAlgorithm {
 
     virtual std::unique_ptr<LifeAlgorithm> Clone() const = 0;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

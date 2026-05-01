@@ -1,7 +1,7 @@
 #include "HashQuadtree.hpp"
 #include "LifeNode.hpp"
 
-namespace gol {
+namespace Golde {
 HashQuadtree::Iterator::Iterator(const LifeNode* root, Vec2L offset,
                                  int32_t level, bool isEnd, const Rect* bounds)
     : m_Bounds(bounds ? *bounds : Rect{}), m_Current(), m_IsEnd(isEnd),
@@ -104,4 +104,4 @@ typename HashQuadtree::Iterator::pointer
 HashQuadtree::Iterator::operator->() const {
     return &m_Current;
 }
-} // namespace gol
+} // namespace Golde

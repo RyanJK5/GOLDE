@@ -5,7 +5,7 @@
 #include <span>
 #include <string>
 
-namespace gol {
+namespace Golde {
 KeyShortcut::KeyShortcut(ImGuiKeyChord shortcut, bool onRelease,
                          bool allowRepeats)
     : m_Shortcut(shortcut), m_OnRelease(onRelease),
@@ -42,4 +42,4 @@ bool KeyShortcut::Active() {
 
     return result;
 }
-} // namespace gol
+} // namespace Golde

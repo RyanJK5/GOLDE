@@ -1,7 +1,7 @@
 #ifndef DisabledScope_hpp_
 #define DisabledScope_hpp_
 
-namespace gol {
+namespace Golde {
 class DisabledScope {
   public:
     DisabledScope(bool disabled);
@@ -16,6 +16,6 @@ class DisabledScope {
   private:
     bool m_Disabled;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

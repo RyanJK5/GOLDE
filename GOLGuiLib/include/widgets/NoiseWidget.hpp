@@ -13,7 +13,7 @@
 #include "Widget.hpp"
 #include "WidgetResult.hpp"
 
-namespace gol {
+namespace Golde {
 class GenerateNoiseButton : public ActionButton<EditorAction, true> {
   public:
     GenerateNoiseButton(std::span<const ImGuiKeyChord> shortcuts = {})
@@ -45,6 +45,6 @@ class NoiseWidget : public Widget {
 
     GenerateNoiseButton m_Button;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

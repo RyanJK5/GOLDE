@@ -18,7 +18,7 @@
 #include "SimulationControlResult.hpp"
 #include "WarnWindow.hpp"
 
-namespace gol {
+namespace Golde {
 class SimulationEditor {
   public:
     static constexpr float DefaultCellWidth = 20.f;
@@ -112,6 +112,6 @@ class SimulationEditor {
     int32_t frameCounter = 0;
 #endif
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

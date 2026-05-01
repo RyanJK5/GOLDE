@@ -23,7 +23,7 @@
 #include "Plane.hpp"
 #include "Torus.hpp"
 
-namespace gol {
+namespace Golde {
 std::expected<GameGrid, std::string>
 GameGrid::GenerateNoise(Rect bounds, float density, uint32_t warnThreshold) {
     static std::random_device random{};
@@ -279,4 +279,4 @@ void GameGrid::ValidateSortedCache() const {
     m_SortedCacheInvalidated = false;
     std::ranges::sort(m_SortedData, RowMajorEqual{});
 }
-} // namespace gol
+} // namespace Golde

@@ -6,7 +6,7 @@
 #include "LifeRule.hpp"
 #include "Widget.hpp"
 
-namespace gol {
+namespace Golde {
 class RuleWidget : public Widget {
   public:
     RuleWidget();
@@ -32,6 +32,6 @@ class RuleWidget : public Widget {
     ErrorWindow m_InputError;
 };
 
-} // namespace gol
+} // namespace Golde
 
 #endif

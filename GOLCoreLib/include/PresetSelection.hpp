@@ -12,7 +12,7 @@
 #include "GraphicsHandler.hpp"
 #include "PresetSelectionResult.hpp"
 
-namespace gol {
+namespace Golde {
 struct PresetDisplay {
     GameGrid Grid;
     std::string FileName;
@@ -41,6 +41,6 @@ class PresetSelection {
     std::vector<PresetDisplay> m_Library;
     Size2F m_MaxGridDimensions;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

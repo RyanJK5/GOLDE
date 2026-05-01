@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <utility>
 
-namespace gol {
+namespace Golde {
 
 class ShaderManager {
     using IDPair = typename std::pair<unsigned int, unsigned int>;
@@ -60,6 +60,6 @@ class ShaderManager {
   private:
     ShaderControlBlock* m_ControlBlock;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

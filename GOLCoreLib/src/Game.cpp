@@ -29,7 +29,7 @@
 
 #include <vector>
 
-namespace gol {
+namespace Golde {
 OpenGLWindow::OpenGLWindow() : Bounds(0, 0, 0, 0) {
     if (!glfwInit())
         throw GLException("Failed to initialize glfw");
@@ -387,4 +387,4 @@ void Game::CreateEditorDockspace() {
     }
     ImGui::DockBuilderFinish(editorDockspaceID);
 }
-} // namespace gol
+} // namespace Golde

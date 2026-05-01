@@ -16,7 +16,7 @@
 #include "Graphics2D.hpp"
 #include "LifeRule.hpp"
 
-namespace gol::FileEncoder {
+namespace Golde::FileEncoder {
 static std::string EncodeRLE(const GameGrid& grid, Rect region, Vec2 offset) {
     std::string out{};
 
@@ -729,4 +729,4 @@ ReadRegion(const std::filesystem::path& filePath) {
     return DecodeRegion(data, std::numeric_limits<uint32_t>::max(),
                         ParseFileExtension(filePath.extension()));
 }
-} // namespace gol::FileEncoder
+} // namespace Golde::FileEncoder

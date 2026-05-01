@@ -13,7 +13,7 @@
 #include "Widget.hpp"
 #include "WidgetResult.hpp"
 
-namespace gol {
+namespace Golde {
 class CopyButton : public ActionButton<SelectionAction, true> {
   public:
     CopyButton(std::span<const ImGuiKeyChord> shortcuts = {});
@@ -160,6 +160,6 @@ class EditorWidget : public Widget {
     UndoButton m_UndoButton;
     RedoButton m_RedoButton;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

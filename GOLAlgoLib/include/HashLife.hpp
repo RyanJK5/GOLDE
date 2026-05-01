@@ -6,7 +6,7 @@
 #include "HashQuadtree.hpp"
 #include "LifeAlgorithm.hpp"
 
-namespace gol {
+namespace Golde {
 
 class HashLife : public LifeAlgorithm {
   public:
@@ -68,6 +68,6 @@ class HashLife : public LifeAlgorithm {
                                                      SlowHash>
         s_SlowCache;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

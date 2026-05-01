@@ -14,7 +14,7 @@
 #include "Widget.hpp"
 #include "WidgetResult.hpp"
 
-namespace gol {
+namespace Golde {
 class NewFileButton : public ActionButton<EditorAction, true> {
   public:
     NewFileButton(std::span<const ImGuiKeyChord> shortcuts);
@@ -72,6 +72,6 @@ class FileWidget : public Widget {
 
     ErrorWindow m_FileNotOpened;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

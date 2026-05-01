@@ -9,7 +9,7 @@
 #include "SimulationCommand.hpp"
 #include "WidgetResult.hpp"
 
-namespace gol {
+namespace Golde {
 class Widget;
 
 class Widget {
@@ -34,6 +34,6 @@ class Widget {
             result.FromShortcut = update.FromShortcut;
     }
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

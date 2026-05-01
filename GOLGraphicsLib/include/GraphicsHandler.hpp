@@ -19,7 +19,7 @@
 #include "Logging.hpp"
 #include "ShaderManager.hpp"
 
-namespace gol {
+namespace Golde {
 struct GraphicsHandlerArgs {
     Rect ViewportBounds;
     Size2 GridSize;
@@ -326,6 +326,6 @@ void GraphicsHandler::DrawGrid(Vec2 offset,
     GL_DEBUG(glBindVertexArray(0));
 }
 
-} // namespace gol
+} // namespace Golde
 
 #endif

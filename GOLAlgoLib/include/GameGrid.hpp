@@ -15,7 +15,7 @@
 #include "LifeAlgorithm.hpp"
 #include "LifeHashSet.hpp"
 
-namespace gol {
+namespace Golde {
 
 // The class responsible for the Game of Life universe.
 class GameGrid {
@@ -142,6 +142,6 @@ class GameGrid {
 
     BigInt m_Generation{};
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

@@ -13,7 +13,7 @@
 #include "Logging.hpp"
 #include "ShaderManager.hpp"
 
-namespace gol {
+namespace Golde {
 namespace {
 BigInt BigIntFromIntegralDouble(double value) {
     if (value == 0.0) {
@@ -413,4 +413,4 @@ BigRect GraphicsHandler::VisibleBounds(const GraphicsHandlerArgs& args) const {
 
     return BigRect{minX, minY, width, height};
 }
-} // namespace gol
+} // namespace Golde

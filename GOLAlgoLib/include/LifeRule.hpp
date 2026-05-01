@@ -9,7 +9,7 @@
 
 #include "Graphics2D.hpp"
 
-namespace gol {
+namespace Golde {
 
 using namespace std::literals::string_view_literals;
 
@@ -315,5 +315,5 @@ constexpr LifeRule::LifeRule(int32_t birthMask, int32_t surviveMask,
     : m_RuleTable(BuildRuleTable(birthMask, surviveMask)), m_Bounds(bounds),
       m_TopologyKind(topology) {}
 
-} // namespace gol
+} // namespace Golde
 #endif

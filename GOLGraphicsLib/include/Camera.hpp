@@ -6,7 +6,7 @@
 
 #include "Graphics2D.hpp"
 
-namespace gol {
+namespace Golde {
 class GraphicsCamera {
   public:
     // Keep zoom strictly positive to avoid divide-by-zero in transforms.
@@ -32,6 +32,6 @@ class GraphicsCamera {
 
     glm::mat4 OrthographicProjection(Size2 viewSize) const;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

@@ -14,7 +14,7 @@
 #include "GameGrid.hpp"
 #include "HashQuadtree.hpp"
 
-namespace gol {
+namespace Golde {
 class SimulationWorker {
   public:
     SimulationWorker(size_t cacheIndex);
@@ -65,6 +65,6 @@ class SimulationWorker {
 
     std::jthread m_Thread;
 };
-} // namespace gol
+} // namespace Golde
 
 #endif

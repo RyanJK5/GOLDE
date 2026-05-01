@@ -5,7 +5,7 @@
 
 #include "LifeAlgorithm.hpp"
 
-namespace gol {
+namespace Golde {
 
 struct SimulationSettings {
     BigInt StepCount = BigOne;
@@ -15,6 +15,6 @@ struct SimulationSettings {
     bool GridLines = false;
 };
 
-} // namespace gol
+} // namespace Golde
 
 #endif

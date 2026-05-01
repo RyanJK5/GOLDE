@@ -2,7 +2,7 @@
 #include "Plane.hpp"
 #include "Torus.hpp"
 
-namespace gol {
+namespace Golde {
 namespace {
 const LifeNode* CenteredHorizontal(const HashQuadtree& data,
                                    const LifeNode& west, const LifeNode& east) {
@@ -631,4 +631,4 @@ int32_t HashLife::DoOneJump(HashQuadtree& data, int32_t advanceLevel,
 
     return advanced.AdvanceLevel;
 }
-} // namespace gol
+} // namespace Golde

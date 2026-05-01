@@ -15,16 +15,16 @@
     while (glGetError())                                                       \
         ;                                                                      \
     statement;                                                                 \
-    gol::LogGLErrors()
+    Golde::LogGLErrors()
 #define ERROR(str, ...)                                                        \
-    gol::Log(gol::LogCode::Error, std::source_location::current(), str,        \
-             __VA_ARGS__)
+    Golde::Log(Golde::LogCode::Error, std::source_location::current(), str,    \
+               __VA_ARGS__)
 #define WARN(str, ...)                                                         \
-    gol::Log(gol::LogCode::Error, std::source_location::current(), str,        \
-             __VA_ARGS__)
+    Golde::Log(Golde::LogCode::Error, std::source_location::current(), str,    \
+               __VA_ARGS__)
 #define INFO(str, ...)                                                         \
-    gol::Log(gol::LogCode::Info, std::source_location::current(), str,         \
-             __VA_ARGS__)
+    Golde::Log(Golde::LogCode::Info, std::source_location::current(), str,     \
+               __VA_ARGS__)
 #else
 #define GL_DEBUG(statement) statement
 #define ERROR(str, ...)
@@ -32,7 +32,7 @@
 #define INFO(str, ...)
 #endif
 
-namespace gol {
+namespace Golde {
 enum class LogCode { GLError, Error, Warning, Info };
 
 inline LogCode Level = LogCode::Info;
@@ -74,6 +74,6 @@ inline void Log(LogCode code, const std::source_location& location,
 
 void LogGLErrors(
     const std::source_location& location = std::source_location::current());
-} // namespace gol
+} // namespace Golde
 
 #endif

@@ -6,7 +6,7 @@
 
 #include "Graphics2D.hpp"
 
-namespace gol {
+namespace Golde {
 using BigInt = boost::multiprecision::cpp_int;
 
 const inline BigInt BigZero{};
@@ -25,10 +25,10 @@ inline std::strong_ordering operator<=>(const BigInt& lhs, const BigInt& rhs) {
 
 using BigVec2 = GenericVec<BigInt>;
 using BigRect = GenericRect<BigInt>;
-} // namespace gol
+} // namespace Golde
 
 template <>
-struct std::formatter<gol::BigInt> {
+struct std::formatter<Golde::BigInt> {
     constexpr auto parse(std::format_parse_context& ctx) {
         auto it = ctx.begin();
         if (it != ctx.end() && *it == 'L') {
@@ -38,7 +38,7 @@ struct std::formatter<gol::BigInt> {
         return it;
     }
 
-    auto format(const gol::BigInt& num, auto& ctx) const {
+    auto format(const Golde::BigInt& num, auto& ctx) const {
         const std::string str{num.str()};
         std::string_view sv{str};
 

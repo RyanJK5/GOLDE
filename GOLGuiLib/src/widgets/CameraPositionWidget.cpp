@@ -2,7 +2,7 @@
 
 #include <array>
 
-namespace gol {
+namespace Golde {
 WidgetResult CameraPositionWidget::UpdateImpl(const EditorResult& info) {
     constexpr float BasePixelsPerCellAtZoom1 = 20.f;
 
@@ -112,4 +112,4 @@ WidgetResult CameraPositionWidget::UpdateImpl(const EditorResult& info) {
         return WidgetResult{};
     }
 }
-} // namespace gol
+} // namespace Golde

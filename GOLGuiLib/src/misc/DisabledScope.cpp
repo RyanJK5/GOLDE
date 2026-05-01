@@ -2,7 +2,7 @@
 
 #include "DisabledScope.hpp"
 
-namespace gol {
+namespace Golde {
 DisabledScope::DisabledScope(bool disabled) : m_Disabled(disabled) {
     if (m_Disabled) {
         ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
@@ -17,4 +17,4 @@ DisabledScope::~DisabledScope() {
         ImGui::PopItemFlag();
     }
 }
-} // namespace gol
+} // namespace Golde

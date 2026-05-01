@@ -12,7 +12,7 @@
 #include "WidgetResult.hpp"
 using namespace std::chrono_literals;
 
-namespace gol {
+namespace Golde {
 ButtonlessShortcuts::ButtonlessShortcuts(
     const std::vector<ImGuiKeyChord>& left,
     const std::vector<ImGuiKeyChord>& right,
@@ -141,4 +141,4 @@ SimulationControlResult SimulationControl::Update(const EditorResult& state) {
                          .GridLines = m_DelayWidget.ShowGridLines()},
             .FromShortcut = fromShortcut};
 }
-} // namespace gol
+} // namespace Golde
