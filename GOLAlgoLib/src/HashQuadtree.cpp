@@ -745,8 +745,8 @@ const LifeNode* HashQuadtree::FindOrCreate(const LifeNode* nw,
                                            const LifeNode* ne,
                                            const LifeNode* sw,
                                            const LifeNode* se) const {
-    LifeNodeKey key{nw, ne, sw, se};
-    if (const auto itr = s_Cache[s_CacheIndex].NodeMap.find(key);
+    LifeNode key{nw, ne, sw, se};
+    if (const auto itr = s_Cache[s_CacheIndex].NodeMap.find(&key);
         itr != s_Cache[s_CacheIndex].NodeMap.end()) {
         return itr->first;
     }

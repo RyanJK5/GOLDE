@@ -25,8 +25,7 @@ struct LifeNode {
     constexpr LifeNode(const LifeNode* nw, const LifeNode* ne,
                        const LifeNode* sw, const LifeNode* se);
 
-    // Computes a hash from 4 child pointers. Exposed so LifeNodeKey can reuse
-    // it without constructing a full LifeNode.
+    // Computes a hash from 4 child pointers.
     static uint64_t ComputeHash(const LifeNode* nw, const LifeNode* ne,
                                 const LifeNode* sw, const LifeNode* se);
 };
@@ -38,20 +37,6 @@ constexpr inline const LifeNode* FalseNode = nullptr;
 struct NodeUpdateInfo {
     const LifeNode* Node;
     int32_t AdvanceLevel;
-};
-
-// Lightweight key for heterogeneous lookup into NodeMap.
-// Avoids constructing a full LifeNode (which computes Population) on every
-// lookup.
-struct LifeNodeKey {
-    const LifeNode* NorthWest;
-    const LifeNode* NorthEast;
-    const LifeNode* SouthWest;
-    const LifeNode* SouthEast;
-    uint64_t Hash;
-
-    LifeNodeKey(const LifeNode* nw, const LifeNode* ne, const LifeNode* sw,
-                const LifeNode* se);
 };
 
 // Extracts the four 16-bit quadrant encodings from a level-3 node.
@@ -78,17 +63,11 @@ struct LifeNodeEqual {
     using is_transparent = void; // Flag for ankerl::unordered_dense
 
     bool operator()(const LifeNode* lhs, const LifeNode* rhs) const;
-
-    // Heterogeneous overload: compare LifeNode* against LifeNodeKey
-    bool operator()(const LifeNode* lhs, const LifeNodeKey& rhs) const;
-
-    bool operator()(const LifeNodeKey& lhs, const LifeNode* rhs) const;
 };
 
 struct LifeNodeHash {
     using is_transparent = void;
     size_t operator()(const LifeNode* node) const;
-    size_t operator()(const LifeNodeKey& key) const;
 };
 
 // Block-based arena for append-only LifeNode storage. Provides pointer
