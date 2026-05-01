@@ -3,7 +3,7 @@
 
 #include "LifeRule.hpp"
 
-namespace gol {
+namespace Golde {
 
 TEST(LifeRuleTest, ValidConwayRule) {
     const auto rule = LifeRule::Make("B3/S23");
@@ -97,4 +97,4 @@ TEST(LifeRuleTest, RejectZeroBounds) {
     EXPECT_EQ(LifeRule::Canonicalize("B1/S000:T0,0"), "B1/S0"sv);
 }
 
-} // namespace gol
+} // namespace Golde

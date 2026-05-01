@@ -5,7 +5,7 @@
 
 #include "FileFormatHandler.hpp"
 
-namespace gol {
+namespace Golde {
 namespace {
 struct PatternCase {
     std::string_view FileName;
@@ -66,4 +66,4 @@ INSTANTIATE_TEST_SUITE_P(
                 LifeHashSet{{2, 1}, {3, 2}, {1, 3}, {2, 3}, {3, 3}},
             .StepCount = 4}));
 
-} // namespace gol
+} // namespace Golde

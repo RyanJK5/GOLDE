@@ -5,7 +5,7 @@
 #include "Plane.hpp"
 #include "Torus.hpp"
 
-namespace gol {
+namespace Golde {
 namespace {
 class DummyDataStructure : public LifeDataStructure {
   public:
@@ -100,4 +100,4 @@ TEST(TopologyTest, Log2MaxIncrementDependsOnBounds) {
     EXPECT_EQ(boundedTorus.Log2MaxIncrement(BigInt{16}), 0);
 }
 
-} // namespace gol
+} // namespace Golde

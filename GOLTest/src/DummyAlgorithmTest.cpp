@@ -6,7 +6,7 @@
 #include "Plane.hpp"
 #include "Torus.hpp"
 
-namespace gol {
+namespace Golde {
 namespace {
 class DummyDataStructure : public LifeDataStructure {
   public:
@@ -126,4 +126,4 @@ TEST(DummyAlgorithmTest, ZeroStepsDoNotMutate) {
     EXPECT_TRUE(tree.empty());
 }
 
-} // namespace gol
+} // namespace Golde
