@@ -118,8 +118,7 @@ class LifeNodeArena {
 constexpr LifeNode::LifeNode(const LifeNode* nw, const LifeNode* ne,
                              const LifeNode* sw, const LifeNode* se)
     : NorthWest(nw), NorthEast(ne), SouthWest(sw), SouthEast(se) {
-    if consteval {
-    } else {
+    if !consteval {
         IsEmpty = (nw ? nw->IsEmpty : true) && (ne ? ne->IsEmpty : true) &&
                   (sw ? sw->IsEmpty : true) && (se ? se->IsEmpty : true);
         Hash = ComputeHash(NorthWest, NorthEast, SouthWest, SouthEast);

@@ -35,7 +35,7 @@ WidgetResult CameraPositionWidget::UpdateImpl(const EditorResult& info) {
 
     ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, ImGui::GetFontSize());
 
-    const auto inputPixelsPerCell = BasePixelsPerCellAtZoom1 * info.Zoom;
+    const auto inputPixelsPerCell = basePixelsPerCellAtZoom1 * info.Zoom;
     const bool showPixelsPerCell = (inputPixelsPerCell >= 1.f);
 
     const auto separatorWidth = ImGui::CalcTextSize(" : ").x;
@@ -65,13 +65,13 @@ WidgetResult CameraPositionWidget::UpdateImpl(const EditorResult& info) {
             const auto newZoom = [&] {
                 if (showPixelsPerCell) {
                     // Canonical side: leftValue is the new pixelsPerCell
-                    return leftValue / BasePixelsPerCellAtZoom1;
+                    return leftValue / basePixelsPerCellAtZoom1;
                 } else {
                     // "1" side: user entered N, ratio 1:cellsPerPixel scaled to
                     // N:cellsPerPixel, normalized back to 1:(cellsPerPixel/N),
                     // i.e. zoom scales by N
                     return leftValue * inputPixelsPerCell /
-                           BasePixelsPerCellAtZoom1;
+                           basePixelsPerCellAtZoom1;
                 }
             }();
             if (newZoom != info.Zoom && newZoom > 0.f)
@@ -94,12 +94,12 @@ WidgetResult CameraPositionWidget::UpdateImpl(const EditorResult& info) {
             float newZoom;
             if (!showPixelsPerCell) {
                 // Canonical side: rightValue is the new cellsPerPixel
-                newZoom = 1.f / (rightValue * BasePixelsPerCellAtZoom1);
+                newZoom = 1.f / (rightValue * basePixelsPerCellAtZoom1);
             } else {
                 // "1" side: user entered N, ratio pixelsPerCell:N normalized to
                 // (pixelsPerCell/N):1
                 newZoom = (inputPixelsPerCell / rightValue) /
-                          BasePixelsPerCellAtZoom1;
+                          basePixelsPerCellAtZoom1;
             }
             if (newZoom != info.Zoom && newZoom > 0.f)
                 return WidgetResult{.Command =
