@@ -36,18 +36,7 @@ WidgetResult CameraPositionWidget::UpdateImpl(const EditorResult& info) {
     ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, ImGui::GetFontSize());
 
     const auto inputPixelsPerCell = BasePixelsPerCellAtZoom1 * info.Zoom;
-    auto pixelsPerCell = inputPixelsPerCell;
-
-    const bool leftDisabled = pixelsPerCell < 1.f;
-    const auto leftID = ImGui::GetID("##CameraZoomLabel");
-    const auto rightID = ImGui::GetID("##RatioLabel");
-
-    if (leftDisabled && ImGui::GetActiveID() == leftID) {
-        ImGui::ClearActiveID();
-    }
-    if (!leftDisabled && ImGui::GetActiveID() == rightID) {
-        ImGui::ClearActiveID();
-    }
+    const bool showPixelsPerCell = (inputPixelsPerCell >= 1.f);
 
     const auto separatorWidth = ImGui::CalcTextSize(" : ").x;
     const auto totalSpacing = ImGui::GetStyle().ItemSpacing.x * 2.0f;
@@ -55,48 +44,69 @@ WidgetResult CameraPositionWidget::UpdateImpl(const EditorResult& info) {
         ImGui::GetContentRegionAvail().x - separatorWidth - totalSpacing;
     const auto inputWidth = availableForInputs * 0.5f;
 
-    auto one = 1.f;
+    // Canonical display: either (pixelsPerCell : 1) or (1 : cellsPerPixel)
+    auto leftValue = showPixelsPerCell ? inputPixelsPerCell : 1.f;
+    auto rightValue = showPixelsPerCell ? 1.f : (1.f / inputPixelsPerCell);
 
-    ImGui::PushItemFlag(ImGuiItemFlags_Disabled, leftDisabled);
-    ImGui::SetNextItemWidth(inputWidth); // Apply the calculated half-width
+    constexpr static auto formatFor = [](float v) {
+        if (v == 1.f)
+            return "%.0f";
+        if (v <= 100.f)
+            return "%.2f";
+        return "%.2e";
+    };
 
-    auto leftReturn = [&] {
-        const char* enabledFormat = (pixelsPerCell <= 100.f) ? "%.2f" : "%.2e";
-        ImGui::InputFloat(
-            "##CameraZoomLabel", leftDisabled ? &one : &pixelsPerCell, 0.f, 0.f,
-            (leftDisabled || pixelsPerCell == 1.f) ? "%.0f" : enabledFormat);
-        if (ImGui::IsItemDeactivatedAfterEdit() &&
-            pixelsPerCell != inputPixelsPerCell && pixelsPerCell > 0.f) {
-            return WidgetResult{
-                .Command = CameraZoomCommand{.Zoom = pixelsPerCell /
-                                                     BasePixelsPerCellAtZoom1}};
+    ImGui::SetNextItemWidth(inputWidth);
+    ImGui::InputFloat("##CameraZoomLeft", &leftValue, 0.f, 0.f,
+                      formatFor(leftValue));
+    ImGui::SetItemTooltip("Zoom is represented as pixels : cells.");
+    auto leftReturn = [&]() -> WidgetResult {
+        if (ImGui::IsItemDeactivatedAfterEdit() && leftValue > 0.f) {
+            const auto newZoom = [&] {
+                if (showPixelsPerCell) {
+                    // Canonical side: leftValue is the new pixelsPerCell
+                    return leftValue / BasePixelsPerCellAtZoom1;
+                } else {
+                    // "1" side: user entered N, ratio 1:cellsPerPixel scaled to
+                    // N:cellsPerPixel, normalized back to 1:(cellsPerPixel/N),
+                    // i.e. zoom scales by N
+                    return leftValue * inputPixelsPerCell /
+                           BasePixelsPerCellAtZoom1;
+                }
+            }();
+            if (newZoom != info.Zoom && newZoom > 0.f)
+                return WidgetResult{.Command =
+                                        CameraZoomCommand{.Zoom = newZoom}};
         }
-        return WidgetResult{};
+        return {};
     }();
-    ImGui::PopItemFlag();
 
     ImGui::SameLine();
     ImGui::Text(" : ");
     ImGui::SameLine();
 
-    auto cellsPerPixel = 1.f / inputPixelsPerCell;
-    ImGui::PushItemFlag(ImGuiItemFlags_Disabled, !leftDisabled);
-    ImGui::SetNextItemWidth(inputWidth); // Apply the calculated half-width
-
-    auto rightReturn = [&] {
-        const char* enabledFormat = (cellsPerPixel <= 100.f) ? "%.2f" : "%.2e";
-        ImGui::InputFloat(
-            "##RatioLabel", leftDisabled ? &cellsPerPixel : &one, 0.f, 0.f,
-            (leftDisabled || cellsPerPixel == 1.f) ? enabledFormat : "%.0f");
-        if (ImGui::IsItemDeactivatedAfterEdit() && cellsPerPixel > 0.f &&
-            cellsPerPixel != 1.f / inputPixelsPerCell) {
-            return WidgetResult{
-                .Command = CameraZoomCommand{
-                    .Zoom = 1.f / (cellsPerPixel * BasePixelsPerCellAtZoom1)}};
+    ImGui::SetNextItemWidth(inputWidth);
+    ImGui::InputFloat("##CameraZoomRight", &rightValue, 0.f, 0.f,
+                      formatFor(rightValue));
+    ImGui::SetItemTooltip("Zoom is represented as pixels : cells.");
+    auto rightReturn = [&]() -> WidgetResult {
+        if (ImGui::IsItemDeactivatedAfterEdit() && rightValue > 0.f) {
+            float newZoom;
+            if (!showPixelsPerCell) {
+                // Canonical side: rightValue is the new cellsPerPixel
+                newZoom = 1.f / (rightValue * BasePixelsPerCellAtZoom1);
+            } else {
+                // "1" side: user entered N, ratio pixelsPerCell:N normalized to
+                // (pixelsPerCell/N):1
+                newZoom = (inputPixelsPerCell / rightValue) /
+                          BasePixelsPerCellAtZoom1;
+            }
+            if (newZoom != info.Zoom && newZoom > 0.f)
+                return WidgetResult{.Command =
+                                        CameraZoomCommand{.Zoom = newZoom}};
         }
-        return WidgetResult{};
+        return {};
     }();
-    ImGui::PopItemFlag();
 
     ImGui::Separator();
     ImGui::PopStyleVar();
