@@ -4,7 +4,7 @@
 
 namespace Golde {
 WidgetResult CameraPositionWidget::UpdateImpl(const EditorResult& info) {
-    constexpr float BasePixelsPerCellAtZoom1 = 20.f;
+    constexpr static auto basePixelsPerCellAtZoom1 = 20.f;
 
     std::array data{m_Position.X, m_Position.Y};
 
