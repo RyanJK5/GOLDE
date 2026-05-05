@@ -159,27 +159,21 @@ uint16_t WindowCenter(uint16_t nw, uint16_t ne, uint16_t sw, uint16_t se) {
 
 HashLife::FirstGenResults
 HashLife::ComputeFirstGeneration(const LeafQuadrants& q) const {
+    const auto& table = s_Rule.Table();
     return {
-        s_Rule.Table()[q.nw],
-        s_Rule.Table()[WindowN(q.nw, q.ne)],
-        s_Rule.Table()[q.ne],
-        s_Rule.Table()[WindowW(q.nw, q.sw)],
-        s_Rule.Table()[WindowCenter(q.nw, q.ne, q.sw, q.se)],
-        s_Rule.Table()[WindowE(q.ne, q.se)],
-        s_Rule.Table()[q.sw],
-        s_Rule.Table()[WindowS(q.sw, q.se)],
-        s_Rule.Table()[q.se],
+        .nw = table[q.nw],
+        .n = table[WindowN(q.nw, q.ne)],
+        .ne = table[q.ne],
+        .w = table[WindowW(q.nw, q.sw)],
+        .center = table[WindowCenter(q.nw, q.ne, q.sw, q.se)],
+        .e = table[WindowE(q.ne, q.se)],
+        .sw = table[q.sw],
+        .s = table[WindowS(q.sw, q.se)],
+        .se = table[q.se],
     };
 }
 
 namespace {
-// Returns the exponent of the greatest power of two less than `stepSize`.
-constexpr int32_t Log2MaxAdvanceOf(const BigInt& stepSize) {
-    if (stepSize.is_zero())
-        return 0;
-
-    return static_cast<int32_t>(boost::multiprecision::msb(stepSize));
-}
 
 constexpr BigInt BigPow2(int32_t exponent) { return BigOne << exponent; }
 

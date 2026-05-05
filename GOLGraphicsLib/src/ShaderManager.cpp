@@ -94,7 +94,7 @@ uint32_t ShaderManager::CompileShader(uint32_t type,
 
     auto length = 0;
     GL_DEBUG(glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length));
-    
+
     std::string message(static_cast<size_t>(length), '\0');
     GL_DEBUG(glGetShaderInfoLog(id, length, &length, message.data()));
 

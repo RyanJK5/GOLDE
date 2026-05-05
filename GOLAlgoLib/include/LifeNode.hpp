@@ -76,20 +76,18 @@ struct LifeNodeHash {
 // cleared.
 class LifeNodeArena {
   public:
-    template <typename... Args>
-    LifeNode* emplace(Args&&... args);
-
-    // Returns the most recently emplaced node.
-    LifeNode* last() const;
+    const LifeNode* emplace(const LifeNode* nw, const LifeNode* ne,
+                            const LifeNode* sw, const LifeNode* se);
 
     void clear();
 
   private:
-    static constexpr size_t BlockCapacity = 65536 / sizeof(LifeNode);
+    constexpr static auto BlockCapacity = 65536UZ / sizeof(LifeNode);
 
     struct BlockDeleter {
         void operator()(LifeNode* p) const;
     };
+
     std::vector<std::unique_ptr<LifeNode, BlockDeleter>> m_Blocks;
     size_t m_Current = BlockCapacity; // Force first allocation
 };
@@ -109,21 +107,7 @@ constexpr inline LifeNode StaticTrueNode{nullptr, nullptr, nullptr, nullptr};
 
 constexpr inline const LifeNode* TrueNode = &StaticTrueNode;
 
-template <typename... Args>
-LifeNode* LifeNodeArena::emplace(Args&&... args) {
-    if (m_Current == BlockCapacity) {
-        auto* raw = static_cast<LifeNode*>(
-            ::operator new(BlockCapacity * sizeof(LifeNode)));
-        m_Blocks.emplace_back(raw);
-        m_Current = 0;
-    }
-    auto* node = m_Blocks.back().get() + m_Current++;
-    std::construct_at(node, std::forward<Args>(args)...);
-    return node;
-}
-
-template <std::integral T>
-constexpr int64_t Pow2(T exponent) {
+constexpr int64_t Pow2(std::integral auto exponent) {
     return int64_t{1} << exponent;
 }
 

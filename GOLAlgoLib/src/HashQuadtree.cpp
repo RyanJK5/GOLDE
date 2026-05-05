@@ -751,7 +751,8 @@ const LifeNode* HashQuadtree::FindOrCreate(const LifeNode* nw,
         return itr->first;
     }
 
-    auto* node = s_Cache[s_CacheIndex].NodeStorage.emplace(nw, ne, sw, se);
+    const auto* node =
+        s_Cache[s_CacheIndex].NodeStorage.emplace(nw, ne, sw, se);
     s_Cache[s_CacheIndex].NodeMap[node] = nullptr;
     return node;
 }

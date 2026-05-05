@@ -199,8 +199,17 @@ size_t LifeNodeHash::operator()(const LifeNode* node) const {
     return node->Hash;
 }
 
-LifeNode* LifeNodeArena::last() const {
-    return m_Blocks.back().get() + (m_Current - 1);
+const LifeNode* LifeNodeArena::emplace(const LifeNode* nw, const LifeNode* ne,
+                                       const LifeNode* sw, const LifeNode* se) {
+    if (m_Current == BlockCapacity) {
+        auto* raw = static_cast<LifeNode*>(
+            ::operator new(BlockCapacity * sizeof(LifeNode)));
+        m_Blocks.emplace_back(raw);
+        m_Current = 0;
+    }
+    auto* node = m_Blocks.back().get() + m_Current++;
+    std::construct_at(node, nw, ne, sw, se);
+    return node;
 }
 
 void LifeNodeArena::clear() {
