@@ -49,7 +49,8 @@ struct SlowHash {
 };
 
 // The cache used for the HashLife algorithm.
-struct HashLifeCache {
+class HashLifeCache {
+  public:
     // Bump-pointer arena where all LifeNodes are stored. Nodes are only
     // accessed by pointer outside of the cache.
     LifeNodeArena NodeStorage{};
@@ -62,7 +63,36 @@ struct HashLifeCache {
     // size 2^i
     std::vector<const LifeNode*> EmptyNodeCache{};
 
+    // Store the return value in a scope where the node should be protected from
+    // garbage collection.
+    [[nodiscard]] auto ProtectNodeFromGC(const LifeNode* node) {
+        struct GCRootGuard {
+            std::vector<const LifeNode*>& ProtectStack;
+            size_t InitialSize;
+            GCRootGuard(std::vector<const LifeNode*>& stack, const LifeNode* n)
+                : ProtectStack(stack), InitialSize(stack.size()) {
+                ProtectStack.push_back(n);
+            }
+
+            ~GCRootGuard() { ProtectStack.resize(InitialSize); }
+
+            const LifeNode* Protect(const LifeNode* node) {
+                ProtectStack.push_back(node);
+                return node;
+            }
+        };
+
+        return GCRootGuard{m_ProtectedRoots, node};
+    }
+
+    void MarkAndSweep(const LifeNode* root);
+
     HashLifeCache();
+
+  private:
+    std::vector<const LifeNode*> m_ProtectedRoots{};
+
+    void Mark(const LifeNode* node);
 };
 
 // This is the primary data structure for executing the HashLife algorithm. It
@@ -72,7 +102,7 @@ class HashQuadtree : public LifeDataStructure {
   public:
     // The maximum number of distinct caches that can be stored in static
     // memory.
-    constexpr inline static auto MaxCacheCount = 200UZ;
+    constexpr inline static auto MaxCacheCount = 256UZ;
 
     class Iterator {
       private:
@@ -170,6 +200,8 @@ class HashQuadtree : public LifeDataStructure {
 
     Rect FindBoundingBox() const override;
 
+    [[nodiscard]] inline auto ProtectNodeFromGC(const LifeNode* node) const;
+
     // This is the primary interface for interaction with HashLife's cache.
     const LifeNode* FindOrCreate(const LifeNode* nw, const LifeNode* ne,
                                  const LifeNode* sw, const LifeNode* se) const;
@@ -215,8 +247,6 @@ class HashQuadtree : public LifeDataStructure {
                         const BigInt& boundsRight,
                         const BigInt& boundsBottom) const;
 
-    BigInt PopulationOf(const LifeNode* node) const;
-
     // Helper function for converting a LifeHashSet into a quadtree.
     const LifeNode* BuildTreeRegion(std::span<Vec2L> cells, Vec2L pos,
                                     int32_t level);
@@ -251,11 +281,11 @@ class HashQuadtree : public LifeDataStructure {
 
   private:
     static std::array<HashLifeCache, MaxCacheCount> s_Cache;
+    static thread_local size_t s_CacheIndex;
 
     static thread_local ankerl::unordered_dense::map<
         const LifeNode*, BigInt, LifeNodeHash, LifeNodeEqual>
         s_PopulationCache;
-    static thread_local size_t s_CacheIndex;
 
     const LifeNode* m_Root = FalseNode;
 
@@ -379,6 +409,11 @@ void HashQuadtree::ForEachCell(const Func& func, Rect bounds,
     return ForEachImpl(func, node, offset, std::min(m_Depth, 32), minLevel,
                        bounds);
 }
+
+[[nodiscard]] auto HashQuadtree::ProtectNodeFromGC(const LifeNode* node) const {
+    return s_Cache[s_CacheIndex].ProtectNodeFromGC(node);
+}
+
 } // namespace Golde
 
 #endif

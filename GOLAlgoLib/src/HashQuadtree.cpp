@@ -27,6 +27,55 @@ HashLifeCache::HashLifeCache() {
     NodeMap.reserve(1UZ << 20UZ);
 }
 
+void HashLifeCache::Mark(const LifeNode* root) {
+    std::stack<const LifeNode*, std::vector<const LifeNode*>> stack;
+    stack.push(root);
+
+    while (!stack.empty()) {
+        const auto* node = stack.top();
+        stack.pop();
+
+        if (node == FalseNode || node == TrueNode || node->MarkedForGC) {
+            continue;
+        }
+
+        node->MarkedForGC = true;
+
+        if (const auto it = NodeMap.find(node); it != NodeMap.end()) {
+            stack.push(it->second);
+        }
+
+        stack.push(node->NorthWest);
+        stack.push(node->NorthEast);
+        stack.push(node->SouthWest);
+        stack.push(node->SouthEast);
+    }
+}
+
+void HashLifeCache::MarkAndSweep(const LifeNode* root) {
+    Mark(EmptyNodeCache.back());
+    Mark(root);
+    for (const auto* node : m_ProtectedRoots) {
+        Mark(node);
+    }
+
+    decltype(NodeMap) newCache{};
+    newCache.reserve(NodeMap.size());
+
+    auto amountSaved = 0UZ;
+
+    for (auto [key, value] : NodeMap) {
+        if (key != nullptr && key->MarkedForGC) {
+            newCache[key] = value;
+            amountSaved++;
+        }
+    }
+
+    NodeMap = std::move(newCache);
+
+    NodeStorage.SweepGarbage();
+}
+
 std::array<HashLifeCache, HashQuadtree::MaxCacheCount> HashQuadtree::s_Cache{};
 
 thread_local ankerl::unordered_dense::map<const LifeNode*, BigInt, LifeNodeHash,
@@ -108,6 +157,10 @@ bool HashQuadtree::operator!=(const HashQuadtree& other) const {
 }
 
 void HashQuadtree::Set(Vec2 targetPos, bool alive) {
+    if (m_Depth > 4000) {
+        return;
+    }
+
     const auto expansionNeeded = [&] {
         if (m_Depth == 0) {
             return true;
@@ -604,24 +657,6 @@ bool HashQuadtree::empty() const {
     return m_Root == FalseNode || m_Root->IsEmpty;
 }
 
-BigInt HashQuadtree::PopulationOf(const LifeNode* node) const {
-    if (node == FalseNode) {
-        return BigZero;
-    }
-    if (node == TrueNode) {
-        return BigOne;
-    }
-
-    if (auto it = s_PopulationCache.find(node); it != s_PopulationCache.end()) {
-        return it->second;
-    }
-
-    // 4. Insert and return a copy
-    return s_PopulationCache[node] =
-               PopulationOf(node->NorthWest) + PopulationOf(node->NorthEast) +
-               PopulationOf(node->SouthWest) + PopulationOf(node->SouthEast);
-}
-
 HashQuadtree::CenteredNodeResult
 HashQuadtree::GetCenteredNode(int32_t level) const {
     if (m_Depth <= level) {
@@ -655,29 +690,76 @@ const LifeNode* HashQuadtree::ReplaceAlongPath(const LifeNode* node,
         return value;
     }
 
-    const auto* source = (node == FalseNode) ? EmptyTree(level) : node;
+    struct PathFrame {
+        const LifeNode* Node;
+        int32_t Level;
+    };
 
-    const auto* nw = source->NorthWest;
-    const auto* ne = source->NorthEast;
-    const auto* sw = source->SouthWest;
-    const auto* se = source->SouthEast;
+    std::vector<PathFrame> path;
+    path.reserve(static_cast<size_t>(std::max(0, level - targetLevel)));
 
-    switch (quadrant) {
-    case Quadrant::NW:
-        nw = ReplaceAlongPath(nw, level - 1, quadrant, value, targetLevel);
-        break;
-    case Quadrant::NE:
-        ne = ReplaceAlongPath(ne, level - 1, quadrant, value, targetLevel);
-        break;
-    case Quadrant::SW:
-        sw = ReplaceAlongPath(sw, level - 1, quadrant, value, targetLevel);
-        break;
-    case Quadrant::SE:
-        se = ReplaceAlongPath(se, level - 1, quadrant, value, targetLevel);
-        break;
+    const LifeNode* current = node;
+    auto currentLevel = level;
+
+    // Descend along the chosen quadrant, recording the nodes we need to rebuild
+    // on the way back up.
+    while (currentLevel > targetLevel) {
+        path.push_back({current, currentLevel});
+
+        const auto* source =
+            (current == FalseNode) ? EmptyTree(currentLevel) : current;
+
+        switch (quadrant) {
+        case Quadrant::NW:
+            current = source->NorthWest;
+            break;
+        case Quadrant::NE:
+            current = source->NorthEast;
+            break;
+        case Quadrant::SW:
+            current = source->SouthWest;
+            break;
+        case Quadrant::SE:
+            current = source->SouthEast;
+            break;
+        }
+
+        currentLevel--;
     }
 
-    return FindOrCreate(nw, ne, sw, se);
+    // Replace the node at (targetLevel) with the desired value.
+    current = value;
+
+    // Rebuild all parents bottom-up.
+    for (auto [currentNode, currentNodeLevel] : (path | std::views::reverse)) {
+        const auto* source = (currentNode == FalseNode)
+                                 ? EmptyTree(currentNodeLevel)
+                                 : currentNode;
+
+        const auto* nw = source->NorthWest;
+        const auto* ne = source->NorthEast;
+        const auto* sw = source->SouthWest;
+        const auto* se = source->SouthEast;
+
+        switch (quadrant) {
+        case Quadrant::NW:
+            nw = current;
+            break;
+        case Quadrant::NE:
+            ne = current;
+            break;
+        case Quadrant::SW:
+            sw = current;
+            break;
+        case Quadrant::SE:
+            se = current;
+            break;
+        }
+
+        current = FindOrCreate(nw, ne, sw, se);
+    }
+
+    return current;
 }
 
 const LifeNode* HashQuadtree::SetCenteredNode(const LifeNode* outer,
@@ -697,27 +779,117 @@ const LifeNode* HashQuadtree::SetCenteredNode(const LifeNode* outer,
         return outer;
     }
 
+    if (toInsert == FalseNode) {
+        toInsert = EmptyTree(insertLevel);
+    }
+
     const auto childTargetLevel = insertLevel - 1;
 
-    const auto* nw =
-        ReplaceAlongPath(outer->NorthWest, outerLevel - 1, Quadrant::SE,
-                         toInsert->NorthWest, childTargetLevel);
-    const auto* ne =
-        ReplaceAlongPath(outer->NorthEast, outerLevel - 1, Quadrant::SW,
-                         toInsert->NorthEast, childTargetLevel);
-    const auto* sw =
-        ReplaceAlongPath(outer->SouthWest, outerLevel - 1, Quadrant::NE,
-                         toInsert->SouthWest, childTargetLevel);
-    const auto* se =
-        ReplaceAlongPath(outer->SouthEast, outerLevel - 1, Quadrant::NW,
-                         toInsert->SouthEast, childTargetLevel);
+    constexpr std::array<Quadrant, 4> pathQuadrants{Quadrant::SE, Quadrant::SW,
+                                                    Quadrant::NE, Quadrant::NW};
 
-    return FindOrCreate(nw, ne, sw, se);
+    std::array<const LifeNode*, 4> outerChildren{
+        outer->NorthWest, outer->NorthEast, outer->SouthWest, outer->SouthEast};
+    const std::array<const LifeNode*, 4> insertChildren{
+        toInsert->NorthWest, toInsert->NorthEast, toInsert->SouthWest,
+        toInsert->SouthEast};
+
+    for (auto i = 0UZ; i < outerChildren.size(); i++) {
+        outerChildren[i] =
+            ReplaceAlongPath(outerChildren[i], outerLevel - 1, pathQuadrants[i],
+                             insertChildren[i], childTargetLevel);
+    }
+
+    return FindOrCreate(outerChildren[0], outerChildren[1], outerChildren[2],
+                        outerChildren[3]);
 }
 
+// Population is computed iteratively, since it is common to run into stack
+// overflows for large trees.
 const BigInt& HashQuadtree::Population() const {
-    [[maybe_unused]] auto x = PopulationOf(m_Root);
-    return s_PopulationCache[m_Root];
+    const auto* root = m_Root;
+
+    if (root == FalseNode) {
+        return BigZero;
+    }
+    if (root == TrueNode) {
+        return BigOne;
+    }
+
+    if (const auto it = s_PopulationCache.find(root);
+        it != s_PopulationCache.end()) {
+        return it->second;
+    }
+
+    struct Frame {
+        const LifeNode* Node;
+        bool Expanded = false;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(256);
+    stack.push_back({root, false});
+
+    const auto popValueRef = [&](const LifeNode* node) -> const BigInt& {
+        if (node == FalseNode) {
+            return BigZero;
+        }
+        if (node == TrueNode) {
+            return BigOne;
+        }
+        if (const auto it = s_PopulationCache.find(node);
+            it != s_PopulationCache.end()) {
+            return it->second;
+        }
+
+        // Should not be reachable: non-base nodes are only evaluated after
+        // their children have been cached.
+        return BigZero;
+    };
+
+    while (!stack.empty()) {
+        auto& frame = stack.back();
+        const auto* node = frame.Node;
+
+        if (node == FalseNode || node == TrueNode) {
+            stack.pop_back();
+            continue;
+        }
+
+        if (s_PopulationCache.contains(node)) {
+            stack.pop_back();
+            continue;
+        }
+
+        if (!frame.Expanded) {
+            frame.Expanded = true;
+
+            const auto pushChild = [&](const LifeNode* child) {
+                if (child == FalseNode || child == TrueNode) {
+                    return;
+                }
+                if (s_PopulationCache.contains(child)) {
+                    return;
+                }
+                stack.push_back({child, false});
+            };
+
+            pushChild(node->NorthWest);
+            pushChild(node->NorthEast);
+            pushChild(node->SouthWest);
+            pushChild(node->SouthEast);
+            continue;
+        }
+
+        BigInt total = popValueRef(node->NorthWest);
+        total += popValueRef(node->NorthEast);
+        total += popValueRef(node->SouthWest);
+        total += popValueRef(node->SouthEast);
+        s_PopulationCache[node] = std::move(total);
+        stack.pop_back();
+    }
+
+    return s_PopulationCache[root];
 }
 
 HashQuadtree::Iterator HashQuadtree::begin() const {
@@ -750,6 +922,16 @@ const LifeNode* HashQuadtree::FindOrCreate(const LifeNode* nw,
         itr != s_Cache[s_CacheIndex].NodeMap.end()) {
         return itr->first;
     }
+
+#ifdef GOLDE_GARBAGE_COLLECTION
+    if (s_Cache[s_CacheIndex].NodeMap.size() >= 1'000'000) {
+        auto guard1 = s_Cache[s_CacheIndex].ProtectNodeFromGC(nw);
+        auto guard2 = s_Cache[s_CacheIndex].ProtectNodeFromGC(ne);
+        auto guard3 = s_Cache[s_CacheIndex].ProtectNodeFromGC(sw);
+        auto guard4 = s_Cache[s_CacheIndex].ProtectNodeFromGC(se);
+        s_Cache[s_CacheIndex].MarkAndSweep(m_Root);
+    }
+#endif
 
     const auto* node =
         s_Cache[s_CacheIndex].NodeStorage.emplace(nw, ne, sw, se);
@@ -791,11 +973,23 @@ const LifeNode* HashQuadtree::ExpandNode(const LifeNode* node,
         return FindOrCreate(FalseNode, FalseNode, FalseNode, TrueNode);
 
     const auto* empty = level > 0 ? EmptyTree(level - 1) : FalseNode;
+
+#ifdef GOLDE_GARBAGE_COLLECTION
+    auto guard = s_Cache[s_CacheIndex].ProtectNodeFromGC(node);
+    const auto* expandedNW =
+        guard.Protect(FindOrCreate(empty, empty, empty, node->NorthWest));
+    const auto* expandedNE =
+        guard.Protect(FindOrCreate(empty, empty, node->NorthEast, empty));
+    const auto* expandedSW =
+        guard.Protect(FindOrCreate(empty, node->SouthWest, empty, empty));
+    const auto* expandedSE =
+        guard.Protect(FindOrCreate(node->SouthEast, empty, empty, empty));
+#else
     const auto* expandedNW = FindOrCreate(empty, empty, empty, node->NorthWest);
     const auto* expandedNE = FindOrCreate(empty, empty, node->NorthEast, empty);
     const auto* expandedSW = FindOrCreate(empty, node->SouthWest, empty, empty);
     const auto* expandedSE = FindOrCreate(node->SouthEast, empty, empty, empty);
-
+#endif
     return FindOrCreate(expandedNW, expandedNE, expandedSW, expandedSE);
 }
 

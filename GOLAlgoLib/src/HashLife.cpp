@@ -3,9 +3,8 @@
 #include "Torus.hpp"
 
 namespace Golde {
-namespace {
-const LifeNode* CenteredHorizontal(const HashQuadtree& data,
-                                   const LifeNode& west, const LifeNode& east) {
+const LifeNode* HashLife::CenteredHorizontal(const LifeNode& west,
+                                             const LifeNode& east) const {
     // Imagine these two nodes:
     // west:  east:
     // -----  -----
@@ -19,12 +18,12 @@ const LifeNode* CenteredHorizontal(const HashQuadtree& data,
     // -----
     // |D|G|
     // -----
-    return data.FindOrCreate(west.NorthEast, east.NorthWest, west.SouthEast,
-                             east.SouthWest);
+    return m_StepData->FindOrCreate(west.NorthEast, east.NorthWest,
+                                    west.SouthEast, east.SouthWest);
 }
 
-const LifeNode* CenteredVertical(const HashQuadtree& data,
-                                 const LifeNode& north, const LifeNode& south) {
+const LifeNode* HashLife::CenteredVertical(const LifeNode& north,
+                                           const LifeNode& south) const {
     // Imagine these two nodes:
     // north: south:
     // -----  -----
@@ -39,12 +38,11 @@ const LifeNode* CenteredVertical(const HashQuadtree& data,
     // |E|F|
     // -----
 
-    return data.FindOrCreate(north.SouthWest, north.SouthEast, south.NorthWest,
-                             south.NorthEast);
+    return m_StepData->FindOrCreate(north.SouthWest, north.SouthEast,
+                                    south.NorthWest, south.NorthEast);
 }
 
-const LifeNode* CenteredSubNode(const HashQuadtree& data,
-                                const LifeNode& node) {
+const LifeNode* HashLife::CenteredSubNode(const LifeNode& node) const {
     // Imagine this node:
     // ---------
     // |A|B|C|D|
@@ -61,11 +59,10 @@ const LifeNode* CenteredSubNode(const HashQuadtree& data,
     // -----
     // |J|K|
     // -----
-    return data.FindOrCreate(
+    return m_StepData->FindOrCreate(
         node.NorthWest->SouthEast, node.NorthEast->SouthWest,
         node.SouthWest->NorthEast, node.SouthEast->NorthWest);
 }
-} // namespace
 
 namespace {
 // ============================================================================
@@ -213,8 +210,7 @@ uint16_t HashLife::AssembleCentered6x6(const FirstGenResults& gen1) const {
 
 // 8x8 base case for HashLife. Advances a level-3 node by 2 generations,
 // returning a level-2 node (center 4x4).
-const LifeNode* HashLife::AdvanceBase(const HashQuadtree& data,
-                                      const LifeNode* node) const {
+const LifeNode* HashLife::AdvanceBase(const LifeNode* node) const {
     const auto quadrants = EncodeLevel3(node);
     const auto gen1 = ComputeFirstGeneration(quadrants);
 
@@ -236,40 +232,21 @@ const LifeNode* HashLife::AdvanceBase(const HashQuadtree& data,
     const auto resultBits =
         AssembleQuadrants(secondGenNW, secondGenNE, secondGenSW, secondGenSE);
 
-    return DecodeLevel2(data, resultBits);
+    return DecodeLevel2(*m_StepData, resultBits);
 }
 
 // 8x8 base case for 1-generation advancement. Advances a level-3 node
 // by 1 generation, returning a level-2 node (center 4x4).
-const LifeNode* HashLife::AdvanceBaseOneGen(const HashQuadtree& data,
-                                            const LifeNode* node) const {
+const LifeNode* HashLife::AdvanceBaseOneGen(const LifeNode* node) const {
     const auto quadrants = EncodeLevel3(node);
     const auto gen1 = ComputeFirstGeneration(quadrants);
     const auto resultBits = AssembleCentered6x6(gen1);
 
-    return DecodeLevel2(data, resultBits);
+    return DecodeLevel2(*m_StepData, resultBits);
 }
 
-NodeUpdateInfo HashLife::AdvanceNode(const HashQuadtree& data,
-                                     std::stop_token stopToken,
-                                     const LifeNode* node, int32_t level,
-                                     int32_t advanceDepth) const {
-    if (stopToken.stop_requested())
-        return {node, 0};
-    if (node == FalseNode || level < 3)
-        return {node, 0};
-
-    if (advanceDepth >= 0) {
-        if (level - 2 > advanceDepth)
-            return AdvanceSlow(data, stopToken, node, level, advanceDepth);
-    }
-    return AdvanceFast(data, stopToken, node, level, advanceDepth);
-}
-
-NodeUpdateInfo HashLife::AdvanceSlow(const HashQuadtree& data,
-                                     std::stop_token stopToken,
-                                     const LifeNode* node, int32_t level,
-                                     int32_t advanceLevel) const {
+NodeUpdateInfo HashLife::AdvanceSlow(const LifeNode* node,
+                                     int32_t level) const {
     // At a high level, AdvanceSlow will split `node` into an 8x8 grid of
     // subnodes. Then, we can use overlapping components to take the 4x4 grids
     // aligned with each corner, and then advance them into a 2x2 nodes.
@@ -282,24 +259,24 @@ NodeUpdateInfo HashLife::AdvanceSlow(const HashQuadtree& data,
         return {FalseNode, 0};
 
     // At the 8x8 base case, choose between 1-gen and 2-gen advancement.
-    const auto actualLevel = (advanceLevel >= 1) ? 1 : 0;
+    const auto actualLevel = (m_StepAdvanceDepth >= 1) ? 1 : 0;
 
     if (level <= 3) {
-        const auto* result = (advanceLevel >= 1)
-                                 ? AdvanceBase(data, node)
-                                 : AdvanceBaseOneGen(data, node);
+        const auto* result = (m_StepAdvanceDepth >= 1)
+                                 ? AdvanceBase(node)
+                                 : AdvanceBaseOneGen(node);
 
-        if (stopToken.stop_requested()) {
+        if (m_StepStopToken.stop_requested()) {
             return {node, 0};
         }
         // Store under the requested maxAdvance so the same request hits.
-        s_SlowCache[{node, advanceLevel}] = result;
+        s_SlowCache[{node, m_StepAdvanceDepth}] = result;
         // Also store under the actual generations for cross-request reuse.
         return {result, actualLevel};
     }
-    if (const auto it = s_SlowCache.find({node, advanceLevel});
+    if (const auto it = s_SlowCache.find({node, m_StepAdvanceDepth});
         it != s_SlowCache.end()) {
-        return {it->second, advanceLevel};
+        return {it->second, m_StepAdvanceDepth};
     }
 
     constexpr static auto subdivisions = 8;
@@ -332,10 +309,11 @@ NodeUpdateInfo HashLife::AdvanceSlow(const HashQuadtree& data,
     }
 
     const auto combine2x2 = [&](int32_t startX, int32_t startY) {
-        return data.FindOrCreate(segments[index(startX, startY)],
-                                 segments[index(startX + 1, startY)],
-                                 segments[index(startX, startY + 1)],
-                                 segments[index(startX + 1, startY + 1)]);
+        return m_StepData->FindOrCreate(
+            segments[index(startX, startY)],
+            segments[index(startX + 1, startY)],
+            segments[index(startX, startY + 1)],
+            segments[index(startX + 1, startY + 1)]);
     };
 
     const auto buildWindow = [&](int32_t startX, int32_t startY) {
@@ -343,7 +321,7 @@ NodeUpdateInfo HashLife::AdvanceSlow(const HashQuadtree& data,
         const auto* ne = combine2x2(startX + 2, startY);
         const auto* sw = combine2x2(startX, startY + 2);
         const auto* se = combine2x2(startX + 2, startY + 2);
-        return data.FindOrCreate(nw, ne, sw, se);
+        return m_StepData->FindOrCreate(nw, ne, sw, se);
     };
 
     const auto* window00 = buildWindow(1, 1);
@@ -351,111 +329,25 @@ NodeUpdateInfo HashLife::AdvanceSlow(const HashQuadtree& data,
     const auto* window10 = buildWindow(1, 3);
     const auto* window11 = buildWindow(3, 3);
 
-    const auto result00 =
-        AdvanceNode(data, stopToken, window00, level - 1, advanceLevel);
-    const auto result01 =
-        AdvanceNode(data, stopToken, window01, level - 1, advanceLevel);
-    const auto result10 =
-        AdvanceNode(data, stopToken, window10, level - 1, advanceLevel);
-    const auto result11 =
-        AdvanceNode(data, stopToken, window11, level - 1, advanceLevel);
+    const auto result00 = AdvanceNode(window00, level - 1);
+    const auto result01 = AdvanceNode(window01, level - 1);
+    const auto result10 = AdvanceNode(window10, level - 1);
+    const auto result11 = AdvanceNode(window11, level - 1);
 
     const auto newAdvanceLevel = result00.AdvanceLevel;
-    const auto* combined = data.FindOrCreate(result00.Node, result01.Node,
-                                             result10.Node, result11.Node);
+    const auto* combined = m_StepData->FindOrCreate(
+        result00.Node, result01.Node, result10.Node, result11.Node);
 
-    if (stopToken.stop_requested()) {
+    if (m_StepStopToken.stop_requested()) {
         return {node, 0};
     }
 
     // Store under the requested maxAdvance so the same request hits next time.
-    s_SlowCache[{node, advanceLevel}] = combined;
+    s_SlowCache[{node, m_StepAdvanceDepth}] = combined;
     return {combined, newAdvanceLevel};
 }
 
-NodeUpdateInfo HashLife::AdvanceFast(const HashQuadtree& data,
-                                     std::stop_token stopToken,
-                                     const LifeNode* node, int32_t level,
-                                     int32_t advanceLevel) const {
-    // At a high level, we want to assemble a node that is half the size of
-    // `node`, but centered at the same point. By following this logic all the
-    // way down the recursion, we are able to safely advance the entire universe
-    // without having to worry about any cells on the boundary of the universe.
-    // To achieve this end, we create a grid of overlapping cells centered
-    // around `node`'s center, and tactically combine them to form the four
-    // quadrants of the center node that is half the size. THe key to this
-    // process is that the two levels are made by recursively calling
-    // AdvanceFast, which allows for logarithmic time progression.
-
-    if (node == FalseNode)
-        return {FalseNode, 0};
-
-    if (const auto result = data.Find(node)) {
-        return {*result, level - 2};
-    }
-
-    if (level == 3) {
-        const auto* base = AdvanceBase(data, node);
-        data.CacheResult(node, base);
-        return {base, 1};
-    }
-
-    const auto n00 =
-        AdvanceNode(data, stopToken, node->NorthWest, level - 1, advanceLevel);
-    const auto n01 = AdvanceNode(
-        data, stopToken,
-        CenteredHorizontal(data, *node->NorthWest, *node->NorthEast), level - 1,
-        advanceLevel);
-    const auto n02 =
-        AdvanceNode(data, stopToken, node->NorthEast, level - 1, advanceLevel);
-    const auto n10 =
-        AdvanceNode(data, stopToken,
-                    CenteredVertical(data, *node->NorthWest, *node->SouthWest),
-                    level - 1, advanceLevel);
-    const auto n11 = AdvanceNode(data, stopToken, CenteredSubNode(data, *node),
-                                 level - 1, advanceLevel);
-    const auto n12 =
-        AdvanceNode(data, stopToken,
-                    CenteredVertical(data, *node->NorthEast, *node->SouthEast),
-                    level - 1, advanceLevel);
-    const auto n20 =
-        AdvanceNode(data, stopToken, node->SouthWest, level - 1, advanceLevel);
-    const auto n21 = AdvanceNode(
-        data, stopToken,
-        CenteredHorizontal(data, *node->SouthWest, *node->SouthEast), level - 1,
-        advanceLevel);
-    const auto n22 =
-        AdvanceNode(data, stopToken, node->SouthEast, level - 1, advanceLevel);
-
-    const auto topLeft =
-        AdvanceNode(data, stopToken,
-                    data.FindOrCreate(n00.Node, n01.Node, n10.Node, n11.Node),
-                    level - 1, advanceLevel);
-    const auto topRight =
-        AdvanceNode(data, stopToken,
-                    data.FindOrCreate(n01.Node, n02.Node, n11.Node, n12.Node),
-                    level - 1, advanceLevel);
-    const auto bottomLeft =
-        AdvanceNode(data, stopToken,
-                    data.FindOrCreate(n10.Node, n11.Node, n20.Node, n21.Node),
-                    level - 1, advanceLevel);
-    const auto bottomRight =
-        AdvanceNode(data, stopToken,
-                    data.FindOrCreate(n11.Node, n12.Node, n21.Node, n22.Node),
-                    level - 1, advanceLevel);
-
-    const auto* result = data.FindOrCreate(topLeft.Node, topRight.Node,
-                                           bottomLeft.Node, bottomRight.Node);
-
-    if (stopToken.stop_requested()) {
-        return {node, 0};
-    }
-
-    data.CacheResult(node, result);
-    return {result, level - 2};
-}
-
-static bool NeedsExpansion(const LifeNode* node, int32_t level) {
+bool HashLife::NeedsExpansion(const LifeNode* node, int32_t level) const {
     if (node == FalseNode)
         return false;
     if (level <= 3)
@@ -577,19 +469,25 @@ std::unique_ptr<LifeAlgorithm> HashLife::Clone() const {
 
 BigInt HashLife::Step(LifeDataStructure& data, const BigInt& numSteps,
                       std::stop_token stopToken) {
-    auto& hashQuadtree = dynamic_cast<HashQuadtree&>(data);
+    auto* hashQuadtree = dynamic_cast<HashQuadtree*>(&data);
+    if (!hashQuadtree) {
+        return BigZero;
+    }
 
-    if (numSteps.is_zero())
-        return BigPow2(DoOneJump(
-            hashQuadtree, m_Topology->Log2MaxIncrement(numSteps), stopToken));
+    m_StepData = hashQuadtree;
+    m_StepStopToken = stopToken;
+
+    if (numSteps.is_zero()) {
+        m_StepAdvanceDepth = m_Topology->Log2MaxIncrement(numSteps);
+        return BigPow2(DoOneJump<true>());
+    }
 
     BigInt generation{};
     while (generation < numSteps) {
-        const auto advanceLevel =
+        m_StepAdvanceDepth =
             m_Topology->Log2MaxIncrement(numSteps - generation);
 
-        const auto gens =
-            BigPow2(DoOneJump(hashQuadtree, advanceLevel, stopToken));
+        const auto gens = BigPow2(DoOneJump());
         if (stopToken.stop_requested())
             return generation;
         generation += gens;
@@ -598,31 +496,4 @@ BigInt HashLife::Step(LifeDataStructure& data, const BigInt& numSteps,
     return generation;
 }
 
-int32_t HashLife::DoOneJump(HashQuadtree& data, int32_t advanceLevel,
-                            std::stop_token stopToken) {
-    if (data.Data() == FalseNode)
-        return {};
-
-    m_Topology->PrepareBorderCells(data);
-
-    // The condition in this while loop is to prevent freezing when the
-    // user asks for a large step size on a small pattern. For example, running
-    // hyperspeed on a 2x2 block will not cause it to advance particularly fast
-    // since it exhibits no expansion, but if maxAdvance is specified to 2^32,
-    // we can make it happen instantly.
-    const auto* root = data.Data();
-    auto depth = data.CalculateDepth();
-    while (NeedsExpansion(root, depth) || depth - 2 < advanceLevel) {
-        root = data.ExpandNode(root, depth);
-        depth++;
-    }
-
-    const auto advanced =
-        AdvanceNode(data, stopToken, root, depth, advanceLevel);
-
-    data.OverwriteData(advanced.Node, depth - 1);
-    m_Topology->CleanupBorderCells(data);
-
-    return advanced.AdvanceLevel;
-}
 } // namespace Golde

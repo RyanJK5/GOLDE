@@ -90,9 +90,10 @@ Game::Game()
                                                "shortcuts.yml")),
       m_PresetSelection(std::filesystem::current_path() / "presets") {
     m_Editors.emplace_back(std::make_unique<SimulationEditor>(
-        m_EditorCounter++, std::filesystem::path{},
+        m_EditorCounter, std::filesystem::path{},
         Size2{m_Window.Bounds.Width, m_Window.Bounds.Height},
         Size2{DefaultGridWidth, DefaultGridHeight}));
+    m_EditorCounter += 2;
     NFD::Init();
     InitImGUI(std::filesystem::path{"config"} / "style.yml");
 }
@@ -364,9 +365,10 @@ bool Game::CheckForNewEditors(const SimulationControlResult& controlResult) {
         return false;
     }
     m_Editors.emplace_back(std::make_unique<SimulationEditor>(
-        m_EditorCounter++, filePath,
+        m_EditorCounter, filePath,
         Size2{m_Window.Bounds.Width, m_Window.Bounds.Height},
         Size2{DefaultGridWidth, DefaultGridHeight}));
+    m_EditorCounter += 2;
 
     CreateEditorDockspace();
 

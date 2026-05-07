@@ -201,6 +201,16 @@ size_t LifeNodeHash::operator()(const LifeNode* node) const {
 
 const LifeNode* LifeNodeArena::emplace(const LifeNode* nw, const LifeNode* ne,
                                        const LifeNode* sw, const LifeNode* se) {
+    // Reclaim expired nodes that were collected during our GC routine.
+    if (m_DeadNodeHead != nullptr) {
+        auto* ret = m_DeadNodeHead;
+        auto* next = m_DeadNodeHead->NextDead;
+        std::destroy_at(m_DeadNodeHead);
+        std::construct_at(m_DeadNodeHead, nw, ne, sw, se);
+        m_DeadNodeHead = next;
+        return ret;
+    }
+
     if (m_Current == BlockCapacity) {
         auto* raw = static_cast<LifeNode*>(
             ::operator new(BlockCapacity * sizeof(LifeNode)));
@@ -212,9 +222,41 @@ const LifeNode* LifeNodeArena::emplace(const LifeNode* nw, const LifeNode* ne,
     return node;
 }
 
-void LifeNodeArena::clear() {
+void LifeNodeArena::Clear() {
     m_Blocks.clear();
     m_Current = BlockCapacity;
+}
+
+void LifeNodeArena::SweepGarbage() {
+    // If there's leftover garbage from last GC, make sure we're at the tail
+    auto* current = m_DeadNodeHead;
+    while (current && current->NextDead) {
+        current = current->NextDead;
+    }
+
+    for (auto blockIndex = 0UZ; blockIndex < m_Blocks.size(); blockIndex++) {
+        const auto endIndex =
+            (blockIndex == m_Blocks.size() - 1) ? m_Current : BlockCapacity;
+        for (auto i = 0UZ; i < endIndex; i++) {
+            LifeNode* node = m_Blocks[blockIndex].get() + i;
+            if (node == nullptr) {
+                continue;
+            }
+
+            if (!node->MarkedForGC) {
+                node->NextDead = nullptr;
+                if (current == nullptr) {
+                    m_DeadNodeHead = node;
+                    current = node;
+                } else {
+                    current->NextDead = node;
+                    current = current->NextDead;
+                }
+            } else {
+                node->MarkedForGC = false;
+            }
+        }
+    }
 }
 
 void LifeNodeArena::BlockDeleter::operator()(LifeNode* p) const {

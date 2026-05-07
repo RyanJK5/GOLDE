@@ -12,11 +12,14 @@ SimulationWorker::SimulationWorker(size_t cacheIndex)
 
 SimulationWorker::~SimulationWorker() {
     m_RunStopSource.request_stop();
+    m_Thread.request_stop();
+    if (m_Thread.joinable()) {
+        m_Thread.join();
+    }
     HashQuadtree::ClearCache();
 }
 
 void SimulationWorker::ThreadLoop(std::stop_token threadStopToken) {
-    HashQuadtree::SetCacheIndex(m_CacheIndex);
     while (true) {
         {
             std::unique_lock lock{m_ResumeMutex};
@@ -28,12 +31,15 @@ void SimulationWorker::ThreadLoop(std::stop_token threadStopToken) {
             }
             m_ResumeReady = false;
         }
+        HashQuadtree::SetCacheIndex(m_CacheIndex);
 
         auto ruleStr = m_Buffers[0].GetRuleString();
         auto rule = LifeRule::Make(ruleStr);
         if (rule) {
             for (auto i = 0UZ; i < 3UZ; i++) {
-                m_Buffers[i].SetRule(*rule, ruleStr);
+                if (m_Buffers[i].GetRuleString() != ruleStr) {
+                    m_Buffers[i].SetRule(*rule, ruleStr);
+                }
             }
         }
 

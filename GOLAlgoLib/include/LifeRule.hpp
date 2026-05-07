@@ -200,7 +200,7 @@ LifeRule::Canonicalize(std::string_view ruleString) {
 
     for (auto& c : result) {
         if (std::islower(c)) {
-            c = std::toupper(c);
+            c = static_cast<char>(std::toupper(c));
         }
     }
 

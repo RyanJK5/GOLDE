@@ -19,8 +19,13 @@ struct LifeNode {
     const LifeNode* SouthWest;
     const LifeNode* SouthEast;
 
-    uint64_t Hash{}; // Pre-computed hash
+    union {
+        uint64_t Hash{};    // Pre-computed hash
+        LifeNode* NextDead; // For garbage collection
+    };
+
     bool IsEmpty = false;
+    mutable bool MarkedForGC = false;
 
     constexpr LifeNode(const LifeNode* nw, const LifeNode* ne,
                        const LifeNode* sw, const LifeNode* se);
@@ -67,6 +72,7 @@ struct LifeNodeEqual {
 
 struct LifeNodeHash {
     using is_transparent = void;
+    using is_avalanching = void;
     size_t operator()(const LifeNode* node) const;
 };
 
@@ -79,7 +85,9 @@ class LifeNodeArena {
     const LifeNode* emplace(const LifeNode* nw, const LifeNode* ne,
                             const LifeNode* sw, const LifeNode* se);
 
-    void clear();
+    void Clear();
+
+    void SweepGarbage();
 
   private:
     constexpr static auto BlockCapacity = 65536UZ / sizeof(LifeNode);
@@ -89,6 +97,8 @@ class LifeNodeArena {
     };
 
     std::vector<std::unique_ptr<LifeNode, BlockDeleter>> m_Blocks;
+    LifeNode* m_DeadNodeHead = nullptr;
+
     size_t m_Current = BlockCapacity; // Force first allocation
 };
 
