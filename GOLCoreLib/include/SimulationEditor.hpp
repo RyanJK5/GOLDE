@@ -83,12 +83,8 @@ class SimulationEditor {
 
     GraphicsHandler m_Graphics;
 
-    ErrorWindow m_FileErrorWindow;
-    ErrorWindow m_CopyErrorWindow;
-    ErrorWindow m_GenerateNoiseError;
-    WarnWindow m_PasteWarning;
-    WarnWindow m_LoadRuleWarning;
-    WarnWindow m_SaveWarning;
+    ErrorWindow m_ErrorWindow;
+    WarnWindow m_WarnWindow;
 
     std::optional<LoadRuleWarningRequest> m_PendingLoadRuleWarning;
 

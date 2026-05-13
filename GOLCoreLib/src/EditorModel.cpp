@@ -209,8 +209,8 @@ SimulationState EditorModel::HandleRedo() {
     return m_State;
 }
 
-bool EditorModel::HandleSelectionAction(SelectionAction action,
-                                        int32_t nudgeSize) {
+std::expected<void, std::string>
+EditorModel::HandleSelectionAction(SelectionAction action, int32_t nudgeSize) {
     if (action == SelectionAction::SelectAll)
         TryPushVersionChange(m_SelectionManager.Deselect(m_Grid));
 
@@ -222,9 +222,13 @@ bool EditorModel::HandleSelectionAction(SelectionAction action,
                           action == SelectionAction::FlipVertically ||
                           action == SelectionAction::RotateClockwise ||
                           action == SelectionAction::RotateCounterclockwise)) {
-        return false;
+        return std::unexpected{
+            std::format(std::locale{""}, "Tried editing too many cells ({:L})",
+                        SelectedPopulation())};
+    } else if (!actionResult) {
+        return std::unexpected{GenerateDepthError()};
     } else {
-        return true;
+        return {};
     }
 }
 
@@ -606,6 +610,13 @@ EditorModel::ExecuteCommandImmediate(const SimulationCommand& cmd,
             },
             [this, &context](const SelectionCommand& command) {
                 if (command.Action == SelectionAction::Paste) {
+                    if (!m_Grid.ShouldAllowUniverseEdits()) {
+                        return ExecuteCommandResult{
+                            .State = m_State,
+                            .ErrorType = ExecuteCommandErrorType::Paste,
+                            .ErrorMessage = GenerateDepthError()};
+                    }
+
                     const bool hadExistingUniverseData =
                         !m_Grid.Dead() || !SelectedPopulation().is_zero() ||
                         m_Grid.Size() != Size2{};
@@ -657,18 +668,24 @@ EditorModel::ExecuteCommandImmediate(const SimulationCommand& cmd,
                     }
                 }
 
-                if (!HandleSelectionAction(command.Action, command.NudgeSize)) {
+                if (auto cmdResult = HandleSelectionAction(command.Action,
+                                                           command.NudgeSize);
+                    !cmdResult) {
                     return ExecuteCommandResult{
                         .State = m_State,
-                        .ErrorType = ExecuteCommandErrorType::Copy,
-                        .ErrorMessage =
-                            std::format(std::locale{""},
-                                        "Tried editing too many cells ({:L})",
-                                        SelectedPopulation())};
+                        .ErrorType = ExecuteCommandErrorType::FailedEdit,
+                        .ErrorMessage = std::move(cmdResult.error())};
                 }
                 return ExecuteCommandResult{.State = m_State};
             },
             [this](const PaintStrokeCommand& command) {
+                if (!m_Grid.ShouldAllowUniverseEdits()) {
+                    return ExecuteCommandResult{
+                        .State = m_State,
+                        .ErrorType = ExecuteCommandErrorType::FailedEdit,
+                        .ErrorMessage = GenerateDepthError()};
+                }
+
                 if (command.Points.empty()) {
                     return ExecuteCommandResult{.State = m_State};
                 }
@@ -687,6 +704,13 @@ EditorModel::ExecuteCommandImmediate(const SimulationCommand& cmd,
                 return ExecuteCommandResult{.State = m_State};
             }},
         cmd);
+}
+
+std::string EditorModel::GenerateDepthError() const {
+    return std::format(
+        "GOLDE does not currently support stable editing to universes greater "
+        "than 2^4096\ncells across (currently 2^{} cells across)",
+        m_Grid.UniverseDepth());
 }
 
 } // namespace Golde

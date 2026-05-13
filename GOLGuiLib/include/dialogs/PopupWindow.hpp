@@ -11,16 +11,14 @@ enum class PopupWindowState { Success, Failure };
 
 class PopupWindow {
   public:
-    PopupWindow(std::string_view title,
-                std::function<void(PopupWindowState)> onUpdate);
-
     void Update();
 
-    void Activate() { Active = true; }
+    void Activate(std::string_view title, std::string_view message);
 
     void SetCallback(std::function<void(PopupWindowState)> onUpdate);
 
-    std::string Message;
+    std::string Message{};
+    std::string Title{};
 
   protected:
     virtual std::optional<PopupWindowState> ShowButtons() const = 0;
@@ -28,10 +26,9 @@ class PopupWindow {
     ~PopupWindow() = default;
 
   private:
-    std::function<void(PopupWindowState)> m_UpdateCallback;
+    std::function<void(PopupWindowState)> m_UpdateCallback = [](auto) {};
 
     bool Active = false;
-    std::string m_Title;
 };
 } // namespace Golde
 

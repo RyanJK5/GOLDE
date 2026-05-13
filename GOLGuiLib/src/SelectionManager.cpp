@@ -127,7 +127,7 @@ std::optional<CopyResult> SelectionManager::Copy(GameGrid& grid) {
 }
 
 std::optional<CopyResult> SelectionManager::Cut(const GameGrid& grid) {
-    if (!m_Selected)
+    if (!m_Selected || !grid.ShouldAllowUniverseEdits())
         return std::nullopt;
 
     const auto fileFormat = m_Selected->ShouldValidateCache()
@@ -182,7 +182,7 @@ SelectionManager::Paste(const GameGrid& grid, std::string_view clipboardText,
 }
 
 std::optional<VersionState> SelectionManager::Delete(const GameGrid& grid) {
-    if (!m_Selected)
+    if (!m_Selected || !grid.ShouldAllowUniverseEdits())
         return std::nullopt;
 
     m_Selected = std::nullopt;
@@ -194,7 +194,8 @@ std::optional<VersionState> SelectionManager::Delete(const GameGrid& grid) {
 
 std::optional<VersionState> SelectionManager::Rotate(bool clockwise,
                                                      const GameGrid& grid) {
-    if (!m_Selected || !m_Selected->ShouldValidateCache())
+    if (!m_Selected || !m_Selected->ShouldValidateCache() ||
+        !grid.ShouldAllowUniverseEdits())
         return std::nullopt;
 
     auto upperLeft = SelectionBounds().UpperLeft();
@@ -216,7 +217,8 @@ std::optional<VersionState> SelectionManager::Rotate(bool clockwise,
 
 std::optional<VersionState> SelectionManager::Flip(SelectionAction direction,
                                                    const GameGrid& grid) {
-    if (!m_Selected || !m_Selected->ShouldValidateCache())
+    if (!m_Selected || !m_Selected->ShouldValidateCache() ||
+        !grid.ShouldAllowUniverseEdits())
         return std::nullopt;
 
     m_Selected->FlipGrid(direction == SelectionAction::FlipVertically);
@@ -226,7 +228,8 @@ std::optional<VersionState> SelectionManager::Flip(SelectionAction direction,
 
 std::optional<VersionState> SelectionManager::Nudge(Vec2 translation,
                                                     const GameGrid& grid) {
-    if (!m_AnchorSelection || (m_AnchorSelection == m_SentinelSelection))
+    if (!m_AnchorSelection || (m_AnchorSelection == m_SentinelSelection) ||
+        !grid.ShouldAllowUniverseEdits())
         return std::nullopt;
 
     *m_AnchorSelection += translation;
@@ -238,6 +241,10 @@ std::optional<VersionState> SelectionManager::Nudge(Vec2 translation,
 std::optional<VersionState>
 SelectionManager::InsertNoise(const GameGrid& grid, Rect selectionBounds,
                               uint32_t warnThreshold, float density) {
+    if (!grid.ShouldAllowUniverseEdits()) {
+        return std::nullopt;
+    }
+
     auto result =
         GameGrid::GenerateNoise(selectionBounds, density, warnThreshold);
     if (result) {

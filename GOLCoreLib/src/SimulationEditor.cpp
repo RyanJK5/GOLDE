@@ -85,17 +85,8 @@ SimulationEditor::SimulationEditor(uint32_t id,
                                    Size2 windowSize, Size2 gridSize)
     : m_Model(id, path, gridSize),
       m_Graphics(std::filesystem::path("resources") / "shader",
-                 windowSize.Width, windowSize.Height, {0.1f, 0.1f, 0.1f, 1.f}),
-      m_FileErrorWindow("File Error", [](auto) {}),
-      m_CopyErrorWindow("Copy Error", [](auto) {}),
-      m_PasteWarning(
-          "Paste Warning",
-          std::bind_front(&SimulationEditor::PasteWarnUpdated, this)),
-      m_LoadRuleWarning(
-          "Rule Mismatch",
-          std::bind_front(&SimulationEditor::LoadRuleWarnUpdated, this)),
-      m_GenerateNoiseError("Noise Generation Error", [](auto) {}),
-      m_SaveWarning("Save Warning", [](auto) {}) {}
+                 windowSize.Width, windowSize.Height, {0.1f, 0.1f, 0.1f, 1.f}) {
+}
 
 bool SimulationEditor::operator==(const SimulationEditor& other) const {
     return m_Model == other.m_Model;
@@ -125,12 +116,8 @@ SimulationEditor::Update(std::optional<bool> activeOverride,
     m_Graphics.RescaleFrameBuffer(WindowBounds(), ViewportBounds());
     m_Graphics.ClearBackground(graphicsArgs);
 
-    m_PasteWarning.Update();
-    m_LoadRuleWarning.Update();
-    m_CopyErrorWindow.Update();
-    m_GenerateNoiseError.Update();
-    m_FileErrorWindow.Update();
-    m_SaveWarning.Update();
+    m_ErrorWindow.Update();
+    m_WarnWindow.Update();
 
     if (presetArgs.ClipboardText.length() > 0) {
         const auto dispatch = m_Model.CanDispatchEdit();
@@ -482,26 +469,23 @@ void SimulationEditor::ApplyCommandResult(
         switch (commandResult.ErrorType) {
             using enum ExecuteCommandErrorType;
         case Noise:
-            m_GenerateNoiseError.Activate();
-            m_GenerateNoiseError.Message = *commandResult.ErrorMessage;
+            m_ErrorWindow.Activate("Noise Generation Error",
+                                   *commandResult.ErrorMessage);
             break;
         case File:
-            m_FileErrorWindow.Activate();
-            m_FileErrorWindow.Message = *commandResult.ErrorMessage;
+        case Paste:
+            m_ErrorWindow.Activate("File Error", *commandResult.ErrorMessage);
             break;
-        case Copy:
-            m_CopyErrorWindow.Activate();
-            m_CopyErrorWindow.Message = *commandResult.ErrorMessage;
+        case FailedEdit:
+            m_ErrorWindow.Activate("Edit Failed", *commandResult.ErrorMessage);
             break;
         case PasteTooManyCells:
-            m_PasteWarning.Activate();
-            m_PasteWarning.Message =
+            m_WarnWindow.SetCallback(
+                std::bind_front(&SimulationEditor::PasteWarnUpdated, this));
+            m_WarnWindow.Activate(
+                "Paste Warning",
                 std::format("{}\nAre you sure you want to continue?",
-                            *commandResult.ErrorMessage);
-            break;
-        case Paste:
-            m_FileErrorWindow.Activate();
-            m_FileErrorWindow.Message = *commandResult.ErrorMessage;
+                            *commandResult.ErrorMessage));
             break;
         case None:
             break;
@@ -509,8 +493,8 @@ void SimulationEditor::ApplyCommandResult(
     }
     if (commandResult.SaveAsWarning) {
         const auto saveAsRequest = *commandResult.SaveAsWarning;
-        m_SaveWarning.SetCallback([this, path = saveAsRequest.FilePath](
-                                      PopupWindowState state) {
+        m_WarnWindow.SetCallback([this, path = saveAsRequest.FilePath](
+                                     PopupWindowState state) {
             if (state != PopupWindowState::Success)
                 return;
             ExecuteEditorCommand(
@@ -519,8 +503,8 @@ void SimulationEditor::ApplyCommandResult(
                  .PrimaryMouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Left),
                  .ConfirmSaveAsWarning = true});
         });
-        m_SaveWarning.Activate();
-        m_SaveWarning.Message =
+        m_WarnWindow.Activate(
+            "Save Warning",
             std::format(std::locale{""},
                         "This file has {:L} total cells. The saved file will "
                         "be\n"
@@ -529,19 +513,22 @@ void SimulationEditor::ApplyCommandResult(
                         "format may be more efficient. Are you sure you want "
                         "to \n"
                         "continue?",
-                        saveAsRequest.Population);
+                        saveAsRequest.Population));
     }
 
     if (commandResult.LoadRuleWarning) {
         m_PendingLoadRuleWarning = commandResult.LoadRuleWarning;
-        m_LoadRuleWarning.Message = std::format(
-            "The incoming rule does not match the current universe rule.\n\n"
-            "    Current rule:  {}\n"
-            "    Incoming rule: {}\n\n"
-            "Would you like to use the incoming rule?",
-            m_PendingLoadRuleWarning->OriginalRuleString,
-            m_PendingLoadRuleWarning->LoadedRuleString);
-        m_LoadRuleWarning.Activate();
+        m_WarnWindow.SetCallback(
+            std::bind_front(&SimulationEditor::LoadRuleWarnUpdated, this));
+        m_WarnWindow.Activate(
+            "Rule Mismatch",
+            std::format("The incoming rule does not match the current universe "
+                        "rule.\n\n"
+                        "    Current rule:  {}\n"
+                        "    Incoming rule: {}\n\n"
+                        "Would you like to use the incoming rule?",
+                        m_PendingLoadRuleWarning->OriginalRuleString,
+                        m_PendingLoadRuleWarning->LoadedRuleString));
     }
 }
 

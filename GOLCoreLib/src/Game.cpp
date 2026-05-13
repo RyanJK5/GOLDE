@@ -83,11 +83,8 @@ OpenGLWindow::OpenGLWindow() : Bounds(0, 0, 0, 0) {
 OpenGLWindow::~OpenGLWindow() { glfwTerminate(); }
 
 Game::Game()
-    : m_Window(),
-      m_UnsavedWarning("Unsaved Changes",
-                       std::bind_front(&Game::HandleWindowClose, this)),
-      m_Control(ConfigLoader::LoadYAML<ImVec4>(std::filesystem::path{"config"} /
-                                               "shortcuts.yml")),
+    : m_Window(), m_Control(ConfigLoader::LoadYAML<ImVec4>(
+                      std::filesystem::path{"config"} / "shortcuts.yml")),
       m_PresetSelection(std::filesystem::current_path() / "presets") {
     m_Editors.emplace_back(std::make_unique<SimulationEditor>(
         m_EditorCounter, std::filesystem::path{},
@@ -160,8 +157,10 @@ void Game::UpdateEditors(SimulationControlResult& controlResult,
         if (result.Closing && !result.File.HasUnsavedChanges) {
             m_Editors.erase(m_Editors.begin() + i--);
         } else if (result.Closing) {
-            m_UnsavedWarning.Activate();
-            m_UnsavedWarning.Message =
+            m_UnsavedWarning.SetCallback(
+                std::bind_front(&Game::HandleWindowClose, this));
+            m_UnsavedWarning.Activate(
+                "Unsaved Changes",
                 result.File.CurrentFilePath.empty()
                     ? "This file has not been saved. Are you sure you want to "
                       "close "
@@ -169,7 +168,7 @@ void Game::UpdateEditors(SimulationControlResult& controlResult,
                     : std::format(
                           "{} has unsaved changes. Are you sure you want to "
                           "close it without saving?",
-                          result.File.CurrentFilePath.filename().string());
+                          result.File.CurrentFilePath.filename().string()));
             m_Unsaved = m_Editors[i].get();
         }
     }
@@ -330,8 +329,10 @@ bool Game::WindowCanClose() {
                      std::ranges::to<std::vector>();
     std::ranges::sort(fileNames);
 
-    m_UnsavedWarning.Activate();
-    m_UnsavedWarning.Message = "The following files have unsaved changes:";
+    m_UnsavedWarning.SetCallback(
+        std::bind_front(&Game::HandleWindowClose, this));
+    m_UnsavedWarning.Activate("Unsaved Changes",
+                              "The following files have unsaved changes:");
     for (const auto& fileName : fileNames)
         m_UnsavedWarning.Message += std::format("\n- {}", fileName);
     m_UnsavedWarning.Message +=

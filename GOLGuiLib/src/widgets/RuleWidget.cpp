@@ -7,9 +7,7 @@
 
 namespace Golde {
 RuleWidget::RuleWidget()
-    : m_TopologyCombo("##TopologyLabel", "Plane", "Torus"),
-      m_InputError("Invalid Rule",
-                   [this](auto) { m_InputText = m_LastValid; }) {}
+    : m_TopologyCombo("##TopologyLabel", "Plane", "Torus") {}
 
 RuleWidget::RuleInfoChange RuleWidget::ResizeComponent(const EditorResult&) {
     const auto totalWidth = ImGui::GetContentRegionAvail().x / 2.f;
@@ -172,8 +170,8 @@ WidgetResult RuleWidget::UpdateImpl(const EditorResult& state) {
 
     const auto validRule = LifeRule::IsValidRule(m_InputText);
     if (!validRule) {
-        m_InputError.Message = validRule.error();
-        m_InputError.Activate();
+        m_InputError.SetCallback([this](auto) { m_InputText = m_LastValid; });
+        m_InputError.Activate("Invalid Rule", validRule.error());
         return {};
     }
 

@@ -1,5 +1,7 @@
 add_executable(GOLDE src/Application.cpp)
 
+set(DESIRED_STACK_SIZE 16777216)
+
 target_link_libraries(GOLDE PRIVATE
     gol_compiler_options
     GOLCoreLib

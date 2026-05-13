@@ -157,10 +157,6 @@ bool HashQuadtree::operator!=(const HashQuadtree& other) const {
 }
 
 void HashQuadtree::Set(Vec2 targetPos, bool alive) {
-    if (m_Depth > 4000) {
-        return;
-    }
-
     const auto expansionNeeded = [&] {
         if (m_Depth == 0) {
             return true;

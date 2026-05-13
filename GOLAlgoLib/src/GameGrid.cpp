@@ -267,6 +267,14 @@ bool GameGrid::ShouldValidateCache() const {
     return m_HashLifeData.Population() < 100'000'000;
 }
 
+bool GameGrid::ShouldAllowUniverseEdits() const {
+    return UniverseDepth() < 4096;
+}
+
+int32_t GameGrid::UniverseDepth() const {
+    return m_HashLifeData.CalculateDepth();
+}
+
 void GameGrid::ValidateSortedCache() const {
     if (!m_SortedCacheInvalidated) {
         return;

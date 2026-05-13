@@ -124,6 +124,9 @@ class GameGrid {
 
     bool ShouldValidateCache() const;
 
+    bool ShouldAllowUniverseEdits() const;
+    int32_t UniverseDepth() const;
+
   private:
     void ValidateSortedCache() const;
 

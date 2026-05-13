@@ -4,6 +4,7 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <expected>
 #include <filesystem>
 #include <functional>
 #include <future>
@@ -55,7 +56,7 @@ struct LoadRuleWarningRequest {
 enum class ExecuteCommandErrorType {
     None,
     File,
-    Copy,
+    FailedEdit,
     Noise,
     Paste,
     PasteTooManyCells
@@ -102,7 +103,8 @@ class EditorModel {
     SimulationState HandleRuleChange(std::string_view ruleStr);
     SimulationState HandleUndo();
     SimulationState HandleRedo();
-    bool HandleSelectionAction(SelectionAction action, int32_t nudgeSize);
+    std::expected<void, std::string>
+    HandleSelectionAction(SelectionAction action, int32_t nudgeSize);
     bool HandleGenerateNoise(float density, uint32_t warnThreshold);
 
     // File operations
@@ -205,6 +207,9 @@ class EditorModel {
     void TryPushVersionChange(const std::optional<VersionState>& change);
     void TryPushVersionChange(const VersionState& change);
 
+    std::string GenerateDepthError() const;
+
+  private:
     SelectionManager m_SelectionManager;
 
     GameGrid m_Grid;

@@ -77,8 +77,7 @@ FileWidget::FileWidget(const ShortcutMap& shortcutInfo)
     : m_NewFileButton(shortcutInfo.at(EditorAction::NewFile)),
       m_UpdateFileButton(shortcutInfo.at(EditorAction::Save)),
       m_SaveButton(shortcutInfo.at(EditorAction::SaveAsNew)),
-      m_LoadButton(shortcutInfo.at(EditorAction::Load)),
-      m_FileNotOpened("File Not Opened", [](auto) {}) {}
+      m_LoadButton(shortcutInfo.at(EditorAction::Load)) {}
 
 WidgetResult FileWidget::UpdateImpl(const EditorResult& state) {
     m_FileNotOpened.Update();
@@ -136,8 +135,8 @@ WidgetResult FileWidget::UpdateImpl(const EditorResult& state) {
 
     if (!filePath) {
         if (filePath.error().Type == FileFailureType::Error) {
-            m_FileNotOpened.Activate();
-            m_FileNotOpened.Message = filePath.error().Message;
+            m_FileNotOpened.Activate("File Not Opened",
+                                     filePath.error().Message);
         }
         return {};
     }
