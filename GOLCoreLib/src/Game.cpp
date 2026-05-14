@@ -85,7 +85,7 @@ OpenGLWindow::~OpenGLWindow() { glfwTerminate(); }
 Game::Game()
     : m_Window(), m_Control(ConfigLoader::LoadYAML<ImVec4>(
                       std::filesystem::path{"config"} / "shortcuts.yml")),
-      m_PresetSelection(std::filesystem::current_path() / "presets") {
+      m_PresetSelection(std::filesystem::current_path() / "Patterns") {
     m_Editors.emplace_back(std::make_unique<SimulationEditor>(
         m_EditorCounter, std::filesystem::path{},
         Size2{m_Window.Bounds.Width, m_Window.Bounds.Height},
@@ -284,7 +284,7 @@ void Game::InitDockspace(uint32_t dockspaceID, ImVec2 windowSize) {
     auto downID = ImGui::DockBuilderSplitNode(rightID, ImGuiDir_Down, 0.15f,
                                               nullptr, &rightID);
 
-    ImGui::DockBuilderDockWindow("Presets", downID);
+    ImGui::DockBuilderDockWindow("Patterns", downID);
     ImGui::DockBuilderDockWindow("###EditorDockspace", rightID);
     ImGui::DockBuilderDockWindow("Simulation Control", leftID);
     ImGui::DockBuilderFinish(dockspaceID);

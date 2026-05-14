@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <flat_map>
+#include <flat_set>
 #include <string>
 #include <vector>
 
@@ -16,11 +18,18 @@ namespace Golde {
 struct PresetDisplay {
     GameGrid Grid;
     std::string FileName;
+    std::filesystem::path RelativeFolder;
     GraphicsHandler Graphics;
     bool WasHovered = false;
 
     PresetDisplay(const GameGrid& grid, const std::string& fileName,
+                  const std::filesystem::path& relativeFolder,
                   Size2 windowSize);
+};
+
+struct PresetFolderContents {
+    std::flat_set<std::filesystem::path> ChildFolders;
+    std::vector<size_t> Files;
 };
 
 class PresetSelection {
@@ -36,13 +45,18 @@ class PresetSelection {
 
     void RedrawPreset(PresetDisplay& preset, RectF windowBounds, bool hovered);
 
+    std::string CurrentFolderName() const;
+
   private:
     std::filesystem::path m_DefaultPath;
+    std::filesystem::path m_CurrentPath;
     Size2 m_WindowSize;
 
     std::string m_SearchText;
 
     std::vector<PresetDisplay> m_Library;
+    std::flat_map<std::filesystem::path, PresetFolderContents>
+        m_DirectoryContents;
     Size2F m_MaxGridDimensions;
 
     RectF m_LastWindowBounds;

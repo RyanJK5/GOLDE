@@ -58,6 +58,6 @@ add_custom_command(TARGET GOLDE POST_BUILD
 
 add_custom_command(TARGET GOLDE POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_CURRENT_SOURCE_DIR}/presets
-        $<TARGET_FILE_DIR:GOLDE>/presets
+        ${CMAKE_CURRENT_SOURCE_DIR}/Patterns
+        $<TARGET_FILE_DIR:GOLDE>/Patterns
 )

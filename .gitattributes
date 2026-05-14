@@ -6,3 +6,7 @@
 *.lib binary
 *.otf binary
 *.ttf binary
+*.rle binary
+
+*.mc  linguist-generated=true
+*.rle linguist-generated=true
