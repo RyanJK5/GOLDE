@@ -361,7 +361,6 @@ void HashQuadtree::ForEachBigImpl(
     const BigInt& left, const BigInt& top, const BigInt& right,
     const BigInt& bottom, const BigInt& boundsLeft, const BigInt& boundsTop,
     const BigInt& boundsRight, const BigInt& boundsBottom) const {
-    // Intersects check — no temporaries on the bounds side
     if (node == FalseNode || node->IsEmpty || right <= boundsLeft ||
         left >= boundsRight || bottom <= boundsTop || top >= boundsBottom) {
         return;
@@ -381,18 +380,14 @@ void HashQuadtree::ForEachBigImpl(
 
     const auto childLevel = level - 1;
 
-    // NW: (left, top, midX, midY)
     ForEachBigImpl(func, node->NorthWest, childLevel, minLevel, left, top, midX,
                    midY, boundsLeft, boundsTop, boundsRight, boundsBottom);
-    // NE: reuses right, top, midY — one new value is midX
     ForEachBigImpl(func, node->NorthEast, childLevel, minLevel, midX, top,
                    right, midY, boundsLeft, boundsTop, boundsRight,
                    boundsBottom);
-    // SW: reuses left, bottom, midX — one new value is midY
     ForEachBigImpl(func, node->SouthWest, childLevel, minLevel, left, midY,
                    midX, bottom, boundsLeft, boundsTop, boundsRight,
                    boundsBottom);
-    // SE: reuses right, bottom — midX and midY already computed
     ForEachBigImpl(func, node->SouthEast, childLevel, minLevel, midX, midY,
                    right, bottom, boundsLeft, boundsTop, boundsRight,
                    boundsBottom);

@@ -17,6 +17,7 @@ struct PresetDisplay {
     GameGrid Grid;
     std::string FileName;
     GraphicsHandler Graphics;
+    bool WasHovered = false;
 
     PresetDisplay(const GameGrid& grid, const std::string& fileName,
                   Size2 windowSize);
@@ -33,6 +34,8 @@ class PresetSelection {
   private:
     void ReadFiles(const std::filesystem::path& path);
 
+    void RedrawPreset(PresetDisplay& preset, RectF windowBounds, bool hovered);
+  private:
     std::filesystem::path m_DefaultPath;
     Size2 m_WindowSize;
 
@@ -40,6 +43,8 @@ class PresetSelection {
 
     std::vector<PresetDisplay> m_Library;
     Size2F m_MaxGridDimensions;
+
+    RectF m_LastWindowBounds;
 };
 } // namespace Golde
 

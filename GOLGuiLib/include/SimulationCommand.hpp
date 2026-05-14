@@ -33,7 +33,6 @@ struct GenerateNoiseCommand {
 struct UndoCommand {};
 struct RedoCommand {};
 
-// File commands — each bundles its own path
 struct SaveCommand {
     std::filesystem::path FilePath;
 };
@@ -60,7 +59,6 @@ struct CameraZoomCommand {
     float Zoom = 1.f;
 };
 
-// Selection command — wraps the existing SelectionAction enum
 struct SelectionCommand {
     std::string ClipboardText;
     SelectionAction Action;

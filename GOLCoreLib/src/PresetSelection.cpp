@@ -42,7 +42,12 @@ PresetSelectionResult PresetSelection::Update(const EditorResult& info) {
     ImGui::InputTextWithHint("##search", "Search...", &m_SearchText);
 
     ImGui::SameLine();
+
+    bool shouldRefreshDrawings = false;
+
     if (ImGui::Button(ICON_FA_FOLDER_OPEN)) {
+        shouldRefreshDrawings = true;
+
         if (const auto result =
                 FileDialog::SelectFolderDialog(m_DefaultPath.string())) {
             m_Library.clear();
@@ -54,6 +59,7 @@ PresetSelectionResult PresetSelection::Update(const EditorResult& info) {
 
     ImGui::SameLine();
     if (ImGui::Button(ICON_FA_ROTATE)) {
+        shouldRefreshDrawings = true;
         m_Library.clear();
         ReadFiles(m_DefaultPath);
     }
@@ -81,30 +87,18 @@ PresetSelectionResult PresetSelection::Update(const EditorResult& info) {
 
     const auto windowBounds =
         RectF{Vec2F{cursorPos}, Size2F{templateWidth, templateWidth}};
+    if (shouldRefreshDrawings || windowBounds != m_LastWindowBounds) {
+        for (auto& preset : m_Library) {
+            RedrawPreset(preset, windowBounds, false);
+        }
+    }
+    m_LastWindowBounds = windowBounds;
 
     {
         DisabledScope disableIf{!enabled};
         for (auto i = 0UZ; i < m_Library.size(); i++) {
             if (!m_Library[i].FileName.contains(m_SearchText))
                 continue;
-
-            const auto cellSize =
-                std::min({10.f, windowBounds.Width / m_Library[i].Grid.Width(),
-                          windowBounds.Height / m_Library[i].Grid.Height()});
-
-            GraphicsHandlerArgs graphicsArgs{.ViewportBounds = windowBounds,
-                                             .GridSize =
-                                                 m_Library[i].Grid.Size(),
-                                             .CellSize = {cellSize, cellSize},
-                                             .ShowGridLines = false};
-
-            m_Library[i].Graphics.RescaleFrameBuffer(windowBounds,
-                                                     windowBounds);
-            m_Library[i].Graphics.CenterCamera(graphicsArgs);
-            m_Library[i].Graphics.ClearBackground(graphicsArgs);
-
-            m_Library[i].Graphics.DrawGrid(Vec2{}, m_Library[i].Grid.Data(),
-                                           graphicsArgs);
 
             if (numAvailable % numPerRow != 0)
                 ImGui::SameLine();
@@ -126,15 +120,40 @@ PresetSelectionResult PresetSelection::Update(const EditorResult& info) {
                         m_Library[i].Grid, {{0, 0}, m_Library[i].Grid.Size()})
                         .c_str();
 
-            if (ImGui::IsItemHovered())
-                m_Library[i].Graphics.DrawSelection(
-                    {{0, 0}, graphicsArgs.GridSize}, graphicsArgs);
+            const bool isHovered = ImGui::IsItemHovered();
+            if (isHovered || m_Library[i].WasHovered) {
+                m_Library[i].WasHovered = isHovered;
+                RedrawPreset(m_Library[i], windowBounds, isHovered);
+            }
 
             numAvailable++;
         }
     }
     ImGui::End();
     return {.ClipboardText = retString};
+}
+
+void PresetSelection::RedrawPreset(PresetDisplay& preset, RectF windowBounds, bool hovered) {
+    const auto cellSize =
+        std::min({10.f, windowBounds.Width / preset.Grid.Width(),
+                    windowBounds.Height / preset.Grid.Height()});
+
+    GraphicsHandlerArgs graphicsArgs{.ViewportBounds = windowBounds,
+                                        .GridSize =
+                                            preset.Grid.Size(),
+                                        .CellSize = {cellSize, cellSize},
+                                        .ShowGridLines = false};
+
+    preset.Graphics.RescaleFrameBuffer(windowBounds,
+                                                windowBounds);
+    preset.Graphics.CenterCamera(graphicsArgs);
+    preset.Graphics.ClearBackground(graphicsArgs);
+
+    preset.Graphics.DrawGrid(Vec2{}, preset.Grid.Data(),
+                                    graphicsArgs);
+
+    if (hovered)
+        preset.Graphics.DrawSelection({{0, 0}, graphicsArgs.GridSize}, graphicsArgs);
 }
 
 void PresetSelection::ReadFiles(const std::filesystem::path& path) {

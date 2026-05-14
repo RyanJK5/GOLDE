@@ -94,7 +94,7 @@ std::string EncodeLeafNode(const LifeNode* node) {
     for (int r = 0; r < 4; ++r) {
         // NW: bits 15-12 are row 0, 11-8 are row 1, etc.
         uint8_t nwRow = static_cast<uint8_t>((nw >> (12 - r * 4)) & 0xF);
-        // NE: bits 15-12 are row 0, etc. — placed in the low nibble
+        // NE: bits 15-12 are row 0, etc., placed in the low nibble
         uint8_t neRow = static_cast<uint8_t>((ne >> (12 - r * 4)) & 0xF);
         rows[r] = (nwRow << 4) | neRow;
         uint8_t swRow = static_cast<uint8_t>((sw >> (12 - r * 4)) & 0xF);
@@ -141,7 +141,7 @@ void EncodeNode(
     if (node == FalseNode || node->IsEmpty)
         return;
 
-    // Already emitted — nothing to do.
+    // Already emitted
     if (nodeIndex.contains(node))
         return;
 
@@ -238,7 +238,7 @@ bool WriteRegion(const GameGrid& grid, Rect region,
 
 static std::expected<DecodeResult, DecodeError>
 DecodeRLE(std::string_view src, uint32_t warnThreshold) {
-    // 1. Strip comment lines (#C, #c, #N, #O, #R, #P, #r ...).
+    // Strip comment lines (#C, #c, #N, #O, #R, #P, #r ...).
     Vec2 explicitOffset{0, 0};
     bool hasExplicitOffset = false;
 
@@ -297,7 +297,7 @@ DecodeRLE(std::string_view src, uint32_t warnThreshold) {
         lineStart = (lineEnd == std::string::npos) ? src.size() : lineEnd + 1;
     }
 
-    // 2. Parse the header line:  x = W, y = H[, rule = ...]
+    // Parse the header line:  x = W, y = H[, rule = ...]
     int32_t patternWidth = 0, patternHeight = 0;
     std::string ruleString{"B3/S23"};
     {
@@ -359,7 +359,7 @@ DecodeRLE(std::string_view src, uint32_t warnThreshold) {
                                                ruleString, validRule.error())}};
     }
 
-    // 3. Locate the RLE data — everything after the first newline that
+    // Locate the RLE data. Everything after the first newline that
     //    follows the header, up to and including '!'.
     const auto headerNewline = rleBody.find('\n');
     if (headerNewline == std::string::npos) {
@@ -399,7 +399,7 @@ DecodeRLE(std::string_view src, uint32_t warnThreshold) {
 
         switch (ch) {
         case 'b':
-            [[fallthrough]]; // dead cells — just advance X
+            [[fallthrough]]; // dead cells
         case '.':
             if (warnCount <= warnThreshold) {
                 currentX += count;

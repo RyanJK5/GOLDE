@@ -93,13 +93,13 @@ size_t SlowHash::operator()(SlowKey key) const noexcept {
 
     const auto advanceHash = static_cast<uint64_t>(key.AdvanceLevel);
 
-    // 1. Multiplicative combine using the Golden Ratio
+    // Multiplicative combine using the Golden Ratio
     // We shift 'h' to ensure the nodeHash and advanceHash don't
     // just sit in the same bit-lanes before the multiply.
     constexpr static auto GoldenRatio = 0x9E3779B97F4A7C15ULL;
     h ^= (advanceHash * GoldenRatio) + 0x9e3779b9 + (h << 6) + (h >> 2);
 
-    // 2. The "Avalanche": A faster, lighter version of Murmur's mixer.
+    // The "Avalanche": A faster, lighter version of Murmur's mixer.
     // This ensures that changes in AdvanceLevel propagate
     // across the entire 64-bit result.
     h ^= h >> 33;
@@ -439,7 +439,6 @@ const LifeNode* HashQuadtree::ExtractImpl(const LifeNode* node, Vec2L pos,
     const bool unconstrainedX = (region.Width == 0);
     const bool unconstrainedY = (region.Height == 0);
 
-    // No overlap — return empty
     const bool overlapX =
         unconstrainedX ||
         (pos.X < static_cast<int64_t>(region.X) + region.Width &&
