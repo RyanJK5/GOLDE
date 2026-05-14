@@ -133,27 +133,26 @@ PresetSelectionResult PresetSelection::Update(const EditorResult& info) {
     return {.ClipboardText = retString};
 }
 
-void PresetSelection::RedrawPreset(PresetDisplay& preset, RectF windowBounds, bool hovered) {
+void PresetSelection::RedrawPreset(PresetDisplay& preset, RectF windowBounds,
+                                   bool hovered) {
     const auto cellSize =
         std::min({10.f, windowBounds.Width / preset.Grid.Width(),
-                    windowBounds.Height / preset.Grid.Height()});
+                  windowBounds.Height / preset.Grid.Height()});
 
     GraphicsHandlerArgs graphicsArgs{.ViewportBounds = windowBounds,
-                                        .GridSize =
-                                            preset.Grid.Size(),
-                                        .CellSize = {cellSize, cellSize},
-                                        .ShowGridLines = false};
+                                     .GridSize = preset.Grid.Size(),
+                                     .CellSize = {cellSize, cellSize},
+                                     .ShowGridLines = false};
 
-    preset.Graphics.RescaleFrameBuffer(windowBounds,
-                                                windowBounds);
+    preset.Graphics.RescaleFrameBuffer(windowBounds, windowBounds);
     preset.Graphics.CenterCamera(graphicsArgs);
     preset.Graphics.ClearBackground(graphicsArgs);
 
-    preset.Graphics.DrawGrid(Vec2{}, preset.Grid.Data(),
-                                    graphicsArgs);
+    preset.Graphics.DrawGrid(Vec2{}, preset.Grid.Data(), graphicsArgs);
 
     if (hovered)
-        preset.Graphics.DrawSelection({{0, 0}, graphicsArgs.GridSize}, graphicsArgs);
+        preset.Graphics.DrawSelection({{0, 0}, graphicsArgs.GridSize},
+                                      graphicsArgs);
 }
 
 void PresetSelection::ReadFiles(const std::filesystem::path& path) {

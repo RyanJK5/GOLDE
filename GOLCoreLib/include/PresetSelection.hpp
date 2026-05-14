@@ -35,6 +35,7 @@ class PresetSelection {
     void ReadFiles(const std::filesystem::path& path);
 
     void RedrawPreset(PresetDisplay& preset, RectF windowBounds, bool hovered);
+
   private:
     std::filesystem::path m_DefaultPath;
     Size2 m_WindowSize;

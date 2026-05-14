@@ -142,7 +142,6 @@ auto GraphicsHandler::GenerateStateBuffer(
         return {};
     }
 
-
     const auto visibleWorldBounds = VisibleBounds(args);
     const auto boundsX = visibleWorldBounds.X - BigInt{offset.X};
     const auto boundsY = visibleWorldBounds.Y - BigInt{offset.Y};
@@ -163,9 +162,9 @@ auto GraphicsHandler::GenerateStateBuffer(
         const auto bottom = boundsY + boundsHeight;
 
         return boundsX >= int32Min && boundsX <= int32Max &&
-                boundsY >= int32Min && boundsY <= int32Max &&
-                right >= int32Min && right <= int32Max &&
-                bottom >= int32Min && bottom <= int32Max;
+               boundsY >= int32Min && boundsY <= int32Max &&
+               right >= int32Min && right <= int32Max && bottom >= int32Min &&
+               bottom <= int32Max;
     }();
     if (!fitsInt32) {
         minLevel = std::max(minLevel, grid.CalculateDepth() - 500);
@@ -235,7 +234,8 @@ auto GraphicsHandler::GenerateStateBuffer(
                     static_cast<float>(cellScale)};
         }
         const BigRect localBounds{boundsX, boundsY, boundsWidth, boundsHeight};
-        grid.ForEachCell(pushToBuffer, localBounds, std::max(minLevel, grid.CalculateDepth() - 500));
+        grid.ForEachCell(pushToBuffer, localBounds,
+                         std::max(minLevel, grid.CalculateDepth() - 500));
     } else {
         for (const auto vec : grid) {
             pushToBuffer(vec, 1);
