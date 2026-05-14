@@ -456,7 +456,29 @@ DecodeRLE(std::string_view src, uint32_t warnThreshold) {
                             warnCount)}};
     }
 
-    const auto offset = hasExplicitOffset ? explicitOffset : Vec2{0, 0};
+    auto offset = hasExplicitOffset ? explicitOffset : Vec2{0, 0};
+
+    // Some RLE producers (notably Golly, when working in bounded universes)
+    // treat (0,0) as the grid center and will export #CXRLE Pos in that
+    // coordinate space. This project treats (0,0) as the top-left for bounded
+    // universes. When the rule string specifies explicit bounds (e.g.
+    // B3/S23:T600,136), translate center-origin offsets into top-left-origin
+    // offsets to avoid clipping the loaded pattern.
+    if (hasExplicitOffset) {
+        if (const auto dims = LifeRule::ExtractDimensions(ruleString); dims) {
+            if (dims->Width > 0 || dims->Height > 0) {
+                const auto outOfBounds =
+                    (dims->Width > 0 &&
+                     (offset.X < 0 || offset.X >= dims->Width)) ||
+                    (dims->Height > 0 &&
+                     (offset.Y < 0 || offset.Y >= dims->Height));
+
+                if (outOfBounds) {
+                    offset += Vec2{dims->Width / 2, dims->Height / 2};
+                }
+            }
+        }
+    }
 
     result.SetRule(*LifeRule::Make(ruleString), ruleString);
     return DecodeResult{std::move(result), offset};

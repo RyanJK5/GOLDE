@@ -1,5 +1,6 @@
 #include <fstream>
 #include <gtest/gtest.h>
+#include <limits>
 #include <print>
 
 #include "FileFormatHandler.hpp"
@@ -114,6 +115,27 @@ TEST(EncodeTest, EmptyRegionTest) {
 
     EXPECT_TRUE(result->Grid.Data().empty());
     EXPECT_EQ(result->Offset, offset);
+}
+
+TEST(EncodeTest, BoundedTopologyCenterOriginOffsetTranslated) {
+    // Golly exports bounded universes with (0,0) at the center and may
+    // include #CXRLE Pos using that coordinate system. When the rule specifies
+    // explicit bounds (e.g. :T600,136), the decoder should translate the
+    // offset into the project's top-left-origin bounded coordinate system.
+    constexpr std::string_view rle =
+        "#CXRLE Pos = -300, -68\n"
+        "x = 600, y = 136, rule = B3/S23:T600,136\n"
+        "o!\n";
+
+    const auto decoded =
+        FileEncoder::DecodeRegion(rle, std::numeric_limits<uint32_t>::max(),
+                                  FileEncoder::FileFormat::RLE);
+    ASSERT_TRUE(decoded.has_value()) << decoded.error().Message;
+
+    EXPECT_EQ(decoded->Offset, (Vec2{0, 0}));
+    EXPECT_EQ(decoded->Grid.Width(), 600);
+    EXPECT_EQ(decoded->Grid.Height(), 136);
+    EXPECT_EQ(decoded->Grid.GetRuleString(), "B3/S23:T600,136");
 }
 
 TEST(EncodeTest, IgnoresCellsOutsideRegionTest) {
