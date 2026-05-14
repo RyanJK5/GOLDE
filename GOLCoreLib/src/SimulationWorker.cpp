@@ -33,13 +33,17 @@ void SimulationWorker::ThreadLoop(std::stop_token threadStopToken) {
         }
         HashQuadtree::SetCacheIndex(m_CacheIndex);
 
+        // Ensure the worker thread's algorithm sees the current rule.
+        // HashLife uses a `thread_local` cached rule (`s_Rule`) so simply
+        // cloning the algorithm on the main thread does not initialise the
+        // worker thread's thread-local state. Always call `SetRule` on the
+        // worker-side buffers to initialise thread-local state, even if the
+        // rule string already matches.
         auto ruleStr = m_Buffers[0].GetRuleString();
         auto rule = LifeRule::Make(ruleStr);
         if (rule) {
             for (auto i = 0UZ; i < 3UZ; i++) {
-                if (m_Buffers[i].GetRuleString() != ruleStr) {
-                    m_Buffers[i].SetRule(*rule, ruleStr);
-                }
+                m_Buffers[i].SetRule(*rule, ruleStr);
             }
         }
 

@@ -89,8 +89,29 @@ GameGrid::GameGrid(const GameGrid& other, Size2 size)
     m_HashLifeData = HashQuadtree{cropped};
     m_RuleString = other.m_RuleString;
     m_Algorithm = other.m_Algorithm->Clone();
-    m_Algorithm->SetTopology(
-        std::make_unique<Plane>(Rect{0, 0, size.Width, size.Height}));
+
+    // When resizing a bounded universe, keep topology consistent with the
+    // rule string if it encodes explicit bounds (e.g. :T600,136). Otherwise,
+    // fall back to a bounded plane.
+    const Rect newBounds{0, 0, size.Width, size.Height};
+    const auto kind = LifeRule::ExtractTopologyKind(m_RuleString);
+    const auto dims = LifeRule::ExtractDimensions(m_RuleString);
+    const bool matchesExplicitDims = dims && dims->Width == size.Width &&
+                                     dims->Height == size.Height &&
+                                     (size.Width > 0 || size.Height > 0);
+
+    if (kind && matchesExplicitDims) {
+        switch (*kind) {
+        case TopologyKind::Plane:
+            m_Algorithm->SetTopology(std::make_unique<Plane>(newBounds));
+            break;
+        case TopologyKind::Torus:
+            m_Algorithm->SetTopology(std::make_unique<Torus>(newBounds));
+            break;
+        }
+    } else {
+        m_Algorithm->SetTopology(std::make_unique<Plane>(newBounds));
+    }
 }
 
 GameGrid::GameGrid(const GameGrid& other)

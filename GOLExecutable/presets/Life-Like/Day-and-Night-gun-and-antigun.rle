@@ -1,0 +1,25 @@
+#C This is a period 400 rocket gun which demonstrates the symmetry of the
+#C Day/Night rules, and how a signal can be sent across the border between
+#C day and night regions.  Here a period 400 anti-gun destroys every other
+#C rocket from a normal period 200 rocket gun.  Based on a reaction by
+#C Dean Hickerson.
+#C David Bell, April 2009
+x = 107, y = 80, rule = B3678/S34678
+87booboboo$76boo9b7o9boo$76boo10b5o10boo$75b4o8b7o8b4o$75b3obo7b7o7bob
+3o$74b4obo7b7o7bob4o$74b4obo8b5o8bob4o$74b4obo8b5o8bob4o$75b3obo7b7o7b
+ob3o$75b3obo8b5o8bob3o$74b4obo7b7o7bob4o$74b4obo8b5o8bob4o$74b4obo7b7o
+7bob4o$75b3obo7b7o7bob3o$75b4o11bo11b4o$76boo25boo$76boo25boo$89bobo$
+88bobobo$88b5o$89b3o$89b3o$88b5o$89b3o$87bob3obo$87b7o$88b5o$88b5o$89b
+3o$89b3o$90bo$88bobobo$86boob3oboo$86b9o$87b7o$3bobbobbobbobbobbobbobb
+obbobbobbobbobbobbobbobbobbobbobbobbobbobbobbobbobbobbo7b9o$b80o3b13o$
+b80o3bob9obo$82o3b11o$b8o3boo3b65o3bob7obo$b6o12b62o7b5o$5o16b60o6b7o$
+b4o16b61o6b5o$b6ob10ob62o8b3o$8o10b31obboobb26o9bo$b46o4boo4b25o$b46o
+3bobbo3b24o$49obboobb26o$b81o$b80o$81o$b36ob8obb34o$b3obbo3boobobobb
+11ob6obb8o4b22obb7o$4o14b4obboobooboob3o3bobb3obo3bob4o3b13obb7o$b4o
+13b3obo8booboo8boo5bob4o3b22o$4o15b3o39b21o$b4o13b3obo8booboo8boo14b
+21o$4o14b4obboobooboob3o3bobb3obo9boob22o$b3obbo3boobobobb11ob6obb8o8b
+obob22o$b36ob8obbobb4ob24o$50ob28o$b78o$b77o$78o$b76o$b76o$8o10b52obb
+4o$b6ob10ob46obbo4b4o$b4o16b44o6b4o$5o16b43o7b4o$b6o12b45o3boob4o$b8o
+3boo3b45o5boob4o$62o9boo$b59o5b4ob3o$b59o5booboo3boo$3bobbobbobbobbobb
+obbobbobbobbobbobbobbobbobbobbobbobbobbo12boobb3o$70boob4o$71boboo$70b
+oo$70boo!
