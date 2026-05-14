@@ -80,10 +80,10 @@ Start GOLDE and you'll be greeted with an interactive grid and control panel.
 
 ## Gallery
 
-![](docs/breeder.gif)
+![](docs/gun.gif)
 
 
-A simple breeder pattern running for over 10^1000 generations using HashLife.
+A simple glider gun running for over 10^1000 generations using HashLife.
 
 ![](docs/turing_machine.png)
 
