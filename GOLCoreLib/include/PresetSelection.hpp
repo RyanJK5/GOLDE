@@ -3,8 +3,6 @@
 
 #include <cstdint>
 #include <filesystem>
-#include <flat_map>
-#include <flat_set>
 #include <string>
 #include <vector>
 
@@ -28,7 +26,7 @@ struct PresetDisplay {
 };
 
 struct PresetFolderContents {
-    std::flat_set<std::filesystem::path> ChildFolders;
+    std::unordered_set<std::filesystem::path> ChildFolders;
     std::vector<size_t> Files;
 };
 
@@ -55,7 +53,7 @@ class PresetSelection {
     std::string m_SearchText;
 
     std::vector<PresetDisplay> m_Library;
-    std::flat_map<std::filesystem::path, PresetFolderContents>
+    std::unordered_map<std::filesystem::path, PresetFolderContents>
         m_DirectoryContents;
     Size2F m_MaxGridDimensions;
 
