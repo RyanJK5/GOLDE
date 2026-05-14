@@ -258,7 +258,7 @@ DecodeRLE(std::string_view src, uint32_t warnThreshold) {
                                  ? std::string_view{}
                                  : line.substr(firstNonSpace);
 
-        if (!trimmed.empty() && trimmed[0] == '#') {
+        if (trimmed.empty() || trimmed[0] == '#') {
             if (trimmed.starts_with("#CXRLE")) {
                 const auto posField = trimmed.find("Pos");
 
