@@ -21,7 +21,7 @@ GOLDE is a high-performance Conway's Game of Life simulator with an intuitive GU
 - **Customizable Rules**: Experiment with outer-totalistic rules and toroidal topologies
 - **Pattern Editor**: Create and edit patterns with all the quality of life features of a paint program
 - **Customizable Shortcuts**: Edit keyboard shortcuts in real-time through [shortcuts.yml](GOLExecutable/config/shortcuts.yml)
-- **Preset Library**: Pre-loaded classic Game of Life patterns
+- **Pattern Library**: Pre-loaded classic patterns from Golly
 - **Multi-threaded**: Separation of concerns for maximum responsiveness
 - **Cross-platform**: Windows, Linux, and macOS support
 - **Production Quality**: Comprehensive test suite with GTest
