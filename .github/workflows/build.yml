@@ -46,18 +46,34 @@ jobs:
           -D CMAKE_BUILD_TYPE=Release \
           -D CMAKE_C_COMPILER="$LLVM_PATH/bin/clang" \
           -D CMAKE_CXX_COMPILER="$LLVM_PATH/bin/clang++" \
-          -D CMAKE_CXX_FLAGS="-stdlib=libc++"
+          -D CMAKE_CXX_FLAGS="-stdlib=libc++" \
+          -D BUILD_SHARED_LIBS=OFF \
+          -D CMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
+          -D CMAKE_OSX_DEPLOYMENT_TARGET=11.0
+    
+    - name: Configure CMake (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        cmake -B build -G Ninja \
+          -D BUILD_SHARED_LIBS=OFF \
+          -D CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+          
+    - name: Configure CMake (Linux)
+      if: runner.os == 'Linux'
+      run: | 
+        cmake -B build -G Ninja \
+          -D CMAKE_BUILD_TYPE=Release \
+          -D BUILD_SHARED_LIBS=ON \
+          -D CMAKE_POSITION_INDEPENDENT_CODE=ON
+        
 
     - name: Setup MSVC Developer Command Prompt (Windows)
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
 
-    - name: Configure CMake
-      if: runner.os != 'macOS'
-      run: cmake -B build -G Ninja -D CMAKE_BUILD_TYPE=Release
 
     - name: Build
-      run: cmake --build build --parallel
+      run: cmake --build build --parallel --config Release
 
     - name: Test
       run: ctest --test-dir build --build-config Release --output-on-failure
