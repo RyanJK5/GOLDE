@@ -20,10 +20,8 @@ jobs:
             name: windows-msvc
           - os: macos-latest
             name: macos-arm64-clang
-            arch: arm64
-          - os: macos-15-intel
+          - os: macos-26-intel
             name: macos-x86_64-clang
-            arch: x86_64
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4

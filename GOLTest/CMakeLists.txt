@@ -15,20 +15,16 @@ include(GoogleTest)
 gtest_discover_tests(GOLTest
     WORKING_DIRECTORY $<TARGET_FILE_DIR:GOLTest>
     DISCOVERY_MODE PRE_TEST
+    DISCOVERY_TIMEOUT 30
 )
 
 target_link_libraries(GOLTest PRIVATE
     gol_compiler_options
     GOLCoreLib
     GOLGuiLib
-    GOLGraphicsLib
     GOLAlgoLib
     GOLLoggingLib
     imgui_lib
-    glew
-    glfw
-    nfd
-    OpenGL::GL
     GTest::gtest
 )
 
