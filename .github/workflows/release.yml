@@ -51,11 +51,11 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
     
-      - name: Generate Packages
+      - name: Generate
         working-directory: build
         run: cpack -C Release
 
-      - name: Publish Packages
+      - name: Publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
@@ -66,7 +66,7 @@ jobs:
           --title "Release $TAG_NAME" \
           --generate-notes \
           --draft \
-          2>/dev/null || true
+          2>/dev/null
 
           cd build
           for file in *.msi *.zip *.dmg *.tar.gz *.deb *.rpm; do
