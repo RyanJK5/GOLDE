@@ -28,7 +28,7 @@ GOLDE is a high-performance Conway's Game of Life simulator with an intuitive GU
 
 ## Quick Start
 
-If you are on Windows or macOS, download the latest version of GOLDE from the Releases tab.
+If you are on Windows or macOS, download the latest version of GOLDE from the [Releases](https://github.com/RyanJK5/GOLDE/releases/latest) tab.
 
 If you are on Linux or would like to build from source, follow the instructions below.
 

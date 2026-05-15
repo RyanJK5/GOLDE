@@ -1,7 +1,24 @@
 if(APPLE)
-    add_executable(GOLDE MACOSX_BUNDLE src/Application.cpp)
+    set(MACOSX_BUNDLE_ICON_FILE icon.icns)
+    set_source_files_properties(icon.icns PROPERTIES
+        MACOSX_PACKAGE_LOCATION "Resources"
+    )
+
+    add_executable(GOLDE src/Application.cpp icon.icns)
+
+    set_target_properties(GOLDE PROPERTIES
+        MACOSX_BUNDLE $<CONFIG:Release>
+        MACOSX_BUNDLE_BUNDLE_NAME "GOLDE"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_ICON_FILE "icon.icns"
+    )
 elseif(WIN32)
-    add_executable(GOLDE src/Application.cpp src/resources.rc)
+    add_executable(GOLDE src/Application.cpp resources.rc)
+
+    set_target_properties(GOLDE PROPERTIES
+        WIN32_EXECUTABLE $<CONFIG:Release>
+    )
 else()
     add_executable(GOLDE src/Application.cpp)
 endif()
@@ -28,17 +45,12 @@ if(UNIX AND NOT APPLE)
     )
 endif()
 
-# 1. Set the Windows executable property only in Release
-set_target_properties(GOLDE PROPERTIES
-    WIN32_EXECUTABLE $<CONFIG:Release>
-)
-
 # 2. Fix the Entry Point for Windows (MSVC and Clang-cl)
 if(WIN32)
     # look for 'main' instead of 'WinMain'.
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         target_link_options(GOLDE PRIVATE 
-            $<$<CONFIG:Release>:SHELL:-Xlinker /subsystem:windows -Xlinker /ENTRY:mainCRTStartup>
+            $<$<CONFIG:Release>:SHELL:-Xlinker /ENTRY:mainCRTStartup>
         )
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
         target_link_options(GOLDE PRIVATE 
@@ -67,9 +79,9 @@ add_custom_command(TARGET GOLDE POST_BUILD
 )
 
 # Install rules so CPack can package the app and so `make install` works
-install(TARGETS GOLDE DESTINATION .)
+install(TARGETS GOLDE DESTINATION bin)
 
 # Install runtime data (resources/config/patterns)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources DESTINATION .)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/config DESTINATION .)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Patterns DESTINATION .)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources DESTINATION bin)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/config DESTINATION bin)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Patterns DESTINATION bin)

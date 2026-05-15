@@ -48,6 +48,14 @@ set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CM
 # Default generators: ZIP and tar.gz; platform-specific ones appended below
 if(WIN32)
     set(CPACK_GENERATOR "ZIP;WIX")
+
+    # Start Menu shortcut
+    set(CPACK_PACKAGE_EXECUTABLES "GOLDE" "GOLDE")
+    
+    # Desktop shortcut
+    set(CPACK_CREATE_DESKTOP_LINKS "GOLDE")
+
+    set(CPACK_WIX_SKIP_PROGRAM_FOLDER ON)
 elseif(APPLE)
     set(CPACK_GENERATOR "DragNDrop;TGZ")
 elseif(UNIX)
