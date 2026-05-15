@@ -26,7 +26,7 @@ namespace Golde {
 static bool ContainsIgnoreCase(std::string_view string,
                                std::string_view substring) {
     return std::ranges::search(string, substring,
-                               [](unsigned char left, unsigned char right) {
+                               [](char left, char right) {
                                    return std::tolower(left) ==
                                           std::tolower(right);
                                })

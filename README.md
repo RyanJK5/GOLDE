@@ -5,7 +5,7 @@
 [![C++23](https://img.shields.io/badge/C%2B%2B-23-blue.svg)](https://en.cppreference.com/w/cpp/23)
 [![CMake](https://img.shields.io/badge/CMake-3.25+-blue.svg)](https://cmake.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-![Platform: Windows | Linux | macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20-brightgreen.svg)
+![Platform: Windows | Linux | macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux%20-brightgreen.svg)
 
 ![Build Status](https://github.com/RyanJK5/GameOfLife/actions/workflows/build.yml/badge.svg)
 

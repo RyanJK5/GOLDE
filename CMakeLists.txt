@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(GameOfLife VERSION 1.0.0 LANGUAGES CXX)
+project(GOLDE VERSION 1.0.0 LANGUAGES CXX)
 
 include(CTest)
 
@@ -22,6 +22,7 @@ if(UNIX AND NOT APPLE)
     pkg_check_modules(GLX REQUIRED glx)
 endif()
 
+
 # Add dependencies first
 add_subdirectory(Dependencies)
 add_subdirectory(GOLLoggingLib)
@@ -32,5 +33,28 @@ add_subdirectory(GOLCoreLib)
 add_subdirectory(GOLExecutable)
 add_subdirectory(GOLTest)
 
+
 # CLANG FORMAT SETUP
 include("cmake/ClangFormat.cmake")
+
+# --- Basic CPack packaging configuration ---
+set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_VENDOR "${PROJECT_NAME}")
+
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE.txt")
+set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_NAME}")
+
+# Default generators: ZIP and tar.gz; platform-specific ones appended below
+if(WIN32)
+    set(CPACK_GENERATOR "ZIP;WIX")
+elseif(APPLE)
+    set(CPACK_GENERATOR "DragNDrop;TGZ")
+elseif(UNIX)
+    set(CPACK_GENERATOR "DEB;RPM;TGZ")
+endif()
+
+set(CPACK_WIX_VERSION "4") 
+set(CPACK_COMPONENTS_ALL Unspecified)
+
+include(CPack)

@@ -56,6 +56,7 @@ add_library(stb_image INTERFACE)
 target_include_directories(stb_image INTERFACE ${STB_IMAGE_DIR})
 
 # GoogleTest
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/refs/tags/v1.16.0.zip
@@ -69,7 +70,7 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 # Fetch GLFW from source
-include(FetchContent)
+set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
     glfw
     GIT_REPOSITORY https://github.com/glfw/glfw.git
@@ -90,7 +91,7 @@ if(NOT glew_fetch_POPULATED)
     FetchContent_Populate(glew_fetch)
     # Treat glew.c as C++ so we don't require the user to configure a C compiler
     set_source_files_properties(${glew_fetch_SOURCE_DIR}/src/glew.c PROPERTIES LANGUAGE CXX)
-    add_library(glew STATIC ${glew_fetch_SOURCE_DIR}/src/glew.c)
+    add_library(glew STATIC EXCLUDE_FROM_ALL ${glew_fetch_SOURCE_DIR}/src/glew.c)
     target_include_directories(glew SYSTEM PUBLIC ${glew_fetch_SOURCE_DIR}/include)
     target_compile_definitions(glew PUBLIC GLEW_STATIC)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
