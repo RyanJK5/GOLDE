@@ -35,7 +35,7 @@ If you are on Linux or would like to build from source, follow the instructions 
 ### Prerequisites
 
 - **C++23** compiler (MSVC, Clang, or GCC)
-- **CMake 3.25+**
+- **CMake 3.29+**
 - **Ninja** (recommended) or other CMake-compatible build system
 - **OpenGL 4.5+**
 

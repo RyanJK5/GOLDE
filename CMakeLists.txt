@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.29)
 project(GOLDE VERSION 1.0.0 LANGUAGES CXX)
 
 include(CTest)
