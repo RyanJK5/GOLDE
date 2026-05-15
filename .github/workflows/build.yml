@@ -19,7 +19,11 @@ jobs:
           - os: windows-latest
             name: windows-msvc
           - os: macos-latest
-            name: macos-clang
+            name: macos-arm64-clang
+            arch: arm64
+          - os: macos-13
+            name: macos-x86_64-clang
+            arch: x86_64
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -42,14 +46,12 @@ jobs:
       run: |
         brew install llvm ninja
         LLVM_PATH="$(brew --prefix llvm)"
-        SDK_PATH="$(xcrun --show-sdk-path)"
         cmake -B build -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_C_COMPILER="$LLVM_PATH/bin/clang" \
           -DCMAKE_CXX_COMPILER="$LLVM_PATH/bin/clang++" \
-          -DCMAKE_CXX_FLAGS="-stdlib=libc++ -isysroot $SDK_PATH" \
+          -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
           -DBUILD_SHARED_LIBS=OFF \
-          -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
           -DCMAKE_OSX_DEPLOYMENT_TARGET="13.3"
     
     - name: Configure CMake (Windows)

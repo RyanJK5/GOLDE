@@ -44,16 +44,45 @@ jobs:
           wix extension add -g WixToolset.UI.wixext
 
       - name: Fetch Artifacts
+        if: runner.os != 'macOS'
         uses: actions/download-artifact@v4
         with:
           name: build-${{ matrix.name }}
           path: build
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Fetch x86_64 Artifacts (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/download-artifact@v4
+        with:
+          name: build-macos-x86_64-clang
+          path: build-x86_64
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch arm64 Artifacts (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/download-artifact@v4
+        with:
+          name: build-macos-arm64-clang
+          path: build-arm64
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
     
       - name: Generate
+        if: runner.os != 'macOS'
         working-directory: build
         run: cpack -C Release
+
+      - name: Generate (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          lipo -create \
+            build-x86_64/GOLExecutable/GOLDE \
+            build-arm64/GOLExecutable/GOLDE \
+            -output build-arm64/GOLExecutable/GOLDE
+          mv build-arm64 build
 
       - name: Publish
         env:
