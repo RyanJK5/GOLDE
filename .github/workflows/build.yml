@@ -75,7 +75,6 @@ jobs:
 
     - name: Test
       run: |
-        timeout 10 build/GOLTest/GOLTest --gtest_list_tests || echo "Exit code: $?" 
         ctest --test-dir build --build-config Release --output-on-failure
 
     - name: Save Build Artifacts

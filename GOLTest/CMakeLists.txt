@@ -15,7 +15,7 @@ include(GoogleTest)
 gtest_discover_tests(GOLTest
     WORKING_DIRECTORY $<TARGET_FILE_DIR:GOLTest>
     DISCOVERY_MODE PRE_TEST
-    DISCOVERY_TIMEOUT 30
+    DISCOVERY_TIMEOUT 90
 )
 
 target_link_libraries(GOLTest PRIVATE
