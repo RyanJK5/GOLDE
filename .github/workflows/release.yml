@@ -41,6 +41,7 @@ jobs:
         run: | 
           dotnet tool install --global wix
           wix extension add -g WixToolset.UI.wixext
+          wix eula accept wix7
 
       - name: Fetch Artifacts
         uses: actions/download-artifact@v4
@@ -52,8 +53,6 @@ jobs:
     
       - name: Generate Packages
         working-directory: build
-        env:
-          AcceptEula: wix7
         run: cpack -C Release
 
       - name: Publish Packages
