@@ -47,9 +47,7 @@ jobs:
           -DCMAKE_C_COMPILER="$LLVM_PATH/bin/clang" \
           -DCMAKE_CXX_COMPILER="$LLVM_PATH/bin/clang++" \
           -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
-          -DBUILD_SHARED_LIBS=OFF \
-          -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
-          -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3
+          -DBUILD_SHARED_LIBS=OFF
     
     - name: Configure CMake (Windows)
       if: runner.os == 'Windows'
