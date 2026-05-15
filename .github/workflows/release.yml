@@ -1,0 +1,72 @@
+name: Release Packages
+
+on:
+  workflow_run:
+    workflows: ["Build & Test"]
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Package (${{ matrix.name }})
+    if: ${{ github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'v') }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux-gcc
+          - os: windows-latest
+            name: windows-msvc
+          - os: macos-latest
+            name: macos-clang
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Packaging Utilities (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm binutils cmake ninja-build
+
+      - name: Fetch Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-${{ matrix.name }}
+          path: build
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+    
+      - name: Generate Packages
+        working-directory: build
+        env:
+          AcceptEula: wix7
+        run: cpack -C Release
+
+      - name: Publish Packages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          TAG_NAME="${{ github.event.workflow_run.head_branch }}"
+
+          gh release create $TAG_NAME \
+          --title "Release $TAG_NAME" \
+          --generate-notes \
+          --draft \
+          2>/dev/null || true
+
+          cd build
+          for file in *.msi *.zip *.dmg *.tar.gz *.deb *.rpm; do
+              if [ -f "$file" ]; then
+              echo "Uploading $file to Release..."
+              gh release upload $TAG_NAME "$file" --clobber
+              fi
+          done
