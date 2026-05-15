@@ -44,7 +44,15 @@ set(CPACK_PACKAGE_VENDOR "${PROJECT_NAME}")
 set(CPACK_PACKAGE_CONTACT "Ryan Keane <keaner@rpi.edu>")
 
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE.txt")
-set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_NAME}")
+
+if (APPLE)
+    set(GOLDE_SYSTEM_NAME "Mac")
+elseif(WIN32)
+    set(GOLDE_SYSTEM_NAME "Windows")
+else()
+    set(GOLDE_SYSTEM_NAME "Linux")
+endif()
+set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${GOLDE_SYSTEM_NAME}")
 
 # Default generators: ZIP and tar.gz; platform-specific ones appended below
 if(WIN32)
