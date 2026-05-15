@@ -43,28 +43,25 @@ jobs:
         brew install llvm ninja
         LLVM_PATH="$(brew --prefix llvm)"
         cmake -B build -G Ninja \
-          -D CMAKE_BUILD_TYPE=Release \
-          -D CMAKE_C_COMPILER="$LLVM_PATH/bin/clang" \
-          -D CMAKE_CXX_COMPILER="$LLVM_PATH/bin/clang++" \
-          -D CMAKE_CXX_FLAGS="-stdlib=libc++" \
-          -D BUILD_SHARED_LIBS=OFF \
-          -D CMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
-          -D CMAKE_OSX_DEPLOYMENT_TARGET=11.0
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_C_COMPILER="$LLVM_PATH/bin/clang" \
+          -DCMAKE_CXX_COMPILER="$LLVM_PATH/bin/clang++" \
+          -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3
     
     - name: Configure CMake (Windows)
       if: runner.os == 'Windows'
-      run: |
-        cmake -B build -G Ninja \
-          -D BUILD_SHARED_LIBS=OFF \
-          -D CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+      run: cmake -B build -G Ninja -DBUILD_SHARED_LIBS=OFF -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
           
     - name: Configure CMake (Linux)
       if: runner.os == 'Linux'
       run: | 
         cmake -B build -G Ninja \
-          -D CMAKE_BUILD_TYPE=Release \
-          -D BUILD_SHARED_LIBS=ON \
-          -D CMAKE_POSITION_INDEPENDENT_CODE=ON
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=ON \
+          -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         
 
     - name: Setup MSVC Developer Command Prompt (Windows)
