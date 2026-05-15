@@ -36,6 +36,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y rpm binutils cmake ninja-build
 
+      - name: Install WiX (Windows)
+        if: runner.os == 'Windows'
+        run: choco install wixtoolset -y
+
       - name: Fetch Artifacts
         uses: actions/download-artifact@v4
         with:
