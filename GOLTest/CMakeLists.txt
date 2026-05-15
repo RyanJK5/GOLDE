@@ -14,6 +14,7 @@ add_executable(GOLTest ${SOURCES})
 include(GoogleTest)
 gtest_discover_tests(GOLTest
     WORKING_DIRECTORY $<TARGET_FILE_DIR:GOLTest>
+    DISCOVERY_MODE PRE_TEST
 )
 
 target_link_libraries(GOLTest PRIVATE
