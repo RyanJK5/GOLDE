@@ -23,6 +23,12 @@ else()
     add_executable(GOLDE src/Application.cpp)
 endif()
 
+set(GOLDE_RUNTIME_DATA_DIR "$<TARGET_FILE_DIR:GOLDE>")
+
+set(GOLDE_INSTALL_DATA_DIR
+    "$<IF:$<AND:$<PLATFORM_ID:Darwin>,$<CONFIG:Release>>,GOLDE.app/Contents/MacOS,bin>"
+)
+
 target_link_libraries(GOLDE PRIVATE
     gol_compiler_options
     GOLCoreLib
@@ -63,25 +69,32 @@ endif()
 add_custom_command(TARGET GOLDE POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/resources
-        $<TARGET_FILE_DIR:GOLDE>
+        ${GOLDE_RUNTIME_DATA_DIR}/resources
 )
 
 add_custom_command(TARGET GOLDE POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/config
-        $<TARGET_FILE_DIR:GOLDE>
+        ${GOLDE_RUNTIME_DATA_DIR}/config
 )
 
 add_custom_command(TARGET GOLDE POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/Patterns
-        $<TARGET_FILE_DIR:GOLDE>
+        ${GOLDE_RUNTIME_DATA_DIR}/Patterns
 )
 
 # Install rules so CPack can package the app and so `make install` works
-install(TARGETS GOLDE DESTINATION bin)
+if(APPLE)
+    install(TARGETS GOLDE
+        BUNDLE DESTINATION .
+        RUNTIME DESTINATION bin
+    )
+else()
+    install(TARGETS GOLDE DESTINATION bin)
+endif()
 
 # Install runtime data (resources/config/patterns)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources DESTINATION bin)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/config DESTINATION bin)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Patterns DESTINATION bin)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources DESTINATION ${GOLDE_INSTALL_DATA_DIR})
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/config DESTINATION ${GOLDE_INSTALL_DATA_DIR})
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Patterns DESTINATION ${GOLDE_INSTALL_DATA_DIR})
