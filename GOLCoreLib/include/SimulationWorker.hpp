@@ -46,10 +46,10 @@ class SimulationWorker {
 
     std::atomic<int64_t> m_TickDelayMs = 0;
 
-    std::atomic<std::chrono::steady_clock::time_point> m_LastUpdate;
+    std::atomic<std::chrono::steady_clock::time_point> m_LastUpdate{};
 
     std::array<GameGrid, 3> m_Buffers{}; // Triple buffer pattern
-    std::atomic<size_t> m_SnapshotIndex;
+    std::atomic<size_t> m_SnapshotIndex{};
 
     std::function<void()> m_OnStop;
     bool m_OneStep = false;

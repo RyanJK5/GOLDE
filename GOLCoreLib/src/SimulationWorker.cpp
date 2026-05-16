@@ -124,6 +124,8 @@ void SimulationWorker::Start(GameGrid& initialGrid, bool oneStep,
     m_Buffers[1] = initialGrid;
     m_Buffers[2] = initialGrid;
     m_SnapshotIndex.store(0UZ, std::memory_order_release);
+    m_LastUpdate.store(std::chrono::steady_clock::now(),
+                       std::memory_order_relaxed);
 
     {
         std::scoped_lock lock{m_ResumeMutex};
