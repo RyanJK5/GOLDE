@@ -132,7 +132,7 @@ inline SimulationCommand ToCommand(EditorAction action) {
 }
 
 inline SimulationCommand ToCommand(SelectionAction action) {
-    return SelectionCommand{.Action = action};
+    return SelectionCommand{.ClipboardText = "", .Action = action};
 }
 
 } // namespace Golde

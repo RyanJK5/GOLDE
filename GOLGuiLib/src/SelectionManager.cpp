@@ -351,8 +351,6 @@ SelectionManager::ModifySelectionBounds(GameGrid& grid, Rect bounds) {
     const bool previouslyValidBounds = CanDrawGrid();
     const bool notSameBounds =
         previouslyValidBounds && bounds.Size() != SelectionBounds().Size();
-    const auto ogPos =
-        previouslyValidBounds ? SelectionBounds().Pos() : std::optional<Vec2>{};
 
     auto change1 = [&] -> std::optional<VersionState> {
         if (notSameBounds) {

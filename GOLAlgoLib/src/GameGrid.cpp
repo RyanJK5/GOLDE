@@ -116,9 +116,8 @@ GameGrid::GameGrid(const GameGrid& other, Size2 size)
 
 GameGrid::GameGrid(const GameGrid& other)
     : m_HashLifeData(other.m_HashLifeData), m_RuleString(other.m_RuleString),
-      m_Width(other.m_Width), m_Height(other.m_Height),
-      m_Algorithm(other.m_Algorithm->Clone()),
-      m_Generation(other.m_Generation) {}
+      m_Algorithm(other.m_Algorithm->Clone()), m_Width(other.m_Width),
+      m_Height(other.m_Height), m_Generation(other.m_Generation) {}
 
 GameGrid& GameGrid::operator=(const GameGrid& other) {
     if (this == &other) {
@@ -136,8 +135,8 @@ GameGrid& GameGrid::operator=(const GameGrid& other) {
 }
 
 GameGrid::GameGrid(const HashQuadtree& data, Size2 size)
-    : m_Width(size.Width), m_Height(size.Height), m_HashLifeData(data),
-      m_Algorithm(std::make_unique<HashLife>()) {
+    : m_HashLifeData(data), m_Algorithm(std::make_unique<HashLife>()),
+      m_Width(size.Width), m_Height(size.Height) {
     m_Algorithm->SetTopology(
         std::make_unique<Plane>(Rect{0, 0, size.Width, size.Height}));
 }

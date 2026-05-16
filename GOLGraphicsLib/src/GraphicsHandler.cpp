@@ -36,8 +36,6 @@ BigInt BigIntFromIntegralDouble(double value) {
 
     return value < 0.0 ? -result : result;
 }
-
-BigRect EmptyBigRect() { return BigRect{BigZero, BigZero, BigZero, BigZero}; }
 } // namespace
 
 FrameBufferBinder::FrameBufferBinder(const GLFrameBuffer& buffer) {

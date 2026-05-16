@@ -25,12 +25,9 @@
 namespace Golde {
 static bool ContainsIgnoreCase(std::string_view string,
                                std::string_view substring) {
-    return std::ranges::search(string, substring,
-                               [](char left, char right) {
-                                   return std::tolower(left) ==
-                                          std::tolower(right);
-                               })
-               .begin() != string.end();
+    return std::ranges::search(string, substring, [](char left, char right) {
+               return std::tolower(left) == std::tolower(right);
+           }).begin() != string.end();
 }
 
 PresetDisplay::PresetDisplay(const GameGrid& grid, const std::string& fileName,

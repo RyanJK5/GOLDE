@@ -81,9 +81,6 @@ namespace {
 //   SE = bits { 5, 4, 1, 0} = 0x0033
 // ============================================================================
 
-// Total number of possible 4x4 cell configurations.
-constexpr uint32_t NumLeafPatterns = 65536;
-
 // Bitmasks for extracting 2x2 quadrants from a 16-bit 4x4 grid.
 constexpr uint16_t MaskNW = 0xCC00;
 constexpr uint16_t MaskNE = 0x3300;

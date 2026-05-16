@@ -62,12 +62,9 @@ void HashLifeCache::MarkAndSweep(const LifeNode* root) {
     decltype(NodeMap) newCache{};
     newCache.reserve(NodeMap.size());
 
-    auto amountSaved = 0UZ;
-
     for (auto [key, value] : NodeMap) {
         if (key != nullptr && key->MarkedForGC) {
             newCache[key] = value;
-            amountSaved++;
         }
     }
 
