@@ -83,7 +83,8 @@ jobs:
             build-arm64/GOLExecutable/GOLDE \
             -output build-arm64/GOLExecutable/GOLDE
           mv build-arm64 build
-          cpack -C Release
+          cpack -C Release -G TGZ
+          cpack -C Release -G DragNDrop
 
       - name: Publish
         env:
