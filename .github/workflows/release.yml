@@ -78,14 +78,18 @@ jobs:
       - name: Generate (macOS)
         if: runner.os == 'macOS'
         run: |
-          lipo -create \
-            build-x86_64/GOLExecutable/GOLDE \
-            build-arm64/GOLExecutable/GOLDE \
-            -output build-arm64/GOLExecutable/GOLDE
+          X86_APP_BIN="build-x86_64/GOLExecutable/GOLDE.app/Contents/MacOS/GOLDE"
+          ARM_APP_BIN="build-arm64/GOLExecutable/GOLDE.app/Contents/MacOS/GOLDE"
+
+          lipo -create "$X86_APP_BIN" "$ARM_APP_BIN" -output "$ARM_APP_BIN"
+
+          # Debugging
+          chmod +x "$ARM_APP_BIN"
+          lipo -info "$ARM_APP_BIN"
+
           mv build-arm64 build
           cd build
-          cpack -C Release -G TGZ
-          cpack -C Release -G DragNDrop
+          cpack -C Release
 
       - name: Publish
         env:

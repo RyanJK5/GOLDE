@@ -20,8 +20,10 @@ jobs:
             name: windows-msvc
           - os: macos-latest
             name: macos-arm64-clang
+            arch: arm64
           - os: macos-26-intel
             name: macos-x86_64-clang
+            arch: x86_64
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -50,6 +52,7 @@ jobs:
           -DCMAKE_CXX_COMPILER="$LLVM_PATH/bin/clang++" \
           -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
           -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_OSX_ARCHITECTURES="${{ matrix.arch }}" \
           -DCMAKE_OSX_DEPLOYMENT_TARGET="13.3"
     
     - name: Configure CMake (Windows)

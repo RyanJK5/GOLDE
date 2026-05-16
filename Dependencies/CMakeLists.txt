@@ -34,6 +34,7 @@ FetchContent_Declare(
     glm
     GIT_REPOSITORY https://github.com/g-truc/glm.git
     GIT_TAG master
+    SYSTEM
 )
 FetchContent_MakeAvailable(glm)
 
@@ -42,6 +43,7 @@ FetchContent_Declare(
     unordered_dense
     GIT_REPOSITORY https://github.com/martinus/unordered_dense.git
     GIT_TAG v4.4.0
+    SYSTEM
 )
 FetchContent_MakeAvailable(unordered_dense)
 
@@ -53,7 +55,7 @@ if(NOT EXISTS "${STB_IMAGE_DIR}/stb_image.h")
          STATUS download_status)
 endif()
 add_library(stb_image INTERFACE)
-target_include_directories(stb_image INTERFACE ${STB_IMAGE_DIR})
+target_include_directories(stb_image SYSTEM INTERFACE ${STB_IMAGE_DIR})
 
 # GoogleTest
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
@@ -108,6 +110,7 @@ FetchContent_Declare(
     nfd
     GIT_REPOSITORY https://github.com/btzy/nativefiledialog-extended.git
     GIT_TAG v1.2.1
+    SYSTEM
 )
 set(NFD_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(NFD_INSTALL OFF CACHE BOOL "" FORCE)
