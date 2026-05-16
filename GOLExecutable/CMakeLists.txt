@@ -4,10 +4,10 @@ if(APPLE)
         MACOSX_PACKAGE_LOCATION "Resources"
     )
 
-    add_executable(GOLDE src/Application.cpp icon.icns)
+    add_executable(GOLDE MACOSX_BUNDLE src/Application.cpp icon.icns)
 
     set_target_properties(GOLDE PROPERTIES
-        MACOSX_BUNDLE $<CONFIG:Release>
+        MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_BUNDLE_NAME "GOLDE"
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
@@ -17,7 +17,7 @@ elseif(WIN32)
     add_executable(GOLDE src/Application.cpp resources.rc)
 
     set_target_properties(GOLDE PROPERTIES
-        WIN32_EXECUTABLE $<CONFIG:Release>
+        WIN32_EXECUTABLE TRUE
     )
 else()
     add_executable(GOLDE src/Application.cpp)
@@ -25,9 +25,12 @@ endif()
 
 set(GOLDE_RUNTIME_DATA_DIR "$<TARGET_FILE_DIR:GOLDE>")
 
-set(GOLDE_INSTALL_DATA_DIR
-    "$<IF:$<AND:$<PLATFORM_ID:Darwin>,$<CONFIG:Release>>,GOLDE.app/Contents/MacOS,bin>"
-)
+if(APPLE)
+    # Standard path inside the installed .app bundle
+    set(GOLDE_INSTALL_DATA_DIR "GOLDE.app/Contents/Resources")
+else()
+    set(GOLDE_INSTALL_DATA_DIR "share") # Standard Linux/Windows data path
+endif()
 
 target_link_libraries(GOLDE PRIVATE
     gol_compiler_options
