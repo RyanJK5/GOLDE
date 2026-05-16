@@ -1,3 +1,10 @@
+get_property(IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(IS_MULTI_CONFIG)
+    set(GOLDE_OUTPUT_DIR "${CMAKE_BINARY_DIR}/GOLExecutable/$<CONFIG>")
+else()
+    set(GOLDE_OUTPUT_DIR "${CMAKE_BINARY_DIR}/GOLExecutable")
+endif()
+
 if(APPLE)
     set(MACOSX_BUNDLE_ICON_FILE icon.icns)
     set_source_files_properties(icon.icns PROPERTIES
@@ -20,13 +27,6 @@ if(APPLE)
 elseif(WIN32)
     add_executable(GOLDE src/Application.cpp resources.rc)
 
-    get_property(IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-    if(IS_MULTI_CONFIG)
-        set(GOLDE_OUTPUT_DIR "${CMAKE_BINARY_DIR}/GOLExecutable/$<CONFIG>")
-    else()
-        set(GOLDE_OUTPUT_DIR "${CMAKE_BINARY_DIR}/GOLExecutable")
-    endif()
-
     set(GOLDE_INSTALL_DATA_DIR "share")
 
     set_target_properties(GOLDE PROPERTIES
@@ -40,7 +40,6 @@ else()
 
     set_target_properties(GOLDE PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:GOLDE>/bin"
-        WIN32_EXECUTABLE TRUE
     )
 endif()
 
