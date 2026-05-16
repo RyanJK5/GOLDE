@@ -4,32 +4,45 @@ if(APPLE)
         MACOSX_PACKAGE_LOCATION "Resources"
     )
 
-    add_executable(GOLDE MACOSX_BUNDLE src/Application.cpp icon.icns)
+    add_executable(GOLDE src/Application.cpp icon.icns)
 
     set_target_properties(GOLDE PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_BUNDLE_NAME "GOLDE"
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
         MACOSX_BUNDLE_ICON_FILE "icon.icns"
     )
+
+    set(GOLDE_INSTALL_DATA_DIR "GOLDE.app/Contents/Resources")
+
+    target_link_libraries(GOLDE PRIVATE "-framework CoreFoundation")
 elseif(WIN32)
     add_executable(GOLDE src/Application.cpp resources.rc)
 
+    get_property(IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+    if(IS_MULTI_CONFIG)
+        set(GOLDE_OUTPUT_DIR "${CMAKE_BINARY_DIR}/GOLExecutable/$<CONFIG>")
+    else()
+        set(GOLDE_OUTPUT_DIR "${CMAKE_BINARY_DIR}/GOLExecutable")
+    endif()
+
+    set(GOLDE_INSTALL_DATA_DIR "share")
+
     set_target_properties(GOLDE PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${GOLDE_OUTPUT_DIR}/bin"
         WIN32_EXECUTABLE TRUE
     )
 else()
     add_executable(GOLDE src/Application.cpp)
-endif()
 
-set(GOLDE_RUNTIME_DATA_DIR "$<TARGET_FILE_DIR:GOLDE>")
+    set(GOLDE_INSTALL_DATA_DIR "share")
 
-if(APPLE)
-    # Standard path inside the installed .app bundle
-    set(GOLDE_INSTALL_DATA_DIR "GOLDE.app/Contents/Resources")
-else()
-    set(GOLDE_INSTALL_DATA_DIR "share") # Standard Linux/Windows data path
+    set_target_properties(GOLDE PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:GOLDE>/bin"
+        WIN32_EXECUTABLE TRUE
+    )
 endif()
 
 target_link_libraries(GOLDE PRIVATE
@@ -67,6 +80,8 @@ if(WIN32)
         )
     endif()
 endif()
+
+set(GOLDE_RUNTIME_DATA_DIR "$<TARGET_FILE_DIR:GOLDE>/share")
 
 # Copy resources
 add_custom_command(TARGET GOLDE POST_BUILD

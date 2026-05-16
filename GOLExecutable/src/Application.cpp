@@ -6,7 +6,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
-int main(int argc, char* argv[]) {
+static void SetWorkingDirectory(int argc, char* argv[]) {
 #ifdef __APPLE__
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     if (mainBundle) {
@@ -29,7 +29,10 @@ int main(int argc, char* argv[]) {
         std::filesystem::current_path(
             executablePath.parent_path().parent_path() / "share");
     }
+}
 
+int main(int argc, char* argv[]) {
+    SetWorkingDirectory(argc, argv);
     Golde::Game game{};
     game.Begin();
 }
