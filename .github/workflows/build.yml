@@ -19,7 +19,9 @@ jobs:
           - os: windows-latest
             name: windows-msvc
           - os: macos-latest
-            name: macos-clang
+            name: macos-arm64-clang
+          - os: macos-26-intel
+            name: macos-x86_64-clang
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -42,13 +44,13 @@ jobs:
       run: |
         brew install llvm ninja
         LLVM_PATH="$(brew --prefix llvm)"
-        SDK_PATH="$(xcrun --show-sdk-path)"
         cmake -B build -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_C_COMPILER="$LLVM_PATH/bin/clang" \
           -DCMAKE_CXX_COMPILER="$LLVM_PATH/bin/clang++" \
-          -DCMAKE_CXX_FLAGS="-stdlib=libc++ -isysroot $SDK_PATH" \
-          -DBUILD_SHARED_LIBS=OFF
+          -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET="13.3"
     
     - name: Configure CMake (Windows)
       if: runner.os == 'Windows'
@@ -72,8 +74,9 @@ jobs:
       run: cmake --build build --parallel --config Release
 
     - name: Test
-      run: ctest --test-dir build --build-config Release --output-on-failure
-    
+      run: |
+        ctest --test-dir build --build-config Release --output-on-failure
+
     - name: Save Build Artifacts
       uses: actions/upload-artifact@v4
       with:

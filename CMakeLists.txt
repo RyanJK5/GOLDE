@@ -1,11 +1,6 @@
 cmake_minimum_required(VERSION 3.29)
 project(GOLDE VERSION 1.0.0 LANGUAGES CXX)
 
-if(APPLE)
-    set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "" FORCE)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "" FORCE)
-endif()
-
 include(CTest)
 
 set(CMAKE_CXX_STANDARD 23)
