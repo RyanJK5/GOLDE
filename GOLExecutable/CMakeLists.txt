@@ -66,7 +66,7 @@ if(UNIX AND NOT APPLE)
     )
 endif()
 
-# 2. Fix the Entry Point for Windows (MSVC and Clang-cl)
+# Fix the Entry Point for Windows (MSVC and Clang-cl)
 if(WIN32)
     # look for 'main' instead of 'WinMain'.
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -80,7 +80,11 @@ if(WIN32)
     endif()
 endif()
 
-set(GOLDE_RUNTIME_DATA_DIR "$<TARGET_FILE_DIR:GOLDE>/share")
+if(APPLE)
+    set(GOLDE_RUNTIME_DATA_DIR "$<TARGET_BUNDLE_CONTENT_DIR:GOLDE>/Resources")
+else()
+    set(GOLDE_RUNTIME_DATA_DIR "$<TARGET_FILE_DIR:GOLDE>/share")
+endif()
 
 # Copy resources
 add_custom_command(TARGET GOLDE POST_BUILD
@@ -101,7 +105,7 @@ add_custom_command(TARGET GOLDE POST_BUILD
         ${GOLDE_RUNTIME_DATA_DIR}/Patterns
 )
 
-# Install rules so CPack can package the app and so `make install` works
+# Install rules so CPack can package the app
 if(APPLE)
     install(TARGETS GOLDE
         BUNDLE DESTINATION .
