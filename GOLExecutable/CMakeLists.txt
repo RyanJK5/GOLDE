@@ -39,7 +39,7 @@ else()
     set(GOLDE_INSTALL_DATA_DIR "share")
 
     set_target_properties(GOLDE PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:GOLDE>/bin"
+        RUNTIME_OUTPUT_DIRECTORY "${GOLDE_OUTPUT_DIR}/bin"
     )
 endif()
 
