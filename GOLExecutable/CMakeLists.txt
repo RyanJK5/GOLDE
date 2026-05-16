@@ -7,7 +7,6 @@ if(APPLE)
     add_executable(GOLDE src/Application.cpp icon.icns)
 
     set_target_properties(GOLDE PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_BUNDLE_NAME "GOLDE"
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
