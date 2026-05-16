@@ -83,6 +83,7 @@ jobs:
             build-arm64/GOLExecutable/GOLDE \
             -output build-arm64/GOLExecutable/GOLDE
           mv build-arm64 build
+          cpack -C Release
 
       - name: Publish
         env:
