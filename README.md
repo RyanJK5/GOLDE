@@ -3,7 +3,7 @@
 # Game of Life Designer and Engine (GOLDE)
 
 [![C++23](https://img.shields.io/badge/C%2B%2B-23-blue.svg)](https://en.cppreference.com/w/cpp/23)
-[![CMake](https://img.shields.io/badge/CMake-3.25+-blue.svg)](https://cmake.org/)
+[![CMake](https://img.shields.io/badge/CMake-3.29+-blue.svg)](https://cmake.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Platform: Windows | Linux | macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux%20-brightgreen.svg)
 
@@ -12,6 +12,10 @@
 ## Overview
 
 GOLDE is a high-performance Conway's Game of Life simulator with an intuitive GUI and an implementation of [HashLife](https://en.wikipedia.org/wiki/Hashlife) for jumping billions of generations instantly.
+
+**GOLDE 1.0.0 is now here!** Check it out under [Releases](https://github.com/RyanJK5/GOLDE/releases/latest)!
+
+Also check out [this article](https://ryanjk5.github.io/posts/GOLDE/) I just published about GOLDE's HashLife engine!
 
 ## Features
 
@@ -28,7 +32,7 @@ GOLDE is a high-performance Conway's Game of Life simulator with an intuitive GU
 
 ## Quick Start
 
-For consumer use, download the latest version of GOLDE from the [Releases](https://github.com/RyanJK5/GOLDE/releases/latest) tab. Note that the current Linux release may be unstable, so consider building the project locally if you encounter issues.
+For general use, download the latest version of GOLDE from the [Releases](https://github.com/RyanJK5/GOLDE/releases/latest) tab.
 
 If you would like to build from source, follow the instructions below.
 
@@ -37,9 +41,9 @@ If you would like to build from source, follow the instructions below.
 - **C++23** compiler (MSVC, Clang, or GCC)
 - **CMake 3.29+**
 - **Ninja** (recommended) or other CMake-compatible build system
-- **OpenGL 4.5+**
+- **OpenGL 3.3+**
 
-### Build and Run
+### Build, Run, Test, and Package
 
 ```sh
 # Configure (Ninja single-config)
@@ -51,16 +55,27 @@ cmake --build build
 # Run tests
 ctest --test-dir build --output-on-failure
 
-# Launch application
-./build/GOLExecutable/GOLDE.exe
+# Launch application (Linux)
+./build/GOLExecutable/bin/GOLDE
+
+# Create installers (.zip, .msi, .dmg, etc.)
+cpack -B build
 ```
+
+Note that on Windows, the produced binary will also have a .exe extension (`GOLDE.exe`), and on macOS, the executable can be opened by running:
+
+```sh
+open ./build/GOLExecutable/GOLDE.app
+```
+
 
 For **multi-config generators** (Visual Studio, Xcode):
 ```sh
 cmake -B build -G "Visual Studio 18 2026"
 cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure
-./build/GOLExecutable/Release/GOLDE.exe
+./build/GOLExecutable/Release/bin/GOLDE.exe
+cpack -B build -C Release
 ```
 ## Usage Guide
 
