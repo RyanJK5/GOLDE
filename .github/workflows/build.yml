@@ -57,7 +57,7 @@ jobs:
     
     - name: Configure CMake (Windows)
       if: runner.os == 'Windows'
-      run: cmake -B build -G Ninja -DBUILD_SHARED_LIBS=OFF -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+      run: cmake -B build -DBUILD_SHARED_LIBS=OFF -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
           
     - name: Configure CMake (Linux)
       if: runner.os == 'Linux'
