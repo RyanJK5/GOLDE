@@ -25,9 +25,16 @@ static void SetWorkingDirectory(int argc, char* argv[]) {
     }
 #endif
     if (argc > 0) {
-        const auto executablePath = std::filesystem::absolute(argv[0]);
-        std::filesystem::current_path(
-            executablePath.parent_path().parent_path() / "share");
+        constexpr static auto searchDepth = 2;
+        auto path = std::filesystem::absolute(argv[0]);
+        for (auto i = 0; i < searchDepth; i++) {
+            path /= "..";
+            const auto sharePath = path / "share";
+            if (std::filesystem::exists(sharePath)) {
+                std::filesystem::current_path(sharePath);
+                break;
+            }
+        }
     }
 }
 

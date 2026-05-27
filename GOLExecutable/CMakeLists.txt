@@ -74,7 +74,7 @@ if(WIN32)
         )
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
         target_link_options(GOLDE PRIVATE 
-            $<$<CONFIG:Release>:/ENTRY:mainCRTStartup>
+            /ENTRY:mainCRTStartup
         )
     endif()
 endif()
