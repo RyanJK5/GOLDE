@@ -50,11 +50,10 @@ if (APPLE)
 elseif(WIN32)
     set(GOLDE_SYSTEM_NAME "Windows")
 else()
-    set(GOLDE_SYSTEM_NAME "Linux")
+    set(GOLDE_SYSTEM_NAME "Linux-${GOLDE_ARCH}")
 endif()
 set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${GOLDE_SYSTEM_NAME}")
 
-# Default generators: ZIP and tar.gz; platform-specific ones appended below
 if(WIN32)
     set(CPACK_GENERATOR "ZIP;WIX")
 

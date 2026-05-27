@@ -35,6 +35,8 @@ jobs:
         include:
           - os: ubuntu-latest
             name: linux-gcc
+          - os: ubuntu-24.04-arm
+            name: linux-arm64-gcc
           - os: windows-latest
             name: windows-msvc
           - os: macos-latest

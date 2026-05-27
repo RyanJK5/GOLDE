@@ -16,8 +16,10 @@ jobs:
         include:
           - os: ubuntu-latest
             name: linux-gcc
+            arch: x86_64
           - os: ubuntu-24.04-arm
             name: linux-arm64-gcc
+            arch: arm64
           - os: windows-latest
             name: windows-msvc
           - os: macos-latest
@@ -67,8 +69,8 @@ jobs:
         cmake -B build -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
           -DBUILD_SHARED_LIBS=ON \
-          -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-        
+          -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+          -DGOLDE_ARCH=${{ matrix.arch }}
 
     - name: Setup MSVC Developer Command Prompt (Windows)
       if: runner.os == 'Windows'
