@@ -158,7 +158,7 @@ SelectionManager::Paste(const GameGrid& grid, std::string_view clipboardText,
         gridPos = m_AnchorSelection;
 
     constexpr static std::array formats{FileEncoder::FileFormat::RLE,
-                                        FileEncoder::FileFormat::Macrocell};
+        FileEncoder::FileFormat::Macrocell};
     for (auto i = 0UZ; i < formats.size(); i++) {
         auto decodeResult = FileEncoder::DecodeRegion(
             clipboardText.data(), warnThreshold, formats[i]);
@@ -169,6 +169,8 @@ SelectionManager::Paste(const GameGrid& grid, std::string_view clipboardText,
 
             m_Selected = std::move(decodeResult->Grid);
             break;
+        } else {
+            std::println("{}", decodeResult.error().Message);
         }
         if (i == formats.size() - 1UZ ||
             decodeResult.error().ErrorType !=

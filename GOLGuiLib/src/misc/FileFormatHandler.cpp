@@ -302,24 +302,26 @@ DecodeRLE(std::string_view src, uint32_t warnThreshold) {
     std::string ruleString{"B3/S23"};
     {
         const auto headerNewline = rleBody.find('\n');
-        const std::string_view headerLine{
-            rleBody.data(), headerNewline == std::string::npos ? rleBody.size()
-                                                               : headerNewline};
+        
+        const auto headerLine = [&] {
+            const std::string_view rawHeaderLine{
+                rleBody.data(), headerNewline == std::string::npos ? rleBody.size()
+                                                                   : headerNewline};
+            return rawHeaderLine
+                | std::views::filter([] (char c) { return !std::isspace(c); })
+                | std::ranges::to<std::string>();
+        }();
 
-        const auto xEq = headerLine.find("x =");
-        const auto yEq = headerLine.find("y =");
+        const auto xEq = headerLine.find("x=");
+        const auto yEq = headerLine.find("y=");
         if (xEq == std::string::npos || yEq == std::string::npos) {
             return std::unexpected{DecodeError{
                 .ErrorType = DecodeError::Type::MissingHeader,
                 .Message = "Missing RLE header (x = ..., y = ...)."}};
         }
 
-        const char* xPtr = headerLine.data() + xEq + 3;
-        const char* yPtr = headerLine.data() + yEq + 3;
-        while (*xPtr == ' ')
-            ++xPtr;
-        while (*yPtr == ' ')
-            ++yPtr;
+        const char* xPtr = headerLine.data() + xEq + 2;
+        const char* yPtr = headerLine.data() + yEq + 2;
 
         const auto [pW, ecW] = std::from_chars(
             xPtr, headerLine.data() + headerLine.size(), patternWidth);
