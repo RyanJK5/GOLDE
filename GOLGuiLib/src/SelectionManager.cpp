@@ -76,7 +76,9 @@ bool SelectionManager::TryResetSelection() {
 
 std::optional<VersionState> SelectionManager::Select(GameGrid& grid) {
     m_Selected = grid.SubRegion(SelectionBounds());
-    grid.ClearRegion(SelectionBounds());
+    if (grid.ShouldAllowUniverseEdits()) {
+        grid.ClearRegion(SelectionBounds());
+    }
     return CaptureState(grid);
 }
 
@@ -85,7 +87,9 @@ std::optional<VersionState> SelectionManager::Deselect(GameGrid& grid) {
         return std::nullopt;
     }
 
-    grid.InsertGrid(*m_Selected, SelectionBounds().UpperLeft());
+    if (grid.ShouldAllowUniverseEdits()) {
+        grid.InsertGrid(*m_Selected, SelectionBounds().UpperLeft());
+    }
 
     m_LockSelection = true;
     m_AnchorSelection = std::nullopt;
