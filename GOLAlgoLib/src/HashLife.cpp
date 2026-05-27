@@ -439,7 +439,7 @@ void HashLife::SetRule(const LifeRule& rule) {
     if (s_Rule == rule) {
         return;
     }
-    
+
     s_Rule = rule;
     HashQuadtree::ClearCache();
     s_SlowCache.clear();

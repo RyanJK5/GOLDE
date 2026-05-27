@@ -302,14 +302,15 @@ DecodeRLE(std::string_view src, uint32_t warnThreshold) {
     std::string ruleString{"B3/S23"};
     {
         const auto headerNewline = rleBody.find('\n');
-        
+
         const auto headerLine = [&] {
             const std::string_view rawHeaderLine{
-                rleBody.data(), headerNewline == std::string::npos ? rleBody.size()
-                                                                   : headerNewline};
-            return rawHeaderLine
-                | std::views::filter([] (char c) { return !std::isspace(c); })
-                | std::ranges::to<std::string>();
+                rleBody.data(), headerNewline == std::string::npos
+                                    ? rleBody.size()
+                                    : headerNewline};
+            return rawHeaderLine |
+                   std::views::filter([](char c) { return !std::isspace(c); }) |
+                   std::ranges::to<std::string>();
         }();
 
         const auto xEq = headerLine.find("x=");
