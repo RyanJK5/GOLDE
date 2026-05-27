@@ -335,19 +335,9 @@ DecodeRLE(std::string_view src, uint32_t warnThreshold) {
                             .Message = "Malformed header dimensions."}};
         }
 
-        const auto ruleEq = headerLine.find("rule =");
+        const auto ruleEq = headerLine.find("rule=");
         if (ruleEq != std::string::npos) {
-            auto parsedRule = headerLine.substr(ruleEq + 6);
-            const auto firstNonWhitespace = parsedRule.find_first_not_of(" \t");
-            parsedRule = firstNonWhitespace == std::string::npos
-                             ? std::string_view{}
-                             : parsedRule.substr(firstNonWhitespace);
-
-            const auto trailingWhitespace =
-                parsedRule.find_last_not_of(" \t\r");
-            parsedRule = trailingWhitespace == std::string::npos
-                             ? std::string_view{}
-                             : parsedRule.substr(0, trailingWhitespace + 1);
+            auto parsedRule = headerLine.substr(ruleEq + 5);
 
             if (!parsedRule.empty()) {
                 ruleString = std::string{parsedRule};
