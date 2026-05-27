@@ -37,7 +37,7 @@ void SimulationWorker::ThreadLoop(std::stop_token threadStopToken) {
         // HashLife uses a `thread_local` cached rule (`s_Rule`) so simply
         // cloning the algorithm on the main thread does not initialise the
         // worker thread's thread-local state. Always call `SetRule` on the
-        // worker-side buffers to initialise thread-local state, even if the
+        // worker-side buffers to initialize thread-local state, even if the
         // rule string already matches.
         auto ruleStr = m_Buffers[0].GetRuleString();
         auto rule = LifeRule::Make(ruleStr);

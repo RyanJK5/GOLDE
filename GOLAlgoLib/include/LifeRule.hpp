@@ -43,6 +43,7 @@ class LifeRule {
 
     constexpr TopologyKind GetTopology() const;
 
+    constexpr bool operator==(const LifeRule&) const = default;
   private:
     constexpr LookupTable BuildRuleTable(int32_t birthMask,
                                          int32_t surviveMask);
