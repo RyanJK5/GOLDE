@@ -107,12 +107,11 @@ size_t SlowHash::operator()(SlowKey key) const noexcept {
     return static_cast<size_t>(h);
 }
 
-HashQuadtree::HashQuadtree() : m_Cache(&s_Cache[t_CacheIndex]) {
+HashQuadtree::HashQuadtree() {
     ExpandUniverse(4); // So we can always serialize
 }
 
-HashQuadtree::HashQuadtree(std::span<const Vec2> data, Vec2 offset)
-    : m_Cache(&s_Cache[t_CacheIndex]) {
+HashQuadtree::HashQuadtree(std::span<const Vec2> data, Vec2 offset) {
     if (data.empty())
         return;
 
@@ -122,7 +121,10 @@ HashQuadtree::HashQuadtree(std::span<const Vec2> data, Vec2 offset)
     ExpandUniverse(4);
 }
 
-void HashQuadtree::SetCacheIndex(size_t index) { t_CacheIndex = index; }
+void HashQuadtree::SetCacheIndex(size_t index) {
+    t_CacheIndex = index;
+    m_Cache = &s_Cache[t_CacheIndex];
+}
 
 size_t HashQuadtree::GetCacheIndex() { return t_CacheIndex; }
 

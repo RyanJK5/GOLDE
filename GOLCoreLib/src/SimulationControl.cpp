@@ -136,9 +136,7 @@ SimulationControlResult SimulationControl::Update(const EditorResult& state) {
     ImGui::End();
     return {.Command = command,
             .Settings = {.StepCount = m_StepWidget.EffectiveStepCount(),
-                         .Algorithm = m_StepWidget.CurrentAlgorithm(),
                          .TickDelayMs = m_DelayWidget.TickDelayMs(),
-                         .HyperSpeed = m_StepWidget.IsHyperSpeed(),
                          .GridLines = m_DelayWidget.ShowGridLines()},
             .FromShortcut = fromShortcut};
 }

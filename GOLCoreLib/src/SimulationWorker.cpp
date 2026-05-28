@@ -31,7 +31,10 @@ void SimulationWorker::ThreadLoop(std::stop_token threadStopToken) {
             }
             m_ResumeReady = false;
         }
-        HashQuadtree::SetCacheIndex(m_CacheIndex);
+
+        for (auto& grid : m_Buffers) {
+            grid.SetCacheIndex(m_CacheIndex);
+        }
 
         // Ensure the worker thread's algorithm sees the current rule.
         // HashLife uses a `thread_local` cached rule (`s_Rule`) so simply

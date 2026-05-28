@@ -144,6 +144,8 @@ class EditorModel {
         return m_Worker->GetTimeSinceLastUpdate();
     }
 
+    void SetCacheIndex(size_t index) { m_Grid.SetCacheIndex(index); }
+
     bool SelectionActive() const { return m_SelectionManager.CanDrawGrid(); }
     bool CanDrawSelection() const {
         return m_SelectionManager.CanDrawSelection();
@@ -177,8 +179,6 @@ class EditorModel {
     EditDispatchResult CanDispatchEdit() const;
     bool IsMutatingCommand(const SimulationCommand& cmd) const;
     bool CanDispatchMutatingCommand(const SimulationCommand& cmd) const;
-    ExecuteCommandResult ExecuteCommand(const SimulationCommand& cmd,
-                                        const ExecuteCommandContext& context);
 
     SimulationState State() const { return m_State; }
     void SetState(SimulationState state) { m_State = state; }

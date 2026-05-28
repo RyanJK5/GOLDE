@@ -112,10 +112,11 @@ class GameGrid {
     // bounds.
     std::optional<bool> Get(Vec2 pos) const;
 
-    // Returns a sorted set of the universe's data.
     std::span<Vec2> SortedData() const;
-    // Returns an unordered set of the universe's data.
+
     const HashQuadtree& Data() const;
+
+    void SetCacheIndex(size_t index);
 
     void SetRule(const LifeRule& rule);
     void SetRule(const LifeRule& rule, std::string_view ruleString);

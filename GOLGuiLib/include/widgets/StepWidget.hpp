@@ -50,8 +50,6 @@ class StepWidget : public Widget {
     BigInt EffectiveStepCount() const {
         return m_HyperSpeed ? BigZero : m_StepCount;
     }
-    std::unique_ptr<LifeAlgorithm> CurrentAlgorithm() const { return nullptr; }
-    bool IsHyperSpeed() const { return m_HyperSpeed; }
 
   private:
     std::string m_InputText;

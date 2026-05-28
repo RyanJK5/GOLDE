@@ -398,14 +398,14 @@ bool EditorModel::TryStartCommand(const SimulationCommand& cmd,
 
     std::scoped_lock lock{m_CommandMutex};
     if (ShouldExecuteInline(cmd)) {
-        HashQuadtree::SetCacheIndex(m_EditorID);
+        m_Grid.SetCacheIndex(m_EditorID);
         m_InlineCommandResult = ExecuteCommandImmediate(cmd, context);
         return true;
     }
 
     m_InFlightCommand = std::async(
         std::launch::async, [this, command = cmd, commandContext = context]() {
-            HashQuadtree::SetCacheIndex(m_EditorID);
+            m_Grid.SetCacheIndex(m_EditorID);
             return ExecuteCommandImmediate(command, commandContext);
         });
     return true;
@@ -433,13 +433,6 @@ std::optional<ExecuteCommandResult> EditorModel::PollCommandResult() {
     m_InFlightCommand.reset();
     m_EditBusy.store(false, std::memory_order_release);
     return result;
-}
-
-ExecuteCommandResult
-EditorModel::ExecuteCommand(const SimulationCommand& cmd,
-                            const ExecuteCommandContext& context) {
-    HashQuadtree::SetCacheIndex(m_EditorID);
-    return ExecuteCommandImmediate(cmd, context);
 }
 
 std::optional<ExecuteCommandResult>

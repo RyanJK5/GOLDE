@@ -153,7 +153,7 @@ class HashQuadtree : public LifeDataStructure {
     HashQuadtree();
     HashQuadtree(std::span<const Vec2> data, Vec2 offset = {});
 
-    static void SetCacheIndex(size_t index);
+    void SetCacheIndex(size_t index);
     static size_t GetCacheIndex();
 
   public:
@@ -283,7 +283,7 @@ class HashQuadtree : public LifeDataStructure {
     static std::array<HashLifeCache, MaxCacheCount> s_Cache;
     static thread_local size_t t_CacheIndex;
 
-    HashLifeCache* m_Cache = nullptr;
+    HashLifeCache* m_Cache = &s_Cache[t_CacheIndex];
 
     static thread_local ankerl::unordered_dense::map<
         const LifeNode*, BigInt, LifeNodeHash, LifeNodeEqual>

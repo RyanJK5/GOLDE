@@ -162,6 +162,10 @@ std::span<Vec2> GameGrid::SortedData() const {
 
 const HashQuadtree& GameGrid::Data() const { return m_HashLifeData; }
 
+void GameGrid::SetCacheIndex(size_t index) {
+    m_HashLifeData.SetCacheIndex(index);
+}
+
 void GameGrid::SetRule(const LifeRule& rule) { m_Algorithm->SetRule(rule); }
 
 void GameGrid::SetRule(const LifeRule& rule, std::string_view ruleString) {
