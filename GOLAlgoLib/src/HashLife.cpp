@@ -267,12 +267,12 @@ NodeUpdateInfo HashLife::AdvanceSlow(const LifeNode* node,
             return {node, 0};
         }
         // Store under the requested maxAdvance so the same request hits.
-        s_SlowCache[{node, m_StepAdvanceDepth}] = result;
+        SlowCache()[{node, m_StepAdvanceDepth}] = result;
         // Also store under the actual generations for cross-request reuse.
         return {result, actualLevel};
     }
-    if (const auto it = s_SlowCache.find({node, m_StepAdvanceDepth});
-        it != s_SlowCache.end()) {
+    if (const auto it = SlowCache().find({node, m_StepAdvanceDepth});
+        it != SlowCache().end()) {
         return {it->second, m_StepAdvanceDepth};
     }
 
@@ -340,7 +340,7 @@ NodeUpdateInfo HashLife::AdvanceSlow(const LifeNode* node,
     }
 
     // Store under the requested maxAdvance so the same request hits next time.
-    s_SlowCache[{node, m_StepAdvanceDepth}] = combined;
+    SlowCache()[{node, m_StepAdvanceDepth}] = combined;
     return {combined, newAdvanceLevel};
 }
 
@@ -425,7 +425,7 @@ thread_local ankerl::unordered_dense::map<SlowKey, const LifeNode*, SlowHash>
 HashLife::HashLife() : m_Topology(std::make_unique<Plane>()) {
     // Reserve space for 1 million nodes to avoid rehashing
     // during early stages of the simulation.
-    s_SlowCache.reserve(std::max(s_SlowCache.size(), 1UZ << 20UZ));
+    SlowCache().reserve(std::max(s_SlowCache.size(), 1UZ << 20UZ));
 }
 
 HashLife::HashLife(std::unique_ptr<Topology> topology)
@@ -442,7 +442,7 @@ void HashLife::SetRule(const LifeRule& rule) {
 
     s_Rule = rule;
     HashQuadtree::ClearCache();
-    s_SlowCache.clear();
+    SlowCache().clear();
 
     if (rule.Bounds()) {
         m_Topology = [&] -> std::unique_ptr<Topology> {

@@ -170,7 +170,7 @@ SelectionManager::Paste(const GameGrid& grid, std::string_view clipboardText,
             m_Selected = std::move(decodeResult->Grid);
             break;
         }
-        
+
         if (i == formats.size() - 1UZ ||
             decodeResult.error().ErrorType !=
                 FileEncoder::DecodeError::Type::MissingHeader) {

@@ -63,6 +63,8 @@ class HashLife : public LifeAlgorithm {
   private:
     std::unique_ptr<Topology> m_Topology;
 
+    // These variables are stored to reduce the size of the
+    // AdvanceFast/AdvanceSlow stack frame.
     HashQuadtree* m_StepData = nullptr;
     std::stop_token m_StepStopToken{};
     int32_t m_StepAdvanceDepth = 0;
@@ -70,6 +72,8 @@ class HashLife : public LifeAlgorithm {
     static thread_local LifeRule s_Rule;
 
     // The cache for the HashLife algorithm when the step size is bounded.
+    static auto SlowCache() { return s_SlowCache; }
+
     static thread_local ankerl::unordered_dense::map<SlowKey, const LifeNode*,
                                                      SlowHash>
         s_SlowCache;
