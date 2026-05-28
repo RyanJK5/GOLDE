@@ -658,11 +658,12 @@ bool HashQuadtree::empty() const {
 HashQuadtree::CenteredNodeResult
 HashQuadtree::GetCenteredNode(int32_t level) const {
     const auto [node, offset] = GetTemporaryCenteredNode(level);
-    const auto* canonicalized = FindOrCreate(node.NorthWest, node.NorthEast, node.SouthWest, node.SouthEast);
+    const auto* canonicalized = FindOrCreate(node.NorthWest, node.NorthEast,
+                                             node.SouthWest, node.SouthEast);
     return {.Node = canonicalized, .Offset = offset};
 }
 
-HashQuadtree::TemporaryCenteredNodeResult 
+HashQuadtree::TemporaryCenteredNodeResult
 HashQuadtree::GetTemporaryCenteredNode(int32_t level) const {
     if (m_Depth <= level) {
         // Tree already fits, return root directly at its own offset
