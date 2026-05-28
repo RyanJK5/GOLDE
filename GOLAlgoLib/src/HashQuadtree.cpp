@@ -122,6 +122,9 @@ HashQuadtree::HashQuadtree(std::span<const Vec2> data, Vec2 offset) {
 
 void HashQuadtree::SetCacheIndex(size_t index) { s_CacheIndex = index; }
 
+size_t HashQuadtree::GetCacheIndex() { return s_CacheIndex; }
+
+
 const LifeNode* HashQuadtree::Data() const { return m_Root; }
 
 void HashQuadtree::OverwriteData(const LifeNode* root, int32_t level,

@@ -155,7 +155,7 @@ class HashQuadtree : public LifeDataStructure {
     HashQuadtree(std::span<const Vec2> data, Vec2 offset = {});
 
     static void SetCacheIndex(size_t index);
-
+    static size_t GetCacheIndex();
   public:
     bool empty() const;
 

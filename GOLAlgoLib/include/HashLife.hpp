@@ -72,11 +72,12 @@ class HashLife : public LifeAlgorithm {
     static thread_local LifeRule s_Rule;
 
     // The cache for the HashLife algorithm when the step size is bounded.
-    static auto SlowCache() { return s_SlowCache; }
+    static auto SlowCache() { return s_SlowCache[HashQuadtree::GetCacheIndex()]; }
 
-    static thread_local ankerl::unordered_dense::map<SlowKey, const LifeNode*,
-                                                     SlowHash>
-        s_SlowCache;
+    static std::array<
+        ankerl::unordered_dense::map<SlowKey, const LifeNode*, SlowHash>,
+        HashQuadtree::MaxCacheCount
+    > s_SlowCache;
 };
 
 template <bool UseFastPath>
