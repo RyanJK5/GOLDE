@@ -267,12 +267,12 @@ NodeUpdateInfo HashLife::AdvanceSlow(const LifeNode* node,
             return {node, 0};
         }
         // Store under the requested maxAdvance so the same request hits.
-        SlowCache()[{node, m_StepAdvanceDepth}] = result;
+        (*m_Cache)[{node, m_StepAdvanceDepth}] = result;
         // Also store under the actual generations for cross-request reuse.
         return {result, actualLevel};
     }
-    if (const auto it = SlowCache().find({node, m_StepAdvanceDepth});
-        it != SlowCache().end()) {
+    if (const auto it = m_Cache->find({node, m_StepAdvanceDepth});
+        it != m_Cache->end()) {
         return {it->second, m_StepAdvanceDepth};
     }
 
@@ -340,7 +340,7 @@ NodeUpdateInfo HashLife::AdvanceSlow(const LifeNode* node,
     }
 
     // Store under the requested maxAdvance so the same request hits next time.
-    SlowCache()[{node, m_StepAdvanceDepth}] = combined;
+    (*m_Cache)[{node, m_StepAdvanceDepth}] = combined;
     return {combined, newAdvanceLevel};
 }
 
@@ -426,7 +426,7 @@ std::array<ankerl::unordered_dense::map<SlowKey, const LifeNode*, SlowHash>,
 HashLife::HashLife() : m_Topology(std::make_unique<Plane>()) {
     // Reserve space for 1 million nodes to avoid rehashing
     // during early stages of the simulation.
-    SlowCache().reserve(std::max(SlowCache().size(), 1UZ << 20UZ));
+    m_Cache->reserve(std::max(m_Cache->size(), 1UZ << 20UZ));
 }
 
 HashLife::HashLife(std::unique_ptr<Topology> topology)
@@ -443,7 +443,7 @@ void HashLife::SetRule(const LifeRule& rule) {
 
     s_Rule = rule;
     HashQuadtree::ClearCache();
-    SlowCache().clear();
+    m_Cache->clear();
 
     if (rule.Bounds()) {
         m_Topology = [&] -> std::unique_ptr<Topology> {
@@ -471,6 +471,8 @@ std::unique_ptr<LifeAlgorithm> HashLife::Clone() const {
 
 BigInt HashLife::Step(LifeDataStructure& data, const BigInt& numSteps,
                       std::stop_token stopToken) {
+    m_Cache = &s_SlowCache[HashQuadtree::GetCacheIndex()];
+
     auto* hashQuadtree = dynamic_cast<HashQuadtree*>(&data);
     if (!hashQuadtree) {
         return BigZero;
