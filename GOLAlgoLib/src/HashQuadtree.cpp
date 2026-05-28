@@ -590,13 +590,13 @@ Rect HashQuadtree::FindBoundingBox() const {
     if (m_Root == FalseNode || m_Root->IsEmpty || m_Depth > ViewportMaxLevel)
         return {0, 0, 0, 0};
 
-    const auto [node, offset] = GetCenteredNode(ViewportMaxLevel);
+    const auto [node, offset] = GetTemporaryCenteredNode(ViewportMaxLevel);
     const auto level = std::min(m_Depth, ViewportMaxLevel);
 
-    const auto minX = FindExtentImpl(node, offset, level, true, true);
-    const auto minY = FindExtentImpl(node, offset, level, false, true);
-    const auto maxX = FindExtentImpl(node, offset, level, true, false);
-    const auto maxY = FindExtentImpl(node, offset, level, false, false);
+    const auto minX = FindExtentImpl(&node, offset, level, true, true);
+    const auto minY = FindExtentImpl(&node, offset, level, false, true);
+    const auto maxX = FindExtentImpl(&node, offset, level, true, false);
+    const auto maxY = FindExtentImpl(&node, offset, level, false, false);
 
     constexpr static auto clampToInt32 = [](int64_t num) {
         return static_cast<int32_t>(
@@ -609,8 +609,8 @@ Rect HashQuadtree::FindBoundingBox() const {
 }
 
 bool HashQuadtree::Get(Vec2 targetPos) const {
-    const auto [node, offset] = GetCenteredNode(ViewportMaxLevel);
-    return GetImpl(node, offset, targetPos,
+    const auto [node, offset] = GetTemporaryCenteredNode(ViewportMaxLevel);
+    return GetImpl(&node, offset, targetPos,
                    std::min(m_Depth, ViewportMaxLevel));
 }
 
@@ -657,10 +657,17 @@ bool HashQuadtree::empty() const {
 
 HashQuadtree::CenteredNodeResult
 HashQuadtree::GetCenteredNode(int32_t level) const {
+    const auto [node, offset] = GetTemporaryCenteredNode(level);
+    const auto* canonicalized = FindOrCreate(node.NorthWest, node.NorthEast, node.SouthWest, node.SouthEast);
+    return {.Node = canonicalized, .Offset = offset};
+}
+
+HashQuadtree::TemporaryCenteredNodeResult 
+HashQuadtree::GetTemporaryCenteredNode(int32_t level) const {
     if (m_Depth <= level) {
         // Tree already fits, return root directly at its own offset
         const auto half = (m_Depth == 0 ? 0 : Pow2(m_Depth - 1));
-        return {.Node = m_Root,
+        return {.Node = *m_Root,
                 .Offset = {m_SeedOffset.X - half, m_SeedOffset.Y - half}};
     }
 
@@ -676,7 +683,7 @@ HashQuadtree::GetCenteredNode(int32_t level) const {
     }
 
     const auto size = Pow2(level - 1);
-    return {.Node = FindOrCreate(northwest, northeast, southwest, southeast),
+    return {.Node = LifeNode{northwest, northeast, southwest, southeast},
             .Offset = {m_SeedOffset.X - size, m_SeedOffset.Y - size}};
 }
 

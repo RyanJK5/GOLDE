@@ -258,9 +258,16 @@ class HashQuadtree : public LifeDataStructure {
         Vec2L Offset;
     };
 
+    // Used in ForEach to avoid concurrent canonicalization
+    struct TemporaryCenteredNodeResult {
+        LifeNode Node;
+        Vec2L Offset;
+    };
+
     enum class Quadrant { NW, NE, SW, SE };
 
     CenteredNodeResult GetCenteredNode(int32_t level) const;
+    TemporaryCenteredNodeResult GetTemporaryCenteredNode(int32_t level) const;
 
     const LifeNode* ReplaceAlongPath(const LifeNode* node, int32_t level,
                                      Quadrant sdir, const LifeNode* value,
@@ -402,8 +409,8 @@ void HashQuadtree::ForEachCell(const Func& func, Rect bounds,
         return;
     }
 
-    const auto [node, offset] = GetCenteredNode(32);
-    return ForEachImpl(func, node, offset, std::min(m_Depth, 32), minLevel,
+    const auto [node, offset] = GetTemporaryCenteredNode(32);
+    return ForEachImpl(func, &node, offset, std::min(m_Depth, 32), minLevel,
                        bounds);
 }
 

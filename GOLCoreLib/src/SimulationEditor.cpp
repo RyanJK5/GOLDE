@@ -97,7 +97,6 @@ SimulationEditor::Update(std::optional<bool> activeOverride,
                          const SimulationControlResult& controlArgs,
                          const PresetSelectionResult& presetArgs) {
     PollPendingCommandResult();
-    m_Model.SetCacheIndex(m_Model.EditorID() + 1);
 
     auto displayResult = DisplaySimulation(
         (controlArgs.Command || !presetArgs.ClipboardText.empty()) &&
