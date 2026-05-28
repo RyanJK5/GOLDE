@@ -419,10 +419,9 @@ std::string_view HashLife::Identifier = "HashLife";
 thread_local LifeRule HashLife::s_Rule = *LifeRule::Make("B3/S23");
 
 // The cache for the HashLife algorithm when the step size is bounded.
-std::array<
-        ankerl::unordered_dense::map<SlowKey, const LifeNode*, SlowHash>,
-        HashQuadtree::MaxCacheCount
-> HashLife::s_SlowCache{};
+std::array<ankerl::unordered_dense::map<SlowKey, const LifeNode*, SlowHash>,
+           HashQuadtree::MaxCacheCount>
+    HashLife::s_SlowCache{};
 
 HashLife::HashLife() : m_Topology(std::make_unique<Plane>()) {
     // Reserve space for 1 million nodes to avoid rehashing

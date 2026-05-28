@@ -156,6 +156,7 @@ class HashQuadtree : public LifeDataStructure {
 
     static void SetCacheIndex(size_t index);
     static size_t GetCacheIndex();
+
   public:
     bool empty() const;
 
