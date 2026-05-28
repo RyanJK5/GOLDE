@@ -55,8 +55,7 @@ class HashLifeCache {
     // accessed by pointer outside of the cache.
     LifeNodeArena NodeStorage{};
 
-    ankerl::unordered_dense::map<const LifeNode*, const LifeNode*, LifeNodeHash,
-                                 LifeNodeEqual>
+    ankerl::unordered_dense::set<const LifeNode*, LifeNodeHash, LifeNodeEqual>
         NodeMap{};
 
     // Level-indexed cache for empty nodes. Index i holds the empty node for
@@ -282,7 +281,9 @@ class HashQuadtree : public LifeDataStructure {
 
   private:
     static std::array<HashLifeCache, MaxCacheCount> s_Cache;
-    static thread_local size_t s_CacheIndex;
+    static thread_local size_t t_CacheIndex;
+
+    HashLifeCache* m_Cache = nullptr;
 
     static thread_local ankerl::unordered_dense::map<
         const LifeNode*, BigInt, LifeNodeHash, LifeNodeEqual>
@@ -407,7 +408,7 @@ void HashQuadtree::ForEachCell(const Func& func, Rect bounds,
 }
 
 [[nodiscard]] auto HashQuadtree::ProtectNodeFromGC(const LifeNode* node) const {
-    return s_Cache[s_CacheIndex].ProtectNodeFromGC(node);
+    return m_Cache->ProtectNodeFromGC(node);
 }
 
 } // namespace Golde

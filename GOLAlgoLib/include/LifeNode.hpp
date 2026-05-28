@@ -24,6 +24,8 @@ struct LifeNode {
         LifeNode* NextDead; // For garbage collection
     };
 
+    mutable const LifeNode* AdvanceResult = nullptr;
+
     bool IsEmpty = false;
     mutable bool MarkedForGC = false;
 
