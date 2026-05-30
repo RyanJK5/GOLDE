@@ -10,7 +10,6 @@
 #include <imgui_internal.h>
 #include <nfd.hpp>
 #include <optional>
-#include <print>
 #include <utility>
 
 #include "ConfigLoader.hpp"
@@ -92,10 +91,7 @@ Game::Game()
         Size2{m_Window.Bounds.Width, m_Window.Bounds.Height},
         Size2{DefaultGridWidth, DefaultGridHeight}));
     m_EditorCounter += 2;
-    
-    const auto initResult = NFD::Init();
-    std::println("NFD Init: {}", initResult == NFD_OKAY ? "ok" : NFD::GetError());
-
+    NFD::Init();
 
     InitImGUI(std::filesystem::path{"config"} / "style.yml");
 }

@@ -6,9 +6,6 @@
 #include <ranges>
 #include <string>
 
-#include <print>
-#include <pthread.h>
-
 #include "FileDialog.hpp"
 
 namespace Golde {
@@ -31,8 +28,6 @@ FileDialog::OpenFileDialog(std::span<const FilterItem> filters,
         defaultPath.empty() ? nullptr : defaultPath.c_str());
 
     if (result == NFD_OKAY) {
-        std::println("Success");
-
         auto ret = std::filesystem::path{outPath.get()};
         const auto extension = ret.extension().string().substr(1);
 
@@ -48,18 +43,12 @@ FileDialog::OpenFileDialog(std::span<const FilterItem> filters,
         }
         return ret;
     } else if (result == NFD_CANCEL) {
-        bool isMainThread = pthread_main_np() != 0;
-        std::println("Cancelled: isMainThread = {}", isMainThread);
-
         return std::unexpected<FileDialogFailure>{
             {.Type = FileFailureType::Cancelled}};
     }
 
-    auto message = NFD::GetError();
-    std::println("Error: {}", message);
-
     return std::unexpected<FileDialogFailure>{
-        {.Type = FileFailureType::Error, .Message = message}};
+        {.Type = FileFailureType::Error, .Message = NFD::GetError()}};
 }
 
 std::expected<std::filesystem::path, FileDialogFailure>
