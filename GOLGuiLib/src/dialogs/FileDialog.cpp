@@ -5,6 +5,7 @@
 #include <nfd.hpp>
 #include <ranges>
 #include <string>
+#include <print>
 
 #include "FileDialog.hpp"
 
@@ -28,6 +29,8 @@ FileDialog::OpenFileDialog(std::span<const FilterItem> filters,
         defaultPath.empty() ? nullptr : defaultPath.c_str());
 
     if (result == NFD_OKAY) {
+        std::println("Success");
+
         auto ret = std::filesystem::path{outPath.get()};
         const auto extension = ret.extension().string().substr(1);
 
@@ -43,12 +46,17 @@ FileDialog::OpenFileDialog(std::span<const FilterItem> filters,
         }
         return ret;
     } else if (result == NFD_CANCEL) {
+        std::println("Cancelled");
+
         return std::unexpected<FileDialogFailure>{
             {.Type = FileFailureType::Cancelled}};
     }
 
+    auto message = NFD::GetError();
+    std::println("Error: {}", message);
+
     return std::unexpected<FileDialogFailure>{
-        {.Type = FileFailureType::Error, .Message = NFD::GetError()}};
+        {.Type = FileFailureType::Error, .Message = message}};
 }
 
 std::expected<std::filesystem::path, FileDialogFailure>
