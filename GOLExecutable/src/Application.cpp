@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <print>
 
 #include "Game.hpp"
 
@@ -26,14 +27,20 @@ static void SetWorkingDirectory(int argc, char* argv[]) {
 #endif
     if (argc > 0) {
         constexpr static auto searchDepth = 2;
+        std::array<std::string, searchDepth> attemptedPaths{};
         auto path = std::filesystem::absolute(argv[0]);
         for (auto i = 0; i < searchDepth; i++) {
-            path /= "..";
+            path = path.parent_path();
+            attemptedPaths[i] = path.string();
             const auto sharePath = path / "share";
             if (std::filesystem::exists(sharePath)) {
                 std::filesystem::current_path(sharePath);
-                break;
+                return;
             }
+        }
+        std::println("Could not find share/ directory. Tried:");
+        for (const auto& str : attemptedPaths) {
+            std::println(" - {}", str);
         }
     }
 }

@@ -197,7 +197,7 @@ void Game::InitImGUI(const std::filesystem::path& stylePath) {
     glfwGetWindowSize(m_Window.Get(), &width, &height);
     m_FontSize = std::max(14.0f, 30.0f * static_cast<float>(height) / 2160.0f);
 
-    auto path = std::filesystem::path("resources") / "font" / "arial.ttf";
+    auto path = std::filesystem::path("resources") / "font" / "arimo.ttf";
     m_Font = io.Fonts->AddFontFromFileTTF(path.string().c_str(), m_FontSize);
 
     auto iconPath =
