@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">
+<plist version="1.0">
+<dict>
+    <!-- Core App Settings -->
+    <key>CFBundleExecutable</key>
+    <string>YourAppName</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.yourcompany.yourapp</string>
+    <key>CFBundleName</key>
+    <string>YourAppName</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+
+    <!-- Register .rle and .mc extensions -->
+    <key>UTImportedTypeDeclarations</key>
+    <array>
+        <!-- Configuration for .rle -->
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.yourcompany.rle-pattern</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.text</string>
+            </array>
+            <key>UTTypeDescription</key>
+            <string>Run Length Encoded Life Pattern</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>rle</string>
+                </array>
+            </dict>
+        </dict>
+        <!-- Configuration for .mc -->
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.yourcompany.macrocell</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.text</string>
+            </array>
+            <key>UTTypeDescription</key>
+            <string>Macrocell Life Pattern</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>mc</string>
+                </array>
+            </dict>
+        </dict>
+    </array>
+</dict>
