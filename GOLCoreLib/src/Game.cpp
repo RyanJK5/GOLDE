@@ -92,7 +92,6 @@ Game::Game()
         Size2{DefaultGridWidth, DefaultGridHeight}));
     m_EditorCounter += 2;
     NFD::Init();
-
     InitImGUI(std::filesystem::path{"config"} / "style.yml");
 }
 
