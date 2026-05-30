@@ -39,7 +39,7 @@ If you would like to build from source, follow the instructions below.
 ### Prerequisites
 
 - **C++23** compiler (MSVC, Clang, or GCC)
-- **CMake 3.29+**
+- **CMake 3.28+**
 - **Ninja** (recommended) or other CMake-compatible build system
 - **OpenGL 3.3+**
 
