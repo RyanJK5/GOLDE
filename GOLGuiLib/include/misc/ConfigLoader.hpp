@@ -416,7 +416,7 @@ TryLoadYAML(const std::filesystem::path& styleInfoPath) {
         return std::unexpected(
             YAMLError{YAMLErrorType::FileOpenError,
                       std::format("Could not open file '{}'",
-                                  styleInfoPath.generic_string())});
+                                  std::filesystem::absolute(styleInfoPath).generic_string())});
     }
 
     std::string line = "";
