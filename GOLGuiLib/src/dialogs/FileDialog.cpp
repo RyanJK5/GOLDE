@@ -5,7 +5,9 @@
 #include <nfd.hpp>
 #include <ranges>
 #include <string>
+
 #include <print>
+#include <pthread.h>
 
 #include "FileDialog.hpp"
 
@@ -46,7 +48,8 @@ FileDialog::OpenFileDialog(std::span<const FilterItem> filters,
         }
         return ret;
     } else if (result == NFD_CANCEL) {
-        std::println("Cancelled");
+        bool isMainThread = pthread_main_np() != 0;
+        std::println("Cancelled: isMainThread = {}", isMainThread);
 
         return std::unexpected<FileDialogFailure>{
             {.Type = FileFailureType::Cancelled}};
