@@ -304,6 +304,7 @@ void Game::HandleWindowClose(PopupWindowState state) {
                 return editor.get() == m_Unsaved;
             });
         }
+        m_State = {.Simulation = {.State = SimulationState::Paint}};
         m_Unsaved = nullptr;
         break;
     }
