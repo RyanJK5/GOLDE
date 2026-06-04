@@ -1,335 +1,372 @@
 #include <cstdint>
 #include <filesystem>
-#include <format>
-#include <limits>
-#include <locale>
 #include <optional>
 #include <string>
 
+#include "EditorCommandExecutor.hpp"
 #include "EditorModel.hpp"
 #include "GameEnums.hpp"
 #include "GameGrid.hpp"
-#include "Graphics2D.hpp"
 #include "SimulationCommand.hpp"
 #include "SimulationWorker.hpp"
 #include "VersionManager.hpp"
 
 namespace Golde {
+
 namespace {
+
 bool ShouldExecuteInline(const SimulationCommand& cmd) {
-    if (std::holds_alternative<UndoCommand>(cmd) ||
-        std::holds_alternative<RedoCommand>(cmd) ||
-        std::holds_alternative<RuleCommand>(cmd)) {
+    // Simulation lifecycle
+    if (std::holds_alternative<StartCommand>(cmd) ||
+        std::holds_alternative<PauseCommand>(cmd) ||
+        std::holds_alternative<ResumeCommand>(cmd) ||
+        std::holds_alternative<StepCommand>(cmd) ||
+        std::holds_alternative<ClearCommand>(cmd) ||
+        std::holds_alternative<ResetCommand>(cmd) ||
+        std::holds_alternative<RestartCommand>(cmd)) {
         return true;
     }
 
+    // History
+    if (std::holds_alternative<UndoCommand>(cmd) ||
+        std::holds_alternative<RedoCommand>(cmd)) {
+        return true;
+    }
+
+    // Rule changes are cheap and need VersionManager immediately.
+    if (std::holds_alternative<RuleCommand>(cmd)) {
+        return true;
+    }
+
+    // SelectAll is instant.
     if (const auto* selection = std::get_if<SelectionCommand>(&cmd)) {
         return selection->Action == SelectionAction::SelectAll;
     }
 
+    // Camera commands have no side effects on state.
+    if (std::holds_alternative<CameraPositionCommand>(cmd) ||
+        std::holds_alternative<CameraZoomCommand>(cmd)) {
+        return true;
+    }
+
     return false;
 }
+
 } // namespace
+
+// ---------------------------------------------------------------------------
+// Construction
+// ---------------------------------------------------------------------------
 
 EditorModel::EditorModel(uint32_t id, const std::filesystem::path& path,
                          Size2 gridSize)
-    : m_Grid(gridSize), m_Worker(std::make_unique<SimulationWorker>(id)),
-      m_CurrentFilePath(path), m_EditorID(id) {
+    : m_Executor(m_LifeCache, id, path, gridSize),
+      m_Worker(std::make_unique<SimulationWorker>()) {
     // Seed history with the initial state so first undo restores correctly.
-    m_VersionManager.PushChange(VersionState{.Universe = m_Grid});
+    m_VersionManager.PushChange(VersionState{.Universe = m_Executor.Grid()});
     m_VersionManager.Save();
 }
 
 bool EditorModel::operator==(const EditorModel& other) const {
-    return m_EditorID == other.m_EditorID;
+    return m_Executor.EditorID() == other.m_Executor.EditorID();
 }
 
-bool EditorModel::IsSimulationOutOfBounds() const {
-    return m_Grid.BoundingBox() == Rect{};
-}
-
-SimulationState EditorModel::StartSimulation() {
-    m_Worker->Start(m_Grid);
-    return SimulationState::Simulation;
-}
-
-void EditorModel::StopSimulation(bool stealGrid) {
-    if (m_State == SimulationState::Simulation) {
-        if (stealGrid)
-            m_Grid = m_Worker->Stop();
-        else
-            m_Worker->Stop();
-    }
-}
-
-void EditorModel::CheckStopStep() {
-    if (!m_StopStepCommand.load(std::memory_order_acquire))
-        return;
-    m_StopStepCommand.store(false, std::memory_order_release);
-    const auto ogState = m_State;
-    m_State = SimulationState::Simulation;
-    if (ogState == SimulationState::Stepping) {
-        StopSimulation(true);
-        m_State = SimulationState::Paused;
-    } else {
-        StopSimulation(false);
-        m_State = ogState;
-    }
-}
+// ---------------------------------------------------------------------------
+// Settings / per-frame
+// ---------------------------------------------------------------------------
 
 void EditorModel::ApplySettings(const SimulationSettings& settings) {
     m_Worker->SetTickDelayMs(settings.TickDelayMs);
     m_Worker->SetStepCount(settings.StepCount);
 }
 
-void EditorModel::TryPushVersionChange(
-    const std::optional<VersionState>& change) {
-    m_VersionManager.TryPushChange(change, m_State);
+void EditorModel::CheckStopStep() {
+    if (!m_StopStepCommand.load(std::memory_order_acquire))
+        return;
+    m_StopStepCommand.store(false, std::memory_order_release);
+
+    const auto ogState = m_Executor.State();
+    m_Executor.SetState(SimulationState::Simulation);
+    if (ogState == SimulationState::Stepping) {
+        StopSimulation(true);
+        m_Executor.SetState(SimulationState::Paused);
+    } else {
+        StopSimulation(false);
+        m_Executor.SetState(ogState);
+    }
 }
 
-void EditorModel::TryPushVersionChange(const VersionState& change) {
-    TryPushVersionChange(std::optional<VersionState>{change});
+// ---------------------------------------------------------------------------
+// Direct-access methods (called by SimulationEditor outside command dispatch)
+// ---------------------------------------------------------------------------
+
+bool EditorModel::UpdateSelectionAreaTracked(Vec2 gridPos) {
+    if (IsEditBusy())
+        return false;
+    std::vector<VersionState> changes;
+    const bool result = m_Executor.UpdateSelectionAreaTracked(gridPos, changes);
+    for (auto& change : changes)
+        m_VersionManager.PushChange(change);
+    return result;
+}
+
+void EditorModel::TryResetSelection() { m_Executor.TryResetSelection(); }
+
+void EditorModel::BeginPaintChange() {
+    m_Executor.BeginPaintChange(m_VersionManager);
+}
+
+void EditorModel::PaintCell(Vec2 pos, bool value) {
+    m_Executor.PaintCell(pos, value, m_VersionManager);
+}
+
+void EditorModel::MarkSaved() { m_Executor.MarkSaved(m_VersionManager); }
+
+// ---------------------------------------------------------------------------
+// Simulation lifecycle (main-thread only)
+// ---------------------------------------------------------------------------
+
+SimulationState EditorModel::StartSimulation() {
+    m_Worker->Start(m_Executor.Grid());
+    return SimulationState::Simulation;
+}
+
+void EditorModel::StopSimulation(bool stealGrid) {
+    if (m_Executor.State() == SimulationState::Simulation) {
+        if (stealGrid)
+            m_Executor.Grid() = m_Worker->Stop();
+        else
+            m_Worker->Stop();
+    }
 }
 
 SimulationState EditorModel::HandleStart() {
-    m_SelectionManager.Deselect(m_Grid);
-    m_InitialGrid = m_Grid;
+    if (auto change = m_Executor.Deselect()) {
+        m_VersionManager.PushChange(*change);
+    }
+    m_Executor.SetInitialGrid(m_Executor.Grid());
     return StartSimulation();
 }
 
 SimulationState EditorModel::HandleClear() {
     StopSimulation(false);
-    TryPushVersionChange(m_SelectionManager.Deselect(m_Grid));
+    // Push a version change for the pre-clear state, then clear.
+    m_VersionManager.PushChange(VersionState{.Universe = m_Executor.Grid()});
 
-    const std::string oldRuleStr{m_Grid.GetRuleString()};
-    m_Grid = GameGrid{m_Grid.Size()};
-    m_Grid.SetRule(*LifeRule::Make(oldRuleStr), oldRuleStr);
+    const std::string oldRuleStr{m_Executor.CurrentRuleString()};
+    m_Executor.Grid() = GameGrid{m_LifeCache, m_Executor.GridSize()};
+    m_Executor.Grid().SetRule(*LifeRule::Make(oldRuleStr), oldRuleStr);
 
-    TryPushVersionChange(VersionState{.Universe = m_Grid});
+    m_VersionManager.PushChange(VersionState{.Universe = m_Executor.Grid()});
+    m_Executor.SetState(SimulationState::Paint);
     return SimulationState::Paint;
 }
 
 SimulationState EditorModel::HandleReset() {
     StopSimulation(false);
-    m_SelectionManager.Deselect(m_Grid);
-    m_Grid = m_InitialGrid;
+    m_Executor.Grid() = m_Executor.InitialGrid();
+    m_Executor.SetState(SimulationState::Paint);
     return SimulationState::Paint;
 }
 
 SimulationState EditorModel::HandleRestart() {
     StopSimulation(false);
-    m_SelectionManager.Deselect(m_Grid);
-    m_Grid = m_InitialGrid;
+    m_Executor.Grid() = m_Executor.InitialGrid();
     return StartSimulation();
 }
 
 SimulationState EditorModel::HandlePause() {
     StopSimulation(true);
+    m_Executor.SetState(SimulationState::Paused);
     return SimulationState::Paused;
 }
 
 SimulationState EditorModel::HandleResume() {
-    m_SelectionManager.Deselect(m_Grid);
-    return StartSimulation();
+    if (auto change = m_Executor.Deselect()) {
+        m_VersionManager.PushChange(*change);
+    }
+    const auto state = StartSimulation();
+    m_Executor.SetState(state);
+    return state;
 }
 
 SimulationState EditorModel::HandleStep() {
-    m_SelectionManager.Deselect(m_Grid);
-    if (m_State == SimulationState::Paint)
-        m_InitialGrid = m_Grid;
-    m_Worker->Start(m_Grid, true, [this] {
+    if (m_Executor.State() == SimulationState::Paint)
+        m_Executor.SetInitialGrid(m_Executor.Grid());
+    m_Worker->Start(m_Executor.Grid(), true, [this] {
         m_StopStepCommand.store(true, std::memory_order_release);
     });
+    m_Executor.SetState(SimulationState::Stepping);
     return SimulationState::Stepping;
 }
 
-SimulationState EditorModel::HandleRuleChange(std::string_view ruleStr) {
-    const auto rule = *LifeRule::Make(ruleStr);
-
-    const auto oldSize = m_Grid.Size();
-    const auto ruleBounds = rule.Bounds().value_or(Rect{});
-
-    // Always set the rule on the grid
-    m_Grid.SetRule(rule, ruleStr);
-
-    if (oldSize != ruleBounds.Size()) {
-        m_Grid = GameGrid{std::move(m_Grid),
-                          rule.Bounds() ? rule.Bounds()->Size() : Size2{}};
-    }
-
-    m_SelectionManager.SetSelectionRule(ruleStr);
-
-    TryPushVersionChange(VersionState{.Universe = m_Grid});
-
-    if (m_Grid.Size() == oldSize) {
-        return m_State;
-    }
-
-    if (m_SelectionManager.CanDrawSelection()) {
-        auto selection = m_SelectionManager.SelectionBounds();
-        if (!m_Grid.InBounds(selection.UpperLeft()) ||
-            !m_Grid.InBounds(selection.UpperRight()) ||
-            !m_Grid.InBounds(selection.LowerLeft()) ||
-            !m_Grid.InBounds(selection.LowerRight()))
-            TryPushVersionChange(m_SelectionManager.Deselect(m_Grid));
-    }
-    return m_State;
-}
-
-bool EditorModel::HandleGenerateNoise(float density, uint32_t warnThreshold) {
-    if (!m_SelectionManager.CanDrawGrid())
-        return false;
-    const auto selectionBounds = m_SelectionManager.SelectionBounds();
-    TryPushVersionChange(m_SelectionManager.Deselect(m_Grid));
-
-    const auto result = m_SelectionManager.InsertNoise(m_Grid, selectionBounds,
-                                                       warnThreshold, density);
-    if (result) {
-        TryPushVersionChange(result);
-        return true;
-    } else {
-        m_SelectionManager.ModifySelectionBounds(m_Grid, selectionBounds);
-        return false;
-    }
-}
-
 SimulationState EditorModel::HandleUndo() {
-    auto versionChanges = m_VersionManager.Undo();
-    if (versionChanges) {
-        m_SelectionManager.HandleVersionChange(m_Grid, *versionChanges);
-    }
-    return m_State;
+    auto versionChange = m_VersionManager.Undo();
+    if (versionChange)
+        m_Executor.ApplyVersionChange(*versionChange);
+    return m_Executor.State();
 }
 
 SimulationState EditorModel::HandleRedo() {
-    auto versionChanges = m_VersionManager.Redo();
-    if (versionChanges) {
-        m_SelectionManager.HandleVersionChange(m_Grid, *versionChanges);
-    }
-    return m_State;
+    auto versionChange = m_VersionManager.Redo();
+    if (versionChange)
+        m_Executor.ApplyVersionChange(*versionChange);
+    return m_Executor.State();
 }
 
-std::expected<void, std::string>
-EditorModel::HandleSelectionAction(SelectionAction action, int32_t nudgeSize) {
-    if (action == SelectionAction::SelectAll)
-        TryPushVersionChange(m_SelectionManager.Deselect(m_Grid));
+// ---------------------------------------------------------------------------
+// Inline execution — simulation lifecycle, undo/redo, rule, camera, SelectAll
+// ---------------------------------------------------------------------------
 
-    const auto actionResult =
-        m_SelectionManager.HandleAction(action, m_Grid, nudgeSize);
-    TryPushVersionChange(actionResult);
-
-    if (!actionResult && (action == SelectionAction::FlipHorizontally ||
-                          action == SelectionAction::FlipVertically ||
-                          action == SelectionAction::RotateClockwise ||
-                          action == SelectionAction::RotateCounterclockwise)) {
-        return std::unexpected{
-            std::format(std::locale{""}, "Tried editing too many cells ({:L})",
-                        SelectedPopulation())};
-    } else if (!actionResult) {
-        return std::unexpected{GenerateDepthError()};
-    } else {
-        return {};
-    }
+ExecuteCommandResult
+EditorModel::ExecuteInline(const SimulationCommand& cmd,
+                           const ExecuteCommandContext& context) {
+    return std::visit(
+        Overloaded{
+            [this](const StartCommand&) {
+                return ExecuteCommandResult{.State = HandleStart()};
+            },
+            [this](const ClearCommand&) {
+                return ExecuteCommandResult{.State = HandleClear()};
+            },
+            [this](const ResetCommand&) {
+                return ExecuteCommandResult{.State = HandleReset()};
+            },
+            [this](const RestartCommand&) {
+                return ExecuteCommandResult{.State = HandleRestart()};
+            },
+            [this](const PauseCommand&) {
+                return ExecuteCommandResult{.State = HandlePause()};
+            },
+            [this](const ResumeCommand&) {
+                return ExecuteCommandResult{.State = HandleResume()};
+            },
+            [this](const StepCommand&) {
+                return ExecuteCommandResult{.State = HandleStep()};
+            },
+            [this, &context](const UndoCommand&) {
+                if (context.PrimaryMouseDown)
+                    return ExecuteCommandResult{.State = m_Executor.State()};
+                return ExecuteCommandResult{.State = HandleUndo()};
+            },
+            [this, &context](const RedoCommand&) {
+                if (context.PrimaryMouseDown)
+                    return ExecuteCommandResult{.State = m_Executor.State()};
+                return ExecuteCommandResult{.State = HandleRedo()};
+            },
+            [this](const RuleCommand& command) {
+                // Rule changes go through the executor to reuse its handler,
+                // but run inline so VersionManager is available immediately.
+                const auto oldWidth = m_Executor.GridWidth();
+                const auto oldHeight = m_Executor.GridHeight();
+                auto result = m_Executor.Execute(command, {});
+                for (auto& change : result.VersionChanges)
+                    m_VersionManager.PushChange(change);
+                result.VersionChanges.clear();
+                result.RecenterCameraToGridCenter =
+                    m_Executor.GridWidth() != oldWidth ||
+                    m_Executor.GridHeight() != oldHeight;
+                return result;
+            },
+            [this](const CameraPositionCommand& command) {
+                return ExecuteCommandResult{.State = m_Executor.State(),
+                                            .CameraPositionCell =
+                                                command.Position};
+            },
+            [this](const CameraZoomCommand& command) {
+                return ExecuteCommandResult{.State = m_Executor.State(),
+                                            .CameraZoom = command.Zoom};
+            },
+            [this](const SelectionCommand& command) {
+                // Only SelectAll reaches here via ShouldExecuteInline.
+                auto result = m_Executor.Execute(command, {});
+                for (auto& change : result.VersionChanges)
+                    m_VersionManager.PushChange(change);
+                result.VersionChanges.clear();
+                return result;
+            },
+            // All other commands are handled async — these arms are
+            // unreachable from ExecuteInline but required for exhaustiveness.
+            [this](const auto&) {
+                return ExecuteCommandResult{.State = m_Executor.State()};
+            }},
+        cmd);
 }
 
-std::optional<std::string>
-EditorModel::LoadFile(const std::filesystem::path& path) {
-    TryPushVersionChange(m_SelectionManager.Deselect(m_Grid));
-    auto loadResult = m_SelectionManager.Load(m_Grid, path);
-    if (loadResult) {
-        TryPushVersionChange(*loadResult);
-        return std::nullopt;
-    }
-    return loadResult.error().Message;
+// ---------------------------------------------------------------------------
+// Async result application
+// ---------------------------------------------------------------------------
+
+void EditorModel::ApplyAsyncResult(AsyncCommandResult&& asyncResult) {
+    m_Executor = std::move(asyncResult.UpdatedExecutor);
+    for (auto& change : asyncResult.Result.VersionChanges)
+        m_VersionManager.PushChange(change);
+    asyncResult.Result.VersionChanges.clear();
 }
 
-bool EditorModel::SaveToFile(const std::filesystem::path& path,
-                             bool markAsSaved) {
-    if (m_SelectionManager.Save(m_Grid, path)) {
-        if (m_CurrentFilePath.empty())
-            m_CurrentFilePath = path;
-        if (markAsSaved)
-            m_VersionManager.Save();
+// ---------------------------------------------------------------------------
+// Command dispatch
+// ---------------------------------------------------------------------------
+
+bool EditorModel::TryStartCommand(const SimulationCommand& cmd,
+                                  const ExecuteCommandContext& context) {
+    if (m_EditBusy.exchange(true, std::memory_order_acq_rel))
+        return false;
+
+    std::scoped_lock lock{m_CommandMutex};
+
+    if (ShouldExecuteInline(cmd)) {
+        m_InlineCommandResult = ExecuteInline(cmd, context);
         return true;
     }
-    return false;
+
+    // Snapshot the executor for the async thread.
+    auto executorCopy = m_Executor;
+    m_InFlightCommand = std::async(
+        std::launch::async,
+        [exec = std::move(executorCopy), command = cmd,
+         commandContext = context]() mutable -> AsyncCommandResult {
+            auto result = exec.Execute(command, commandContext);
+            return AsyncCommandResult{.UpdatedExecutor = std::move(exec),
+                                      .Result = std::move(result)};
+        });
+    return true;
 }
 
-std::expected<void, FileEncoder::DecodeError>
-EditorModel::PasteSelection(std::optional<Vec2> cursorPos,
-                            std::string_view clipboardText, bool unlock) {
-    if (cursorPos || m_SelectionManager.CanDrawGrid()) {
-        TryPushVersionChange(m_SelectionManager.Deselect(m_Grid));
-    }
-    auto pasteResult = m_SelectionManager.Paste(
-        m_Grid, clipboardText, cursorPos, 100'000'000U, unlock);
-    if (pasteResult) {
-        TryPushVersionChange(*pasteResult);
-        return {};
-    }
-    return std::unexpected{pasteResult.error()};
-}
+std::optional<ExecuteCommandResult> EditorModel::PollCommandResult() {
+    std::scoped_lock lock{m_CommandMutex};
 
-void EditorModel::ForcePaste(std::optional<Vec2> cursorPos,
-                             std::string_view clipboardText) {
-    auto pasteResult = m_SelectionManager.Paste(
-        m_Grid, clipboardText, cursorPos, std::numeric_limits<uint32_t>::max());
-    if (pasteResult)
-        TryPushVersionChange(*pasteResult);
-}
-
-void EditorModel::InsertFromClipboard(Vec2 position,
-                                      std::string_view clipboardText) {
-    TryPushVersionChange(m_SelectionManager.Deselect(m_Grid));
-    auto result =
-        m_SelectionManager.Paste(m_Grid, clipboardText, position,
-                                 std::numeric_limits<uint32_t>::max(), true);
-    if (result)
-        TryPushVersionChange(*result);
-}
-
-SimulationState EditorModel::SetSelectionBounds(Rect bounds) {
-    auto [change1, change2] =
-        m_SelectionManager.ModifySelectionBounds(m_Grid, bounds);
-    TryPushVersionChange(change1);
-    TryPushVersionChange(change2);
-
-    return m_State;
-}
-
-bool EditorModel::UpdateSelectionAreaTracked(Vec2 gridPos) {
-    if (IsEditBusy()) {
-        return false;
+    if (m_InlineCommandResult) {
+        auto result = std::move(*m_InlineCommandResult);
+        m_InlineCommandResult.reset();
+        m_EditBusy.store(false, std::memory_order_release);
+        return result;
     }
 
-    auto result = m_SelectionManager.UpdateSelectionArea(m_Grid, gridPos);
-    TryPushVersionChange(result.Change);
-    return result.BeginSelection;
-}
+    if (!m_InFlightCommand)
+        return std::nullopt;
 
-void EditorModel::TryResetSelection() {
-    m_SelectionManager.TryResetSelection();
-}
-
-void EditorModel::BeginPaintChange() {
-    m_VersionManager.BeginPaintChange(m_Grid, m_State);
-}
-
-void EditorModel::PaintCell(Vec2 pos, bool value) {
-    if (*m_Grid.Get(pos.X, pos.Y) == value) {
-        return;
+    if (m_InFlightCommand->wait_for(std::chrono::seconds{0}) !=
+        std::future_status::ready) {
+        return std::nullopt;
     }
 
-    m_Grid.Set(pos.X, pos.Y, value);
-    m_VersionManager.AddPaintChange(m_Grid, m_State);
+    auto asyncResult = m_InFlightCommand->get();
+    m_InFlightCommand.reset();
+    m_EditBusy.store(false, std::memory_order_release);
+
+    auto publicResult = asyncResult.Result; // copy before move
+    ApplyAsyncResult(std::move(asyncResult));
+    return publicResult;
 }
 
-void EditorModel::MarkSaved() { m_VersionManager.Save(); }
+// ---------------------------------------------------------------------------
+// Work state / dispatch guards
+// ---------------------------------------------------------------------------
 
 EditWorkState EditorModel::WorkState() const {
-    if (m_EditBusy.load(std::memory_order_acquire)) {
+    if (m_EditBusy.load(std::memory_order_acquire))
         return EditWorkState::Working;
-    }
     return EditWorkState::Idle;
 }
 
@@ -338,15 +375,14 @@ bool EditorModel::IsEditBusy() const {
 }
 
 EditDispatchResult EditorModel::CanDispatchEdit() const {
-    if (m_State == SimulationState::Simulation ||
-        m_State == SimulationState::Stepping) {
+    if (m_Executor.State() == SimulationState::Simulation ||
+        m_Executor.State() == SimulationState::Stepping) {
         return {.Accepted = false,
                 .RejectedReason = EditRejectReason::SimulationRunning};
     }
     if (IsEditBusy()) {
         return {.Accepted = false, .RejectedReason = EditRejectReason::Busy};
     }
-
     return {.Accepted = true, .RejectedReason = std::nullopt};
 }
 
@@ -383,327 +419,9 @@ bool EditorModel::CanDispatchMutatingCommand(
         std::holds_alternative<RestartCommand>(cmd)) {
         return true;
     }
-
-    if (!IsMutatingCommand(cmd)) {
+    if (!IsMutatingCommand(cmd))
         return true;
-    }
     return CanDispatchEdit().Accepted;
-}
-
-bool EditorModel::TryStartCommand(const SimulationCommand& cmd,
-                                  const ExecuteCommandContext& context) {
-    if (m_EditBusy.exchange(true, std::memory_order_acq_rel)) {
-        return false;
-    }
-
-    std::scoped_lock lock{m_CommandMutex};
-    if (ShouldExecuteInline(cmd)) {
-        m_Grid.SetCacheIndex(m_EditorID);
-        m_InlineCommandResult = ExecuteCommandImmediate(cmd, context);
-        return true;
-    }
-
-    m_InFlightCommand = std::async(
-        std::launch::async, [this, command = cmd, commandContext = context]() {
-            m_Grid.SetCacheIndex(m_EditorID);
-            return ExecuteCommandImmediate(command, commandContext);
-        });
-    return true;
-}
-
-std::optional<ExecuteCommandResult> EditorModel::PollCommandResult() {
-    std::scoped_lock lock{m_CommandMutex};
-    if (m_InlineCommandResult) {
-        auto result = std::move(*m_InlineCommandResult);
-        m_InlineCommandResult.reset();
-        m_EditBusy.store(false, std::memory_order_release);
-        return result;
-    }
-
-    if (!m_InFlightCommand) {
-        return std::nullopt;
-    }
-
-    if (m_InFlightCommand->wait_for(std::chrono::seconds{0}) !=
-        std::future_status::ready) {
-        return std::nullopt;
-    }
-
-    auto result = m_InFlightCommand->get();
-    m_InFlightCommand.reset();
-    m_EditBusy.store(false, std::memory_order_release);
-    return result;
-}
-
-std::optional<ExecuteCommandResult>
-EditorModel::HandleIncomingRule(std::optional<std::string_view> incomingRule,
-                                bool hadExistingUniverseData,
-                                bool preserveSavedStateOnApply) {
-    if (!incomingRule) {
-        return std::nullopt;
-    }
-
-    const std::string originalRule{m_Grid.GetRuleString()};
-    if (*incomingRule == originalRule) {
-        return std::nullopt;
-    }
-
-    if (hadExistingUniverseData) {
-        return ExecuteCommandResult{
-            .State = m_State,
-            .LoadRuleWarning = LoadRuleWarningRequest{
-                .OriginalRuleString = originalRule,
-                .LoadedRuleString = std::string{*incomingRule}}};
-    }
-
-    const auto oldWidth = GridWidth();
-    const auto oldHeight = GridHeight();
-    const auto state = HandleRuleChange(*incomingRule);
-    if (preserveSavedStateOnApply) {
-        m_VersionManager.Save();
-    }
-
-    return ExecuteCommandResult{.State = state,
-                                .RecenterCameraToGridCenter =
-                                    GridWidth() != oldWidth ||
-                                    GridHeight() != oldHeight};
-}
-
-ExecuteCommandResult
-EditorModel::ExecuteCommandImmediate(const SimulationCommand& cmd,
-                                     const ExecuteCommandContext& context) {
-    const static BigInt threshold{10'000'000U};
-    return std::visit(
-        Overloaded{
-            [this](const StartCommand&) {
-                return ExecuteCommandResult{.State = HandleStart()};
-            },
-            [this](const ClearCommand&) {
-                return ExecuteCommandResult{.State = HandleClear()};
-            },
-            [this](const ResetCommand&) {
-                return ExecuteCommandResult{.State = HandleReset()};
-            },
-            [this](const RestartCommand&) {
-                return ExecuteCommandResult{.State = HandleRestart()};
-            },
-            [this](const PauseCommand&) {
-                return ExecuteCommandResult{.State = HandlePause()};
-            },
-            [this](const ResumeCommand&) {
-                return ExecuteCommandResult{.State = HandleResume()};
-            },
-            [this](const StepCommand&) {
-                return ExecuteCommandResult{.State = HandleStep()};
-            },
-            [this](const SelectionBoundsCommand& command) {
-                return ExecuteCommandResult{
-                    .State = SetSelectionBounds(command.Bounds)};
-            },
-            [this](const CameraPositionCommand& command) {
-                return ExecuteCommandResult{
-                    .State = m_State, .CameraPositionCell = command.Position};
-            },
-            [this](const CameraZoomCommand& command) {
-                return ExecuteCommandResult{.State = m_State,
-                                            .CameraZoom = command.Zoom};
-            },
-            [this](const GenerateNoiseCommand& command) {
-                const auto result = HandleGenerateNoise(
-                    command.Density, static_cast<uint32_t>(threshold));
-                if (!result) {
-                    return ExecuteCommandResult{
-                        .State = m_State,
-                        .ErrorType = ExecuteCommandErrorType::Noise,
-                        .ErrorMessage =
-                            "The region you have selected is too large to "
-                            "generate noise.\n"};
-                }
-                return ExecuteCommandResult{.State = m_State};
-            },
-            [this, &context](const UndoCommand&) {
-                if (context.PrimaryMouseDown) {
-                    return ExecuteCommandResult{.State = m_State};
-                }
-                return ExecuteCommandResult{.State = HandleUndo()};
-            },
-            [this, &context](const RedoCommand&) {
-                if (context.PrimaryMouseDown) {
-                    return ExecuteCommandResult{.State = m_State};
-                }
-                return ExecuteCommandResult{.State = HandleRedo()};
-            },
-            [this](const SaveCommand& command) {
-                if (!SaveToFile(command.FilePath, true)) {
-                    return ExecuteCommandResult{
-                        .State = m_State,
-                        .ErrorType = ExecuteCommandErrorType::File,
-                        .ErrorMessage =
-                            std::format("Failed to save file to \n{}",
-                                        command.FilePath.string())};
-                }
-                return ExecuteCommandResult{.State = m_State};
-            },
-            [this, &context](const SaveAsNewCommand& command) {
-                if (GridPopulation() > threshold &&
-                    command.FilePath.extension().string() == ".rle" &&
-                    !context.ConfirmSaveAsWarning) {
-                    return ExecuteCommandResult{
-                        .State = m_State,
-                        .SaveAsWarning = SaveAsWarningRequest{
-                            .FilePath = command.FilePath,
-                            .Population = GridPopulation()}};
-                }
-                if (!SaveToFile(command.FilePath, false)) {
-                    return ExecuteCommandResult{
-                        .State = m_State,
-                        .ErrorType = ExecuteCommandErrorType::File,
-                        .ErrorMessage =
-                            std::format("Failed to save file to \n{}",
-                                        command.FilePath.string())};
-                }
-                return ExecuteCommandResult{.State = m_State};
-            },
-            [this](const LoadCommand& command) {
-                const bool hadExistingUniverseData =
-                    !m_Grid.Dead() || !SelectedPopulation().is_zero() ||
-                    m_Grid.Size() != Size2{};
-                auto error = LoadFile(command.FilePath);
-                if (error) {
-                    return ExecuteCommandResult{
-                        .State = m_State,
-                        .ErrorType = ExecuteCommandErrorType::File,
-                        .ErrorMessage =
-                            std::format("Failed to load file:\n{}", *error)};
-                }
-                MarkSaved();
-
-                if (auto incomingRuleResult = HandleIncomingRule(
-                        m_SelectionManager.SelectionRuleString(),
-                        hadExistingUniverseData, true)) {
-                    return *incomingRuleResult;
-                }
-
-                return ExecuteCommandResult{.State = m_State};
-            },
-            [this](const NewFileCommand&) {
-                return ExecuteCommandResult{.State = m_State};
-            },
-            [this](const CloseCommand&) {
-                return ExecuteCommandResult{.State = m_State};
-            },
-            [this](const RuleCommand& command) {
-                const auto oldWidth = GridWidth();
-                const auto oldHeight = GridHeight();
-                const auto state = HandleRuleChange(command.RuleString);
-                return ExecuteCommandResult{.State = state,
-                                            .RecenterCameraToGridCenter =
-                                                GridWidth() != oldWidth ||
-                                                GridHeight() != oldHeight};
-            },
-            [this, &context](const SelectionCommand& command) {
-                if (command.Action == SelectionAction::Paste) {
-                    if (!m_Grid.ShouldAllowUniverseEdits()) {
-                        return ExecuteCommandResult{
-                            .State = m_State,
-                            .ErrorType = ExecuteCommandErrorType::Paste,
-                            .ErrorMessage = GenerateDepthError()};
-                    }
-
-                    const bool hadExistingUniverseData =
-                        !m_Grid.Dead() || !SelectedPopulation().is_zero() ||
-                        m_Grid.Size() != Size2{};
-                    if (context.ForcePasteSelection) {
-                        ForcePaste(context.CursorPos, command.ClipboardText);
-                        return ExecuteCommandResult{.State = m_State};
-                    }
-
-                    auto result =
-                        PasteSelection(context.CursorPos, command.ClipboardText,
-                                       context.UnlockPasteSelection);
-                    if (!result) {
-                        const auto errorType =
-                            result.error().ErrorType ==
-                                    FileEncoder::DecodeError::Type::TooManyCells
-                                ? ExecuteCommandErrorType::PasteTooManyCells
-                                : ExecuteCommandErrorType::Paste;
-                        return ExecuteCommandResult{.State = m_State,
-                                                    .ErrorType = errorType,
-                                                    .ErrorMessage =
-                                                        result.error().Message};
-                    }
-
-                    if (auto incomingRuleResult = HandleIncomingRule(
-                            m_SelectionManager.SelectionRuleString(),
-                            hadExistingUniverseData, false)) {
-                        return *incomingRuleResult;
-                    }
-
-                    return ExecuteCommandResult{.State = m_State};
-                }
-
-                {
-                    auto actionResult = [&] -> std::optional<CopyResult> {
-                        if (command.Action == SelectionAction::Copy) {
-                            return m_SelectionManager.Copy(m_Grid);
-                        } else if (command.Action == SelectionAction::Cut) {
-                            return m_SelectionManager.Cut(m_Grid);
-                        } else {
-                            return std::nullopt;
-                        }
-                    }();
-                    if (actionResult) {
-                        TryPushVersionChange(actionResult->Change);
-                        return ExecuteCommandResult{
-                            .State = m_State,
-                            .ClipboardText =
-                                std::move(actionResult->ClipboardText)};
-                    }
-                }
-
-                if (auto cmdResult = HandleSelectionAction(command.Action,
-                                                           command.NudgeSize);
-                    !cmdResult) {
-                    return ExecuteCommandResult{
-                        .State = m_State,
-                        .ErrorType = ExecuteCommandErrorType::FailedEdit,
-                        .ErrorMessage = std::move(cmdResult.error())};
-                }
-                return ExecuteCommandResult{.State = m_State};
-            },
-            [this](const PaintStrokeCommand& command) {
-                if (!m_Grid.ShouldAllowUniverseEdits()) {
-                    return ExecuteCommandResult{
-                        .State = m_State,
-                        .ErrorType = ExecuteCommandErrorType::FailedEdit,
-                        .ErrorMessage = GenerateDepthError()};
-                }
-
-                if (command.Points.empty()) {
-                    return ExecuteCommandResult{.State = m_State};
-                }
-
-                if (command.BeginStroke) {
-                    BeginPaintChange();
-                }
-
-                for (const auto point : command.Points) {
-                    if (!InBounds(point)) {
-                        continue;
-                    }
-                    PaintCell(point, command.Value);
-                }
-
-                return ExecuteCommandResult{.State = m_State};
-            }},
-        cmd);
-}
-
-std::string EditorModel::GenerateDepthError() const {
-    return std::format(
-        "GOLDE does not currently support stable editing to universes greater "
-        "than 2^4096\ncells across (currently 2^{} cells across)",
-        m_Grid.UniverseDepth());
 }
 
 } // namespace Golde

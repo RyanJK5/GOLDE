@@ -17,7 +17,7 @@
 namespace Golde {
 class SimulationWorker {
   public:
-    SimulationWorker(size_t cacheIndex);
+    SimulationWorker();
     ~SimulationWorker();
 
     void Start(GameGrid& initialGrid, bool oneStep = false,
@@ -30,16 +30,18 @@ class SimulationWorker {
     void SetStepCount(const BigInt& stepCount);
     void SetTickDelayMs(int64_t tickDelayMs);
 
-    const GameGrid* GetResult() const;
+    std::optional<GameGrid> GetResult() const;
     std::chrono::duration<float> GetTimeSinceLastUpdate() const;
 
   private:
     void ThreadLoop(std::stop_token threadStopToken);
 
-    size_t SimulationLoop(std::stop_token runStopToken);
+    void SimulationLoop(std::stop_token runStopToken);
 
   private:
-    size_t m_CacheIndex;
+    std::optional<GameGrid> m_WorkGrid;
+    std::optional<GameGrid> m_DisplayGrid;
+    mutable std::mutex m_DisplayMutex;
 
     std::mutex m_StepCountMutex;
     BigInt m_StepCount = 1;
@@ -47,9 +49,6 @@ class SimulationWorker {
     std::atomic<int64_t> m_TickDelayMs = 0;
 
     std::atomic<std::chrono::steady_clock::time_point> m_LastUpdate{};
-
-    std::array<GameGrid, 3> m_Buffers{}; // Triple buffer pattern
-    std::atomic<size_t> m_SnapshotIndex{};
 
     std::function<void()> m_OnStop;
     bool m_OneStep = false;

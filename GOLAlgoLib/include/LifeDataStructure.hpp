@@ -8,6 +8,7 @@
 #include <variant>
 
 #include "Graphics2D.hpp"
+#include "LifeRule.hpp"
 
 namespace Golde {
 

@@ -4,21 +4,19 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
-#include <expected>
 #include <filesystem>
-#include <functional>
 #include <future>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <stop_token>
 #include <string>
+#include <vector>
 
-#include "FileFormatHandler.hpp"
+#include "EditorCommandExecutor.hpp"
 #include "GameEnums.hpp"
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
-#include "SelectionManager.hpp"
 #include "SimulationCommand.hpp"
 #include "SimulationSettings.hpp"
 #include "SimulationWorker.hpp"
@@ -72,106 +70,77 @@ struct ExecuteCommandResult {
     std::optional<SaveAsWarningRequest> SaveAsWarning{};
     std::optional<LoadRuleWarningRequest> LoadRuleWarning{};
     std::optional<std::string> ClipboardText{};
+    // Version changes produced by the async executor. Applied by
+    // EditorModel::PollCommandResult and never seen by callers above.
+    std::vector<VersionState> VersionChanges{};
 };
 
 class EditorModel {
   public:
     EditorModel(uint32_t id, const std::filesystem::path& path, Size2 gridSize);
 
-    // Simulation lifecycle
-    SimulationState StartSimulation();
-    void StopSimulation(bool stealGrid);
+    // Apply per-frame settings from the control panel.
+    void ApplySettings(const SimulationSettings& settings);
+
+    // Process and clear the end-of-step flag (call once per frame).
+    void CheckStopStep();
 
     bool TryStartCommand(const SimulationCommand& cmd,
                          const ExecuteCommandContext& context);
     std::optional<ExecuteCommandResult> PollCommandResult();
 
-    // Process and clear the end-of-step flag (call once per frame)
-    void CheckStopStep();
-
-    // Apply per-frame settings from the control panel
-    void ApplySettings(const SimulationSettings& settings);
-
-    // Command handlers
-    SimulationState HandleStart();
-    SimulationState HandleClear();
-    SimulationState HandleReset();
-    SimulationState HandleRestart();
-    SimulationState HandlePause();
-    SimulationState HandleResume();
-    SimulationState HandleStep();
-    SimulationState HandleRuleChange(std::string_view ruleStr);
-    SimulationState HandleUndo();
-    SimulationState HandleRedo();
-    std::expected<void, std::string>
-    HandleSelectionAction(SelectionAction action, int32_t nudgeSize);
-    bool HandleGenerateNoise(float density, uint32_t warnThreshold);
-
-    // File operations
-    std::optional<std::string> LoadFile(const std::filesystem::path& path);
-    bool SaveToFile(const std::filesystem::path& path, bool markAsSaved);
-
-    // Paste operations
-    std::expected<void, FileEncoder::DecodeError>
-    PasteSelection(std::optional<Vec2> cursorPos,
-                   std::string_view clipboardText, bool unlock = false);
-    void ForcePaste(std::optional<Vec2> cursorPos,
-                    std::string_view clipboardText);
-
-    // Deselect and paste from clipboard at the given position
-    void InsertFromClipboard(Vec2 position, std::string_view clipboardText);
-
-    SimulationState SetSelectionBounds(Rect bounds);
-
-    bool UpdateSelectionAreaTracked(Vec2 gridPos);
-    void TryResetSelection();
-    void BeginPaintChange();
-    void PaintCell(Vec2 pos, bool value);
-    void MarkSaved();
-
-    // Facade read API for SimulationEditor.
-    Size2 GridSize() const { return m_Grid.Size(); }
-    int32_t GridWidth() const { return m_Grid.Width(); }
-    int32_t GridHeight() const { return m_Grid.Height(); }
-    const HashQuadtree& GridData() const { return m_Grid.Data(); }
-    bool GridDead() const { return m_Grid.Dead(); }
-    bool InBounds(Vec2 pos) const { return m_Grid.InBounds(pos); }
+    // Facade read API for SimulationEditor — delegates to m_Executor.
+    Size2 GridSize() const { return m_Executor.GridSize(); }
+    int32_t GridWidth() const { return m_Executor.GridWidth(); }
+    int32_t GridHeight() const { return m_Executor.GridHeight(); }
+    const HashQuadtree& GridData() const { return m_Executor.GridData(); }
+    bool GridDead() const { return m_Executor.GridDead(); }
+    bool InBounds(Vec2 pos) const { return m_Executor.InBounds(pos); }
     std::optional<bool> CellAt(Vec2 pos) const {
-        return m_Grid.Get(pos.X, pos.Y);
+        return m_Executor.CellAt(pos);
     }
-    const GameGrid* SimulationSnapshot() const { return m_Worker->GetResult(); }
+
+    std::optional<GameGrid> SimulationSnapshot() const {
+        return m_Worker->GetResult();
+    }
     std::chrono::duration<float> SimulationLag() const {
         return m_Worker->GetTimeSinceLastUpdate();
     }
 
-    void SetCacheIndex(size_t index) { m_Grid.SetCacheIndex(index); }
-
-    bool SelectionActive() const { return m_SelectionManager.CanDrawGrid(); }
-    bool CanDrawSelection() const {
-        return m_SelectionManager.CanDrawSelection();
-    }
+    bool SelectionActive() const { return m_Executor.SelectionActive(); }
+    bool CanDrawSelection() const { return m_Executor.CanDrawSelection(); }
     bool CanDrawLargeSelection() const {
-        return m_SelectionManager.CanDrawLargeSelection();
+        return m_Executor.CanDrawLargeSelection();
     }
-    bool SelectionGridAlive() const { return m_SelectionManager.GridAlive(); }
+    bool SelectionGridAlive() const { return m_Executor.SelectionGridAlive(); }
     const HashQuadtree& SelectionGridData() const {
-        return m_SelectionManager.GridData();
+        return m_Executor.SelectionGridData();
     }
     const BigInt& SelectedPopulation() const {
-        return m_SelectionManager.SelectedPopulation();
+        return m_Executor.SelectedPopulation();
     }
     std::optional<Rect> SelectionBoundsOpt() const {
-        if (!m_SelectionManager.CanDrawSelection())
-            return std::nullopt;
-        return m_SelectionManager.SelectionBounds();
+        return m_Executor.SelectionBoundsOpt();
     }
 
+    BigInt GridPopulation() const { return m_Executor.GridPopulation(); }
+    BigInt GridGeneration() const { return m_Executor.GridGeneration(); }
+    std::string_view CurrentRuleString() const {
+        return m_Executor.CurrentRuleString();
+    }
+
+    bool IsSimulationOutOfBounds() const {
+        return m_Executor.IsSimulationOutOfBounds();
+    }
+
+    SimulationState State() const { return m_Executor.State(); }
+    void SetState(SimulationState state) { m_Executor.SetState(state); }
+    uint32_t EditorID() const { return m_Executor.EditorID(); }
+    bool IsSaved() const { return m_VersionManager.IsSaved(); }
     bool UndosAvailable() const { return m_VersionManager.UndosAvailable(); }
     bool RedosAvailable() const { return m_VersionManager.RedosAvailable(); }
-    BigInt GridPopulation() const { return m_Grid.Population(); }
-    BigInt GridGeneration() const { return m_Grid.Generation(); }
-    std::string_view CurrentRuleString() const {
-        return m_Grid.GetRuleString();
+    const std::filesystem::path& CurrentFilePath() const {
+        return m_Executor.CurrentFilePath();
     }
 
     EditWorkState WorkState() const;
@@ -180,55 +149,56 @@ class EditorModel {
     bool IsMutatingCommand(const SimulationCommand& cmd) const;
     bool CanDispatchMutatingCommand(const SimulationCommand& cmd) const;
 
-    SimulationState State() const { return m_State; }
-    void SetState(SimulationState state) { m_State = state; }
-
-    uint32_t EditorID() const { return m_EditorID; }
-    bool IsSaved() const { return m_VersionManager.IsSaved(); }
-
-    const std::filesystem::path& CurrentFilePath() const {
-        return m_CurrentFilePath;
-    }
+    // Direct-access methods called by SimulationEditor outside command
+    // dispatch.
+    bool UpdateSelectionAreaTracked(Vec2 gridPos);
+    void TryResetSelection();
+    void BeginPaintChange();
+    void PaintCell(Vec2 pos, bool value);
+    void MarkSaved();
 
     bool operator==(const EditorModel& other) const;
 
-    bool IsSimulationOutOfBounds() const;
+  private:
+    // Result wrapper used internally for the async path.
+    struct AsyncCommandResult {
+        EditorCommandExecutor UpdatedExecutor;
+        ExecuteCommandResult Result;
+    };
+
+    // Inline execution path — simulation lifecycle, undo/redo, and other
+    // commands that must run synchronously on the main thread.
+    ExecuteCommandResult ExecuteInline(const SimulationCommand& cmd,
+                                       const ExecuteCommandContext& context);
+
+    // Simulation lifecycle helpers — all main-thread only.
+    SimulationState StartSimulation();
+    void StopSimulation(bool stealGrid);
+
+    SimulationState HandleStart();
+    SimulationState HandleClear();
+    SimulationState HandleReset();
+    SimulationState HandleRestart();
+    SimulationState HandlePause();
+    SimulationState HandleResume();
+    SimulationState HandleStep();
+    SimulationState HandleUndo();
+    SimulationState HandleRedo();
+
+    // Applies a completed async result back into m_Executor and
+    // m_VersionManager.
+    void ApplyAsyncResult(AsyncCommandResult&& asyncResult);
 
   private:
-    ExecuteCommandResult
-    ExecuteCommandImmediate(const SimulationCommand& cmd,
-                            const ExecuteCommandContext& context);
-
-    std::optional<ExecuteCommandResult>
-    HandleIncomingRule(std::optional<std::string_view> incomingRule,
-                       bool hadExistingUniverseData,
-                       bool preserveSavedStateOnApply);
-
-    void TryPushVersionChange(const std::optional<VersionState>& change);
-    void TryPushVersionChange(const VersionState& change);
-
-    std::string GenerateDepthError() const;
-
-  private:
-    SelectionManager m_SelectionManager;
-
-    GameGrid m_Grid;
-    GameGrid m_InitialGrid;
-
+    HashLifeCache m_LifeCache;
+    EditorCommandExecutor m_Executor;
     VersionManager m_VersionManager;
+    std::unique_ptr<SimulationWorker> m_Worker;
 
     std::mutex m_CommandMutex;
     std::optional<ExecuteCommandResult> m_InlineCommandResult;
-    std::optional<std::future<ExecuteCommandResult>> m_InFlightCommand;
+    std::optional<std::future<AsyncCommandResult>> m_InFlightCommand;
     std::atomic<bool> m_EditBusy = false;
-
-    std::unique_ptr<SimulationWorker> m_Worker;
-
-    std::filesystem::path m_CurrentFilePath;
-
-    uint32_t m_EditorID;
-
-    SimulationState m_State = SimulationState::Paint;
     std::atomic<bool> m_StopStepCommand = false;
 };
 

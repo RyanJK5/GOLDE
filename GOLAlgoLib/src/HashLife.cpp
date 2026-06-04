@@ -153,7 +153,7 @@ uint16_t WindowCenter(uint16_t nw, uint16_t ne, uint16_t sw, uint16_t se) {
 
 HashLife::FirstGenResults
 HashLife::ComputeFirstGeneration(const LeafQuadrants& q) const {
-    const auto& table = s_Rule.Table();
+    const auto& table = m_Rule.get().Table();
     return {
         .nw = table[q.nw],
         .n = table[WindowN(q.nw, q.ne)],
@@ -214,16 +214,16 @@ const LifeNode* HashLife::AdvanceBase(const LifeNode* node) const {
     // Second generation: combine adjacent 2x2 results into four overlapping
     // 4x4 windows, look up each to get a 2x2 result, then assemble.
     const auto secondGenNW =
-        s_Rule
+        m_Rule.get()
             .Table()[Combine2x2ForLookup(gen1.nw, gen1.n, gen1.w, gen1.center)];
     const auto secondGenNE =
-        s_Rule
+        m_Rule.get()
             .Table()[Combine2x2ForLookup(gen1.n, gen1.ne, gen1.center, gen1.e)];
     const auto secondGenSW =
-        s_Rule
+        m_Rule.get()
             .Table()[Combine2x2ForLookup(gen1.w, gen1.center, gen1.sw, gen1.s)];
     const auto secondGenSE =
-        s_Rule
+        m_Rule.get()
             .Table()[Combine2x2ForLookup(gen1.center, gen1.e, gen1.s, gen1.se)];
 
     const auto resultBits =
@@ -267,12 +267,13 @@ NodeUpdateInfo HashLife::AdvanceSlow(const LifeNode* node,
             return {node, 0};
         }
         // Store under the requested maxAdvance so the same request hits.
-        (*m_Cache)[{node, m_StepAdvanceDepth}] = result;
+        m_StepData->Cache().SlowCache[{node, m_StepAdvanceDepth}] = result;
         // Also store under the actual generations for cross-request reuse.
         return {result, actualLevel};
     }
-    if (const auto it = m_Cache->find({node, m_StepAdvanceDepth});
-        it != m_Cache->end()) {
+    if (const auto it =
+            m_StepData->Cache().SlowCache.find({node, m_StepAdvanceDepth});
+        it != m_StepData->Cache().SlowCache.end()) {
         return {it->second, m_StepAdvanceDepth};
     }
 
@@ -340,7 +341,7 @@ NodeUpdateInfo HashLife::AdvanceSlow(const LifeNode* node,
     }
 
     // Store under the requested maxAdvance so the same request hits next time.
-    (*m_Cache)[{node, m_StepAdvanceDepth}] = combined;
+    m_StepData->Cache().SlowCache[{node, m_StepAdvanceDepth}] = combined;
     return {combined, newAdvanceLevel};
 }
 
@@ -414,36 +415,18 @@ bool HashLife::NeedsExpansion(const LifeNode* node, int32_t level) const {
     return false;
 }
 
-std::string_view HashLife::Identifier = "HashLife";
+HashLife::HashLife(const LifeRule& rule)
+    : m_Rule(rule), m_Topology(std::make_unique<Plane>()) {}
 
-thread_local LifeRule HashLife::s_Rule = *LifeRule::Make("B3/S23");
-
-// The cache for the HashLife algorithm when the step size is bounded.
-std::array<ankerl::unordered_dense::map<SlowKey, const LifeNode*, SlowHash>,
-           HashQuadtree::MaxCacheCount>
-    HashLife::s_SlowCache{};
-
-HashLife::HashLife() : m_Topology(std::make_unique<Plane>()) {
-    // Reserve space for 1 million nodes to avoid rehashing
-    // during early stages of the simulation.
-    m_Cache->reserve(std::max(m_Cache->size(), 1UZ << 20UZ));
-}
-
-HashLife::HashLife(std::unique_ptr<Topology> topology)
-    : m_Topology(std::move(topology)) {}
+HashLife::HashLife(const LifeRule& rule, std::unique_ptr<Topology> topology)
+    : m_Rule(rule), m_Topology(std::move(topology)) {}
 
 void HashLife::SetTopology(std::unique_ptr<Topology> topology) {
     m_Topology = std::move(topology);
 }
 
 void HashLife::SetRule(const LifeRule& rule) {
-    if (s_Rule == rule) {
-        return;
-    }
-
-    s_Rule = rule;
-    HashQuadtree::ClearCache();
-    m_Cache->clear();
+    m_Rule = rule;
 
     if (rule.Bounds()) {
         m_Topology = [&] -> std::unique_ptr<Topology> {
@@ -466,13 +449,11 @@ bool HashLife::CompatibleWith(const LifeDataStructure& data) const {
 std::string_view HashLife::GetIdentifier() const { return "HashLife"; }
 
 std::unique_ptr<LifeAlgorithm> HashLife::Clone() const {
-    return std::make_unique<HashLife>(m_Topology->Clone());
+    return std::make_unique<HashLife>(m_Rule.get(), m_Topology->Clone());
 }
 
 BigInt HashLife::Step(LifeDataStructure& data, const BigInt& numSteps,
                       std::stop_token stopToken) {
-    m_Cache = &s_SlowCache[HashQuadtree::GetCacheIndex()];
-
     auto* hashQuadtree = dynamic_cast<HashQuadtree*>(&data);
     if (!hashQuadtree) {
         return BigZero;

@@ -393,7 +393,7 @@ void PresetSelection::ReadFiles(const std::filesystem::path& path) {
                 file.path().extension().generic_string()))
             continue;
 
-        auto result = FileEncoder::ReadRegion(file.path());
+        auto result = FileEncoder::ReadRegion(m_Cache, file.path());
         if (!result) {
             ERROR("Failed to read file {}: {}",
                   file.path().filename().generic_string(),

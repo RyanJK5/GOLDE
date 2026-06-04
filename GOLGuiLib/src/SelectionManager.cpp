@@ -161,7 +161,7 @@ SelectionManager::Paste(const GameGrid& grid, std::string_view clipboardText,
                                         FileEncoder::FileFormat::Macrocell};
     for (auto i = 0UZ; i < formats.size(); i++) {
         auto decodeResult = FileEncoder::DecodeRegion(
-            clipboardText.data(), warnThreshold, formats[i]);
+            grid.Cache(), clipboardText.data(), warnThreshold, formats[i]);
         if (decodeResult) {
             if (!gridPos) {
                 gridPos = decodeResult->Offset;
@@ -250,8 +250,8 @@ SelectionManager::InsertNoise(const GameGrid& grid, Rect selectionBounds,
         return std::nullopt;
     }
 
-    auto result =
-        GameGrid::GenerateNoise(selectionBounds, density, warnThreshold);
+    auto result = GameGrid::GenerateNoise(grid.Cache(), selectionBounds,
+                                          density, warnThreshold);
     if (result) {
         m_Selected = std::move(*result);
     } else {
@@ -267,7 +267,7 @@ SelectionManager::InsertNoise(const GameGrid& grid, Rect selectionBounds,
 std::expected<VersionState, FileEncoder::DecodeError>
 SelectionManager::Load(const GameGrid& grid,
                        const std::filesystem::path& filePath) {
-    auto result = FileEncoder::ReadRegion(filePath);
+    auto result = FileEncoder::ReadRegion(grid.Cache(), filePath);
     if (!result)
         return std::unexpected{std::move(result.error())};
 
@@ -396,8 +396,7 @@ const HashQuadtree& SelectionManager::GridData() const {
 }
 
 VersionState SelectionManager::CaptureState(const GameGrid& grid) const {
-    VersionState state{};
-    state.Universe = grid;
+    VersionState state{.Universe = grid};
 
     if (CanDrawGrid()) {
         state.SelectionBounds = SelectionBounds();
@@ -418,17 +417,13 @@ std::optional<std::string_view> SelectionManager::SelectionRuleString() const {
     return m_Selected->GetRuleString();
 }
 
-void SelectionManager::SetSelectionRule(std::string_view ruleString) {
+void SelectionManager::SetSelectionRule(const LifeRule& rule,
+                                        std::string_view ruleString) {
     if (!m_Selected) {
         return;
     }
 
-    const auto rule = LifeRule::Make(ruleString);
-    if (!rule) {
-        return;
-    }
-
-    m_Selected->SetRule(*rule, ruleString);
+    m_Selected->SetRule(rule, ruleString);
 }
 
 bool SelectionManager::CanDrawSelection() const {

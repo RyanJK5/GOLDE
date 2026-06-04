@@ -50,6 +50,8 @@ class PresetSelection {
     std::filesystem::path m_CurrentPath;
     Size2 m_WindowSize;
 
+    HashLifeCache m_Cache;
+
     std::string m_SearchText;
 
     std::vector<PresetDisplay> m_Library;

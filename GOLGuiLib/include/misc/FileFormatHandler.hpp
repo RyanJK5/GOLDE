@@ -47,14 +47,14 @@ std::string EncodeRegion(const GameGrid& grid, Rect region,
                          FileFormat fileFormat = FileFormat::RLE);
 
 std::expected<DecodeResult, DecodeError>
-DecodeRegion(std::string_view data, uint32_t warnThreshold,
-             FileFormat fileFormat = FileFormat::RLE);
+DecodeRegion(HashLifeCache& cache, std::string_view data,
+             uint32_t warnThreshold, FileFormat fileFormat = FileFormat::RLE);
 
 bool WriteRegion(const GameGrid& grid, Rect region,
                  const std::filesystem::path& filePath, Vec2 offset = {0, 0});
 
 std::expected<DecodeResult, DecodeError>
-ReadRegion(const std::filesystem::path& filePath);
+ReadRegion(HashLifeCache& cache, const std::filesystem::path& filePath);
 } // namespace Golde::FileEncoder
 
 #endif

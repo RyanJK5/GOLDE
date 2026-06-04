@@ -23,12 +23,13 @@ class GameGrid {
     // Returns a GameGrid with randomly generated cells according to the
     // provided density.
     static std::expected<GameGrid, std::string>
-    GenerateNoise(Rect bounds, float density, uint32_t warnThreshold);
+    GenerateNoise(HashLifeCache& cache, Rect bounds, float density,
+                  uint32_t warnThreshold);
 
     // Calling with `width` or `height` set to zero creates an unbounded
     // universe.
-    GameGrid(int32_t width = 0, int32_t height = 0);
-    GameGrid(Size2 size);
+    GameGrid(HashLifeCache& cache, int32_t width = 0, int32_t height = 0);
+    GameGrid(HashLifeCache& cache, Size2 size);
 
     GameGrid(const GameGrid& other, Size2 size);
 
@@ -114,9 +115,8 @@ class GameGrid {
 
     std::span<Vec2> SortedData() const;
 
+    HashLifeCache& Cache() const;
     const HashQuadtree& Data() const;
-
-    void SetCacheIndex(size_t index);
 
     void SetRule(const LifeRule& rule);
     void SetRule(const LifeRule& rule, std::string_view ruleString);

@@ -25,7 +25,8 @@
 
 namespace Golde {
 std::expected<GameGrid, std::string>
-GameGrid::GenerateNoise(Rect bounds, float density, uint32_t warnThreshold) {
+GameGrid::GenerateNoise(HashLifeCache& cache, Rect bounds, float density,
+                        uint32_t warnThreshold) {
     static std::random_device random{};
     static std::mt19937 generator{random()};
 
@@ -45,8 +46,8 @@ GameGrid::GenerateNoise(Rect bounds, float density, uint32_t warnThreshold) {
             }
         }
 
-        GameGrid ret{bounds.Width, bounds.Height};
-        ret.m_HashLifeData = HashQuadtree{cells};
+        GameGrid ret{cache, bounds.Width, bounds.Height};
+        ret.m_HashLifeData = HashQuadtree{cache, cells};
         return ret;
     }
 
@@ -66,27 +67,25 @@ GameGrid::GenerateNoise(Rect bounds, float density, uint32_t warnThreshold) {
         return Vec2{distX(generator), distY(generator)};
     });
 
-    GameGrid ret{bounds.Width, bounds.Height};
-    ret.m_HashLifeData = HashQuadtree{cells};
+    GameGrid ret{cache, bounds.Width, bounds.Height};
+    ret.m_HashLifeData = HashQuadtree{cache, cells};
     return ret;
 }
 
-GameGrid::GameGrid(int32_t width, int32_t height)
-    : m_Algorithm(std::make_unique<HashLife>()), m_Width(width),
+GameGrid::GameGrid(HashLifeCache& cache, int32_t width, int32_t height)
+    : m_HashLifeData(cache),
+      m_Algorithm(std::make_unique<HashLife>(cache.GetRule())), m_Width(width),
       m_Height(height) {
     m_Algorithm->SetTopology(
         std::make_unique<Plane>(Rect{0, 0, width, height}));
 }
 
-GameGrid::GameGrid(Size2 size) : GameGrid(size.Width, size.Height) {}
+GameGrid::GameGrid(HashLifeCache& cache, Size2 size)
+    : GameGrid(cache, size.Width, size.Height) {}
 
 GameGrid::GameGrid(const GameGrid& other, Size2 size)
-    : m_Width(size.Width), m_Height(size.Height) {
-    auto cropped =
-        other.Data() |
-        std::views::filter([this](Vec2 pos) { return InBounds(pos); }) |
-        std::ranges::to<std::vector<Vec2>>();
-    m_HashLifeData = HashQuadtree{cropped};
+    : m_HashLifeData(other.m_HashLifeData.Extract({{0, 0}, size})),
+      m_Width(size.Width), m_Height(size.Height) {
     m_RuleString = other.m_RuleString;
     m_Algorithm = other.m_Algorithm->Clone();
 
@@ -135,7 +134,8 @@ GameGrid& GameGrid::operator=(const GameGrid& other) {
 }
 
 GameGrid::GameGrid(const HashQuadtree& data, Size2 size)
-    : m_HashLifeData(data), m_Algorithm(std::make_unique<HashLife>()),
+    : m_HashLifeData(data),
+      m_Algorithm(std::make_unique<HashLife>(data.Cache().GetRule())),
       m_Width(size.Width), m_Height(size.Height) {
     m_Algorithm->SetTopology(
         std::make_unique<Plane>(Rect{0, 0, size.Width, size.Height}));
@@ -160,13 +160,13 @@ std::span<Vec2> GameGrid::SortedData() const {
     return std::span{m_SortedData};
 }
 
+HashLifeCache& GameGrid::Cache() const { return m_HashLifeData.Cache(); }
 const HashQuadtree& GameGrid::Data() const { return m_HashLifeData; }
 
-void GameGrid::SetCacheIndex(size_t index) {
-    m_HashLifeData.SetCacheIndex(index);
+void GameGrid::SetRule(const LifeRule& rule) {
+    Cache().SetRule(rule);
+    m_Algorithm->SetRule(Cache().GetRule());
 }
-
-void GameGrid::SetRule(const LifeRule& rule) { m_Algorithm->SetRule(rule); }
 
 void GameGrid::SetRule(const LifeRule& rule, std::string_view ruleString) {
     SetRule(rule);
@@ -213,9 +213,7 @@ bool GameGrid::Set(int32_t x, int32_t y, bool active) {
 
 GameGrid GameGrid::SubRegion(Rect region) const {
     auto subRegion = GameGrid{m_HashLifeData.Extract(region), region.Size()};
-    if (const auto rule = LifeRule::Make(m_RuleString); rule) {
-        subRegion.SetRule(*rule, m_RuleString);
-    }
+    subRegion.SetRule(Cache().GetRule(), m_RuleString);
     return subRegion;
 }
 
@@ -248,7 +246,7 @@ void GameGrid::RotateGrid(bool clockwise) {
     std::swap(m_Width, m_Height);
     m_SortedCacheInvalidated = true;
 
-    m_HashLifeData = HashQuadtree{newSet};
+    m_HashLifeData = HashQuadtree{Cache(), newSet};
 }
 
 void GameGrid::FlipGrid(bool vertical) {
@@ -273,7 +271,7 @@ void GameGrid::FlipGrid(bool vertical) {
     }
     m_SortedCacheInvalidated = true;
 
-    m_HashLifeData = HashQuadtree{newData};
+    m_HashLifeData = HashQuadtree{Cache(), newData};
 }
 
 std::optional<bool> GameGrid::Get(int32_t x, int32_t y) const {

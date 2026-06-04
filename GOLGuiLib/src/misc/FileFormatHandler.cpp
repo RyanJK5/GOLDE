@@ -237,7 +237,7 @@ bool WriteRegion(const GameGrid& grid, Rect region,
 }
 
 static std::expected<DecodeResult, DecodeError>
-DecodeRLE(std::string_view src, uint32_t warnThreshold) {
+DecodeRLE(HashLifeCache& cache, std::string_view src, uint32_t warnThreshold) {
     // Strip comment lines (#C, #c, #N, #O, #R, #P, #r ...).
     Vec2 explicitOffset{0, 0};
     bool hasExplicitOffset = false;
@@ -369,7 +369,7 @@ DecodeRLE(std::string_view src, uint32_t warnThreshold) {
     //      b = dead cell(s)   o = alive cell(s)   $ = end of row   ! = end
     //    Rows advance in Y; within a row cells advance in X.
     //    (Row-major, top-left origin.)
-    GameGrid result{patternWidth, patternHeight};
+    GameGrid result{cache, patternWidth, patternHeight};
 
     auto currentX = 0;
     auto currentY = 0;
@@ -540,7 +540,7 @@ DecodeLeafNode(std::string_view line, const HashQuadtree& qt) {
 }
 
 std::expected<DecodeResult, DecodeError>
-DecodeMacrocell(std::string_view fileContents) {
+DecodeMacrocell(HashLifeCache& cache, std::string_view fileContents) {
     auto lines = SplitLines(fileContents);
     if (lines.empty())
         return std::unexpected{
@@ -550,7 +550,7 @@ DecodeMacrocell(std::string_view fileContents) {
             DecodeError::Type::IncorrectHeader,
             std::format("Expected [M2] header, got '{}'", lines[0])}};
 
-    HashQuadtree qt({}, {0, 0});
+    HashQuadtree qt{cache};
     std::string ruleString{"B3/S23"};
 
     // ---- Header parsing ----
@@ -716,21 +716,22 @@ DecodeMacrocell(std::string_view fileContents) {
 }
 } // namespace
 
-std::expected<DecodeResult, DecodeError> DecodeRegion(std::string_view src,
+std::expected<DecodeResult, DecodeError> DecodeRegion(HashLifeCache& cache,
+                                                      std::string_view src,
                                                       uint32_t warnThreshold,
                                                       FileFormat fileFormat) {
     switch (fileFormat) {
     case FileFormat::RLE:
-        return DecodeRLE(src, warnThreshold);
+        return DecodeRLE(cache, src, warnThreshold);
     case FileFormat::Macrocell:
-        return DecodeMacrocell(src);
+        return DecodeMacrocell(cache, src);
     default:
         throw std::logic_error{"Unsupported file format"};
     }
 }
 
 std::expected<DecodeResult, DecodeError>
-ReadRegion(const std::filesystem::path& filePath) {
+ReadRegion(HashLifeCache& cache, const std::filesystem::path& filePath) {
     auto in = std::ifstream{filePath};
     if (!in.is_open()) {
         return std::unexpected{
@@ -741,7 +742,7 @@ ReadRegion(const std::filesystem::path& filePath) {
     const std::string data{std::istreambuf_iterator<char>(in),
                            std::istreambuf_iterator<char>()};
 
-    return DecodeRegion(data, std::numeric_limits<uint32_t>::max(),
+    return DecodeRegion(cache, data, std::numeric_limits<uint32_t>::max(),
                         ParseFileExtension(filePath.extension()));
 }
 } // namespace Golde::FileEncoder

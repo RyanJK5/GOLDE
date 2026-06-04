@@ -1,4 +1,5 @@
 set(SOURCES
+    src/EditorCommandExecutor.cpp
     src/EditorModel.cpp
     src/Game.cpp
     src/PresetSelection.cpp
@@ -8,6 +9,7 @@ set(SOURCES
 )
 
 set(HEADERS
+    include/EditorCommandExecutor.hpp
     include/EditorModel.hpp
     include/Game.hpp
     include/PresetSelection.hpp

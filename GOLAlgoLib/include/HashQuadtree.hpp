@@ -25,6 +25,7 @@
 
 #include "BigInt.hpp"
 #include "Graphics2D.hpp"
+#include "HashLifeCache.hpp"
 #include "LifeDataStructure.hpp"
 #include "LifeHashSet.hpp"
 #include "LifeNode.hpp"
@@ -37,63 +38,6 @@
 // also allows it to jump many generations in one step.
 
 namespace Golde {
-// The key used for caching when HashLife has a bounded step size.
-struct SlowKey {
-    const LifeNode* Node;
-    int32_t AdvanceLevel = 0; // Max number of generations this node can advance
-    auto operator<=>(const SlowKey&) const = default;
-};
-
-struct SlowHash {
-    size_t operator()(SlowKey key) const noexcept;
-};
-
-// The cache used for the HashLife algorithm.
-class HashLifeCache {
-  public:
-    // Bump-pointer arena where all LifeNodes are stored. Nodes are only
-    // accessed by pointer outside of the cache.
-    LifeNodeArena NodeStorage{};
-
-    ankerl::unordered_dense::set<const LifeNode*, LifeNodeHash, LifeNodeEqual>
-        NodeMap{};
-
-    // Level-indexed cache for empty nodes. Index i holds the empty node for
-    // size 2^i
-    std::vector<const LifeNode*> EmptyNodeCache{};
-
-    // Store the return value in a scope where the node should be protected from
-    // garbage collection.
-    [[nodiscard]] auto ProtectNodeFromGC(const LifeNode* node) {
-        struct GCRootGuard {
-            std::vector<const LifeNode*>& ProtectStack;
-            size_t InitialSize;
-            GCRootGuard(std::vector<const LifeNode*>& stack, const LifeNode* n)
-                : ProtectStack(stack), InitialSize(stack.size()) {
-                ProtectStack.push_back(n);
-            }
-
-            ~GCRootGuard() { ProtectStack.resize(InitialSize); }
-
-            const LifeNode* Protect(const LifeNode* node) {
-                ProtectStack.push_back(node);
-                return node;
-            }
-        };
-
-        return GCRootGuard{m_ProtectedRoots, node};
-    }
-
-    void MarkAndSweep(const LifeNode* root);
-
-    HashLifeCache();
-
-  private:
-    std::vector<const LifeNode*> m_ProtectedRoots{};
-
-    void Mark(const LifeNode* node);
-};
-
 // This is the primary data structure for executing the HashLife algorithm. It
 // satisfies the requirements of `std::ranges::input_range` and can be used in
 // many STL algorithms.
@@ -150,11 +94,9 @@ class HashQuadtree : public LifeDataStructure {
     };
 
   public:
-    HashQuadtree();
-    HashQuadtree(std::span<const Vec2> data, Vec2 offset = {});
-
-    void SetCacheIndex(size_t index);
-    static size_t GetCacheIndex();
+    HashQuadtree(HashLifeCache& cache);
+    HashQuadtree(HashLifeCache& cache, std::span<const Vec2> data,
+                 Vec2 offset = {});
 
   public:
     bool empty() const;
@@ -200,20 +142,18 @@ class HashQuadtree : public LifeDataStructure {
 
     Rect FindBoundingBox() const override;
 
+#ifdef GOLDE_GARBAGE_COLLCETION
     [[nodiscard]] inline auto ProtectNodeFromGC(const LifeNode* node) const;
+#endif
 
     // This is the primary interface for interaction with HashLife's cache.
     const LifeNode* FindOrCreate(const LifeNode* nw, const LifeNode* ne,
                                  const LifeNode* sw, const LifeNode* se) const;
 
-    // Returns an empty tree at the given level (size 2^level).
-    const LifeNode* EmptyTree(int32_t level) const;
-
     std::optional<const LifeNode*> Find(const LifeNode* node) const;
 
-    void CacheResult(const LifeNode* key, const LifeNode* value) const;
-
-    static void ClearCache();
+    // Returns an empty tree at the given level (size 2^level).
+    const LifeNode* EmptyTree(int32_t level) const;
 
     void ExpandUniverse(int32_t targetLevel);
     const LifeNode* ExpandNode(const LifeNode* node, int32_t level) const;
@@ -221,6 +161,8 @@ class HashQuadtree : public LifeDataStructure {
     const LifeNode* Data() const;
     void OverwriteData(const LifeNode* root, int32_t level);
     void OverwriteData(const LifeNode* root, int32_t level, Vec2 offset);
+
+    HashLifeCache& Cache() const;
 
   private:
     const LifeNode* SetImpl(const LifeNode* node, Vec2L pos, Vec2 targetPos,
@@ -287,10 +229,7 @@ class HashQuadtree : public LifeDataStructure {
                                    int32_t srcLevel, Vec2L srcPos) const;
 
   private:
-    static std::array<HashLifeCache, MaxCacheCount> s_Cache;
-    static thread_local size_t t_CacheIndex;
-
-    HashLifeCache* m_Cache = &s_Cache[t_CacheIndex];
+    std::reference_wrapper<HashLifeCache> m_Cache;
 
     static thread_local ankerl::unordered_dense::map<
         const LifeNode*, BigInt, LifeNodeHash, LifeNodeEqual>
@@ -414,10 +353,11 @@ void HashQuadtree::ForEachCell(const Func& func, Rect bounds,
                        bounds);
 }
 
+#ifdef GOLDE_GARBGE_COLLECTION
 [[nodiscard]] auto HashQuadtree::ProtectNodeFromGC(const LifeNode* node) const {
     return m_Cache->ProtectNodeFromGC(node);
 }
-
+#endif
 } // namespace Golde
 
 #endif
