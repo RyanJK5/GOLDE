@@ -12,7 +12,7 @@ namespace Golde {
 struct SimulationStatus {
     SimulationState State = SimulationState::Paint;
     bool OutOfBounds = false;
-    std::string RuleString = "B3/S23";
+    std::string_view RuleString = "B3/S23";
 };
 
 struct EditingStatus {
