@@ -30,10 +30,8 @@ static bool ContainsIgnoreCase(std::string_view string,
            }).begin() != string.end();
 }
 
-PresetDisplay::PresetDisplay(const GameGrid& grid, const std::string& fileName,
-                             const std::filesystem::path& relativeFolder,
-                             Size2 windowSize)
-    : Grid(grid), FileName(fileName), RelativeFolder(relativeFolder),
+PresetDisplay::PresetDisplay(LoadedPreset&& preset, Size2 windowSize)
+    : Grid(std::move(preset.Grid)), FileName(std::move(preset.FileName)), RelativeFolder(std::move(preset.NormalizedFolder)),
       Graphics(std::filesystem::path("resources") / "shader", windowSize.Width,
                windowSize.Height, Color{}) {}
 
@@ -51,6 +49,8 @@ std::string PresetSelection::CurrentFolderName() const {
 }
 
 PresetSelectionResult PresetSelection::Update(const EditorResult& info) {
+    DrainLoadQueue();
+
     ImGui::Begin("Patterns", nullptr, ImGuiWindowFlags_NoNav);
 
     ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, 10.f);
@@ -376,53 +376,63 @@ void PresetSelection::ReadFiles(const std::filesystem::path& path) {
     m_CurrentPath.clear();
     m_DirectoryContents[m_CurrentPath];
 
-    auto registerFolderHierarchy =
-        [&](const std::filesystem::path& relativeFolder) {
-            auto parent = std::filesystem::path{};
-            for (const auto& component : relativeFolder) {
-                auto child = parent / component;
-                m_DirectoryContents[parent].ChildFolders.insert(child);
-                parent = child;
+    m_LoadThread = std::jthread{[this, path] {
+        for (const auto& file : std::filesystem::recursive_directory_iterator(path)) {
+            if (!FileEncoder::IsFormatSupported(file.path().extension().generic_string())) {
+                continue;
             }
-            m_DirectoryContents.try_emplace(parent);
-        };
 
-    for (const auto& file :
-         std::filesystem::recursive_directory_iterator(path)) {
-        if (!FileEncoder::IsFormatSupported(
-                file.path().extension().generic_string()))
-            continue;
+            auto result = FileEncoder::ReadRegion(m_Cache, file.path());
+            if (!result) {
+                ERROR("Failed to read file {}: {}",
+                    file.path().filename().generic_string(),
+                    result.error().Message);
+                continue;
+            }
 
-        auto result = FileEncoder::ReadRegion(m_Cache, file.path());
-        if (!result) {
-            ERROR("Failed to read file {}: {}",
-                  file.path().filename().generic_string(),
-                  result.error().Message);
-            continue;
+            auto relativeFolder =
+                file.path().parent_path().lexically_relative(path);
+                
+            auto normalizedFolder =
+                relativeFolder == "." ? std::filesystem::path{} : std::move(relativeFolder);
+            auto fileName = file.path().filename().generic_string();
+
+            std::scoped_lock lock{m_QueueMutex};
+            m_LoadQueue.emplace(std::move(result->Grid), std::move(fileName), std::move(normalizedFolder));
         }
+    }};
+}
 
-        const auto relativeFolder =
-            file.path().parent_path().lexically_relative(path);
-        const auto normalizedFolder =
-            relativeFolder == "." ? std::filesystem::path{} : relativeFolder;
+void PresetSelection::DrainLoadQueue() {
+    const auto registerFolderHierarchy = [&](const std::filesystem::path& relativeFolder) {
+        auto parent = std::filesystem::path{};
+        for (const auto& component : relativeFolder) {
+            auto child = parent / component;
+            m_DirectoryContents[parent].ChildFolders.insert(child);
+            parent = child;
+        }
+        m_DirectoryContents.try_emplace(parent);
+    };
+    
+    std::scoped_lock lock{m_QueueMutex};
+
+    while (!m_LoadQueue.empty()) {
+        auto loaded = std::move(m_LoadQueue.front());
+        m_LoadQueue.pop();
 
         m_MaxGridDimensions.Width =
             std::max(m_MaxGridDimensions.Width,
-                     static_cast<float>(result->Grid.Width()));
+                        static_cast<float>(loaded.Grid.Width()));
         m_MaxGridDimensions.Height =
             std::max(m_MaxGridDimensions.Height,
-                     static_cast<float>(result->Grid.Height()));
-
+                        static_cast<float>(loaded.Grid.Height()));
+    
         const auto index = m_Library.size();
-        m_Library.emplace_back(std::move(result->Grid),
-                               file.path().filename().generic_string(),
-                               normalizedFolder, m_WindowSize);
-        m_DirectoryContents[normalizedFolder].Files.push_back(index);
-        registerFolderHierarchy(normalizedFolder);
-    }
+        m_DirectoryContents[loaded.NormalizedFolder].Files.push_back(index);
+        m_Library.emplace_back(std::move(loaded), m_WindowSize);
+        registerFolderHierarchy(m_Library.back().RelativeFolder);
 
-    if (!m_DirectoryContents.contains(m_CurrentPath)) {
-        m_CurrentPath.clear();
+        RedrawPreset(m_Library.back(), m_LastWindowBounds, false);
     }
 }
 } // namespace Golde

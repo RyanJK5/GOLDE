@@ -4,6 +4,9 @@
 #include <cstdint>
 #include <filesystem>
 #include <string>
+#include <mutex>
+#include <queue>
+#include <thread>
 #include <vector>
 
 #include "EditorResult.hpp"
@@ -13,6 +16,12 @@
 #include "PresetSelectionResult.hpp"
 
 namespace Golde {
+struct LoadedPreset {
+    GameGrid Grid;
+    std::string FileName;
+    std::filesystem::path NormalizedFolder;
+};
+
 struct PresetDisplay {
     GameGrid Grid;
     std::string FileName;
@@ -20,9 +29,7 @@ struct PresetDisplay {
     GraphicsHandler Graphics;
     bool WasHovered = false;
 
-    PresetDisplay(const GameGrid& grid, const std::string& fileName,
-                  const std::filesystem::path& relativeFolder,
-                  Size2 windowSize);
+    PresetDisplay(LoadedPreset&& preset, Size2 windowSize);
 };
 
 struct PresetFolderContents {
@@ -39,6 +46,8 @@ class PresetSelection {
     PresetSelectionResult Update(const EditorResult& info);
 
   private:
+    void DrainLoadQueue();
+    
     void ReadFiles(const std::filesystem::path& path);
 
     void RedrawPreset(PresetDisplay& preset, RectF windowBounds, bool hovered);
@@ -60,6 +69,12 @@ class PresetSelection {
     Size2F m_MaxGridDimensions;
 
     RectF m_LastWindowBounds;
+
+    // For concurrently reading from files
+    std::mutex m_QueueMutex;
+    std::queue<LoadedPreset> m_LoadQueue;
+    std::jthread m_LoadThread;
+
 };
 } // namespace Golde
 
