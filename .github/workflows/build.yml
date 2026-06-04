@@ -82,7 +82,7 @@ jobs:
 
     - name: Test
       run: |
-        ctest --test-dir build --build-config Release --output-on-failure
+        ctest --test-dir build --build-config Release --output-on-failure --parallel
 
     - name: Save Build Artifacts
       uses: actions/upload-artifact@v4
