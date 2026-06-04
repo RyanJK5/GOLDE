@@ -417,17 +417,16 @@ std::optional<std::string_view> SelectionManager::SelectionRuleString() const {
     return m_Selected->GetRuleString();
 }
 
-void SelectionManager::SetSelectionRule(std::string_view ruleString) {
+void SelectionManager::SetSelectionRule(const LifeRule& rule, std::string_view ruleString) {
     if (!m_Selected) {
         return;
     }
 
-    const auto rule = LifeRule::Make(ruleString);
     if (!rule) {
         return;
     }
 
-    m_Selected->SetRule(*rule, ruleString);
+    m_Selected->SetRule(rule, ruleString);
 }
 
 bool SelectionManager::CanDrawSelection() const {

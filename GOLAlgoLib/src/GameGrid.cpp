@@ -159,7 +159,10 @@ std::span<Vec2> GameGrid::SortedData() const {
 HashLifeCache& GameGrid::Cache() const { return m_HashLifeData.Cache(); }
 const HashQuadtree& GameGrid::Data() const { return m_HashLifeData; }
 
-void GameGrid::SetRule(const LifeRule& rule) { m_Algorithm->SetRule(rule); }
+void GameGrid::SetRule(const LifeRule& rule) {
+    Cache().SetRule(rule); 
+    m_Algorithm->SetRule(rule); 
+}
 
 void GameGrid::SetRule(const LifeRule& rule, std::string_view ruleString) {
     SetRule(rule);
@@ -206,9 +209,7 @@ bool GameGrid::Set(int32_t x, int32_t y, bool active) {
 
 GameGrid GameGrid::SubRegion(Rect region) const {
     auto subRegion = GameGrid{m_HashLifeData.Extract(region), region.Size()};
-    if (const auto rule = LifeRule::Make(m_RuleString); rule) {
-        subRegion.SetRule(*rule, m_RuleString);
-    }
+    subRegion.SetRule(Cache().GetRule(), m_RuleString);
     return subRegion;
 }
 
