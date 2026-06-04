@@ -18,6 +18,7 @@
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
 #include "GraphicsHandler.hpp"
+#include "LoadingSpinner.hpp"
 #include "Logging.hpp"
 #include "PresetSelection.hpp"
 #include "PresetSelectionResult.hpp"
@@ -31,7 +32,8 @@ static bool ContainsIgnoreCase(std::string_view string,
 }
 
 PresetDisplay::PresetDisplay(LoadedPreset&& preset, Size2 windowSize)
-    : Grid(std::move(preset.Grid)), FileName(std::move(preset.FileName)), RelativeFolder(std::move(preset.NormalizedFolder)),
+    : Grid(std::move(preset.Grid)), FileName(std::move(preset.FileName)),
+      RelativeFolder(std::move(preset.NormalizedFolder)),
       Graphics(std::filesystem::path("resources") / "shader", windowSize.Width,
                windowSize.Height, Color{}) {}
 
@@ -72,6 +74,18 @@ PresetSelectionResult PresetSelection::Update(const EditorResult& info) {
         ReadFiles(m_DefaultPath);
     }
     ImGui::SetItemTooltip("Refresh Presets");
+
+    const auto isLoading = !m_FinishedReading.load(std::memory_order_acquire);
+
+    if (isLoading) {
+        const auto spinnerRadius = ImGui::GetFontSize() * 0.7f;
+        const auto availWidth = ImGui::GetContentRegionAvail().x;
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
+                             (availWidth - spinnerRadius * 2.f) * 0.5f);
+        LoadingSpinner("##loading", spinnerRadius, ImGui::GetFontSize() * 0.3f,
+                       ImGui::GetColorU32(ImGuiCol_Text));
+    }
+
     ImGui::PopStyleVar();
 
     if (!m_DirectoryContents.contains(m_CurrentPath)) {
@@ -375,62 +389,68 @@ void PresetSelection::ReadFiles(const std::filesystem::path& path) {
     m_DirectoryContents.clear();
     m_CurrentPath.clear();
     m_DirectoryContents[m_CurrentPath];
+    m_FinishedReading.store(false, std::memory_order_relaxed);
 
     m_LoadThread = std::jthread{[this, path](std::stop_token stopToken) {
-        for (const auto& file : std::filesystem::recursive_directory_iterator(path)) {
+        for (const auto& file :
+             std::filesystem::recursive_directory_iterator(path)) {
             if (stopToken.stop_requested()) {
                 break;
             }
-            
-            if (!FileEncoder::IsFormatSupported(file.path().extension().generic_string())) {
+
+            if (!FileEncoder::IsFormatSupported(
+                    file.path().extension().generic_string())) {
                 continue;
             }
 
             auto result = FileEncoder::ReadRegion(m_Cache, file.path());
             if (!result) {
                 ERROR("Failed to read file {}: {}",
-                    file.path().filename().generic_string(),
-                    result.error().Message);
+                      file.path().filename().generic_string(),
+                      result.error().Message);
                 continue;
             }
 
             auto relativeFolder =
                 file.path().parent_path().lexically_relative(path);
-                
-            auto normalizedFolder =
-                relativeFolder == "." ? std::filesystem::path{} : std::move(relativeFolder);
+
+            auto normalizedFolder = relativeFolder == "."
+                                        ? std::filesystem::path{}
+                                        : std::move(relativeFolder);
             auto fileName = file.path().filename().generic_string();
 
             std::scoped_lock lock{m_QueueMutex};
-            m_LoadQueue.emplace(std::move(result->Grid), std::move(fileName), std::move(normalizedFolder));
+            m_LoadQueue.emplace(std::move(result->Grid), std::move(fileName),
+                                std::move(normalizedFolder));
         }
+        m_FinishedReading.store(true, std::memory_order_release);
     }};
 }
 
 void PresetSelection::DrainLoadQueue() {
-    const auto registerFolderHierarchy = [&](const std::filesystem::path& relativeFolder) {
-        auto parent = std::filesystem::path{};
-        for (const auto& component : relativeFolder) {
-            auto child = parent / component;
-            m_DirectoryContents[parent].ChildFolders.insert(child);
-            parent = child;
-        }
-        m_DirectoryContents.try_emplace(parent);
-    };
-    
+    const auto registerFolderHierarchy =
+        [&](const std::filesystem::path& relativeFolder) {
+            auto parent = std::filesystem::path{};
+            for (const auto& component : relativeFolder) {
+                auto child = parent / component;
+                m_DirectoryContents[parent].ChildFolders.insert(child);
+                parent = child;
+            }
+            m_DirectoryContents.try_emplace(parent);
+        };
+
     std::scoped_lock lock{m_QueueMutex};
 
     while (!m_LoadQueue.empty()) {
         auto loaded = std::move(m_LoadQueue.front());
         m_LoadQueue.pop();
 
-        m_MaxGridDimensions.Width =
-            std::max(m_MaxGridDimensions.Width,
-                        static_cast<float>(loaded.Grid.Width()));
+        m_MaxGridDimensions.Width = std::max(
+            m_MaxGridDimensions.Width, static_cast<float>(loaded.Grid.Width()));
         m_MaxGridDimensions.Height =
             std::max(m_MaxGridDimensions.Height,
-                        static_cast<float>(loaded.Grid.Height()));
-    
+                     static_cast<float>(loaded.Grid.Height()));
+
         const auto index = m_Library.size();
         m_DirectoryContents[loaded.NormalizedFolder].Files.push_back(index);
         m_Library.emplace_back(std::move(loaded), m_WindowSize);

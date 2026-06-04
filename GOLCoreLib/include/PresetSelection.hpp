@@ -3,9 +3,9 @@
 
 #include <cstdint>
 #include <filesystem>
-#include <string>
 #include <mutex>
 #include <queue>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -47,7 +47,7 @@ class PresetSelection {
 
   private:
     void DrainLoadQueue();
-    
+
     void ReadFiles(const std::filesystem::path& path);
 
     void RedrawPreset(PresetDisplay& preset, RectF windowBounds, bool hovered);
@@ -72,9 +72,9 @@ class PresetSelection {
 
     // For concurrently reading from files
     std::mutex m_QueueMutex;
+    std::atomic<bool> m_FinishedReading;
     std::queue<LoadedPreset> m_LoadQueue;
     std::jthread m_LoadThread;
-
 };
 } // namespace Golde
 
