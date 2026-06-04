@@ -85,6 +85,7 @@ class EditorCommandExecutor {
     void SetInitialGrid(const GameGrid& grid);
 
     std::optional<VersionState> Deselect();
+
   private:
     // Command handlers — each operates on the executor's own members.
     SimulationState HandleRuleChange(std::string_view ruleStr);
@@ -96,8 +97,8 @@ class EditorCommandExecutor {
     bool SaveToFile(const std::filesystem::path& path, bool markAsSaved);
 
     std::expected<void, FileEncoder::DecodeError>
-    PasteSelection(std::optional<Vec2> cursorPos, std::string_view clipboardText,
-                   bool unlock = false);
+    PasteSelection(std::optional<Vec2> cursorPos,
+                   std::string_view clipboardText, bool unlock = false);
     void ForcePaste(std::optional<Vec2> cursorPos,
                     std::string_view clipboardText);
     void InsertFromClipboard(Vec2 position, std::string_view clipboardText);

@@ -47,7 +47,7 @@ class LifeRule {
 
   private:
     LifeRule() = default;
-    
+
     constexpr LookupTable BuildRuleTable(int32_t birthMask,
                                          int32_t surviveMask);
 

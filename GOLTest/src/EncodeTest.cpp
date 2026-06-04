@@ -11,7 +11,8 @@ namespace Golde {
 static std::expected<FileEncoder::DecodeResult, std::string>
 EncodeDecodeRegionTest(const GameGrid& grid, Rect region, Vec2 offset) {
     const auto encoded = FileEncoder::EncodeRegion(grid, region, offset);
-    const auto decodeResult = FileEncoder::DecodeRegion(grid.Cache(), encoded, 1000000);
+    const auto decodeResult =
+        FileEncoder::DecodeRegion(grid.Cache(), encoded, 1000000);
 
     if (!decodeResult.has_value()) {
         const auto str = std::format("Decode failed with error: {}",
@@ -134,9 +135,9 @@ TEST(EncodeTest, BoundedTopologyCenterOriginOffsetTranslated) {
         "o!\n";
 
     HashLifeCache cache{};
-    const auto decoded =
-        FileEncoder::DecodeRegion(cache, rle, std::numeric_limits<uint32_t>::max(),
-                                  FileEncoder::FileFormat::RLE);
+    const auto decoded = FileEncoder::DecodeRegion(
+        cache, rle, std::numeric_limits<uint32_t>::max(),
+        FileEncoder::FileFormat::RLE);
     ASSERT_TRUE(decoded.has_value()) << decoded.error().Message;
 
     EXPECT_EQ(decoded->Offset, (Vec2{0, 0}));

@@ -95,7 +95,8 @@ class HashQuadtree : public LifeDataStructure {
 
   public:
     HashQuadtree(HashLifeCache& cache);
-    HashQuadtree(HashLifeCache& cache, std::span<const Vec2> data, Vec2 offset = {});
+    HashQuadtree(HashLifeCache& cache, std::span<const Vec2> data,
+                 Vec2 offset = {});
 
   public:
     bool empty() const;
@@ -150,7 +151,7 @@ class HashQuadtree : public LifeDataStructure {
                                  const LifeNode* sw, const LifeNode* se) const;
 
     std::optional<const LifeNode*> Find(const LifeNode* node) const;
-    
+
     // Returns an empty tree at the given level (size 2^level).
     const LifeNode* EmptyTree(int32_t level) const;
 
@@ -162,6 +163,7 @@ class HashQuadtree : public LifeDataStructure {
     void OverwriteData(const LifeNode* root, int32_t level, Vec2 offset);
 
     HashLifeCache& Cache() const;
+
   private:
     const LifeNode* SetImpl(const LifeNode* node, Vec2L pos, Vec2 targetPos,
                             int32_t level, bool alive);

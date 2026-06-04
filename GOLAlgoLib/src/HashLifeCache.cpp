@@ -34,25 +34,25 @@ size_t SlowHash::operator()(SlowKey key) const noexcept {
 }
 
 void HashLifeCache::SetRule(const LifeRule& rule) {
+    if (m_Rule == rule) {
+        return;
+    }
+
     m_Rule = rule;
 
-    std::ranges::for_each(NodeMap, [](const LifeNode* node) {
-        node->AdvanceResult = nullptr;
-    });
+    std::ranges::for_each(
+        NodeMap, [](const LifeNode* node) { node->AdvanceResult = nullptr; });
     SlowCache.clear();
 }
 
-const LifeRule& HashLifeCache::GetRule() const {
-    return m_Rule;
-}
+const LifeRule& HashLifeCache::GetRule() const { return m_Rule; }
 
 const LifeNode* HashLifeCache::FindOrCreate(const LifeNode* nw,
-                                           const LifeNode* ne,
-                                           const LifeNode* sw,
-                                           const LifeNode* se) {
+                                            const LifeNode* ne,
+                                            const LifeNode* sw,
+                                            const LifeNode* se) {
     LifeNode key{nw, ne, sw, se};
-    if (const auto itr = NodeMap.find(&key);
-        itr != NodeMap.end()) {
+    if (const auto itr = NodeMap.find(&key); itr != NodeMap.end()) {
         return *itr;
     }
 
@@ -121,4 +121,4 @@ void HashLifeCache::MarkAndSweep(const LifeNode* root) {
 
 #endif
 
-}
+} // namespace Golde

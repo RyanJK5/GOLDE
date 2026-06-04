@@ -3,8 +3,8 @@
 
 #include <concepts>
 
-#include "HashQuadtree.hpp"
 #include "HashLifeCache.hpp"
+#include "HashQuadtree.hpp"
 #include "LifeAlgorithm.hpp"
 
 namespace Golde {

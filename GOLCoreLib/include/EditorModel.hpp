@@ -96,7 +96,9 @@ class EditorModel {
     const HashQuadtree& GridData() const { return m_Executor.GridData(); }
     bool GridDead() const { return m_Executor.GridDead(); }
     bool InBounds(Vec2 pos) const { return m_Executor.InBounds(pos); }
-    std::optional<bool> CellAt(Vec2 pos) const { return m_Executor.CellAt(pos); }
+    std::optional<bool> CellAt(Vec2 pos) const {
+        return m_Executor.CellAt(pos);
+    }
 
     std::optional<GameGrid> SimulationSnapshot() const {
         return m_Worker->GetResult();
@@ -107,17 +109,29 @@ class EditorModel {
 
     bool SelectionActive() const { return m_Executor.SelectionActive(); }
     bool CanDrawSelection() const { return m_Executor.CanDrawSelection(); }
-    bool CanDrawLargeSelection() const { return m_Executor.CanDrawLargeSelection(); }
+    bool CanDrawLargeSelection() const {
+        return m_Executor.CanDrawLargeSelection();
+    }
     bool SelectionGridAlive() const { return m_Executor.SelectionGridAlive(); }
-    const HashQuadtree& SelectionGridData() const { return m_Executor.SelectionGridData(); }
-    const BigInt& SelectedPopulation() const { return m_Executor.SelectedPopulation(); }
-    std::optional<Rect> SelectionBoundsOpt() const { return m_Executor.SelectionBoundsOpt(); }
+    const HashQuadtree& SelectionGridData() const {
+        return m_Executor.SelectionGridData();
+    }
+    const BigInt& SelectedPopulation() const {
+        return m_Executor.SelectedPopulation();
+    }
+    std::optional<Rect> SelectionBoundsOpt() const {
+        return m_Executor.SelectionBoundsOpt();
+    }
 
     BigInt GridPopulation() const { return m_Executor.GridPopulation(); }
     BigInt GridGeneration() const { return m_Executor.GridGeneration(); }
-    std::string_view CurrentRuleString() const { return m_Executor.CurrentRuleString(); }
+    std::string_view CurrentRuleString() const {
+        return m_Executor.CurrentRuleString();
+    }
 
-    bool IsSimulationOutOfBounds() const { return m_Executor.IsSimulationOutOfBounds(); }
+    bool IsSimulationOutOfBounds() const {
+        return m_Executor.IsSimulationOutOfBounds();
+    }
 
     SimulationState State() const { return m_Executor.State(); }
     void SetState(SimulationState state) { m_Executor.SetState(state); }
@@ -135,7 +149,8 @@ class EditorModel {
     bool IsMutatingCommand(const SimulationCommand& cmd) const;
     bool CanDispatchMutatingCommand(const SimulationCommand& cmd) const;
 
-    // Direct-access methods called by SimulationEditor outside command dispatch.
+    // Direct-access methods called by SimulationEditor outside command
+    // dispatch.
     bool UpdateSelectionAreaTracked(Vec2 gridPos);
     void TryResetSelection();
     void BeginPaintChange();
@@ -170,7 +185,8 @@ class EditorModel {
     SimulationState HandleUndo();
     SimulationState HandleRedo();
 
-    // Applies a completed async result back into m_Executor and m_VersionManager.
+    // Applies a completed async result back into m_Executor and
+    // m_VersionManager.
     void ApplyAsyncResult(AsyncCommandResult&& asyncResult);
 
   private:

@@ -110,9 +110,7 @@ bool EditorModel::UpdateSelectionAreaTracked(Vec2 gridPos) {
     return result;
 }
 
-void EditorModel::TryResetSelection() {
-    m_Executor.TryResetSelection();
-}
+void EditorModel::TryResetSelection() { m_Executor.TryResetSelection(); }
 
 void EditorModel::BeginPaintChange() {
     m_Executor.BeginPaintChange(m_VersionManager);
@@ -122,9 +120,7 @@ void EditorModel::PaintCell(Vec2 pos, bool value) {
     m_Executor.PaintCell(pos, value, m_VersionManager);
 }
 
-void EditorModel::MarkSaved() {
-    m_Executor.MarkSaved(m_VersionManager);
-}
+void EditorModel::MarkSaved() { m_Executor.MarkSaved(m_VersionManager); }
 
 // ---------------------------------------------------------------------------
 // Simulation lifecycle (main-thread only)
@@ -224,7 +220,7 @@ SimulationState EditorModel::HandleRedo() {
 
 ExecuteCommandResult
 EditorModel::ExecuteInline(const SimulationCommand& cmd,
-                            const ExecuteCommandContext& context) {
+                           const ExecuteCommandContext& context) {
     return std::visit(
         Overloaded{
             [this](const StartCommand&) {
@@ -274,7 +270,8 @@ EditorModel::ExecuteInline(const SimulationCommand& cmd,
             },
             [this](const CameraPositionCommand& command) {
                 return ExecuteCommandResult{.State = m_Executor.State(),
-                                            .CameraPositionCell = command.Position};
+                                            .CameraPositionCell =
+                                                command.Position};
             },
             [this](const CameraZoomCommand& command) {
                 return ExecuteCommandResult{.State = m_Executor.State(),

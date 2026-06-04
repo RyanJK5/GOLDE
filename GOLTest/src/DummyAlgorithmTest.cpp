@@ -103,7 +103,7 @@ TEST(DummyAlgorithmTest, IdentifierCompatibilityAndClone) {
 
 TEST(DummyAlgorithmTest, RuleAndTopologyAffectStepTarget) {
     HashLifeCache cache{};
-    
+
     TestAlgorithm algo{};
 
     algo.SetTopology(std::make_unique<Plane>(Rect{0, 0, 4, 4}));

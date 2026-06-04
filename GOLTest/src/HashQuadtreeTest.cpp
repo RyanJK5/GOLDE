@@ -14,7 +14,7 @@ namespace Golde {
 
 const auto ConwaysLife = *LifeRule::Make("B3/S23");
 
-    // Helper to verify the tree iterator yields exactly the expected points
+// Helper to verify the tree iterator yields exactly the expected points
 static void VerifyContent(HashQuadtree& tree, const LifeHashSet& expected) {
     LifeHashSet actual{};
 
@@ -51,7 +51,8 @@ static void CheckAgainstFile(const std::filesystem::path& unevolved,
 
     cache.SetRule(ConwaysLife);
     HashQuadtree current{cache, shifted(data1->Grid.Data(), data1->Offset)};
-    const HashQuadtree expected{cache, shifted(data2->Grid.Data(), data2->Offset)};
+    const HashQuadtree expected{cache,
+                                shifted(data2->Grid.Data(), data2->Offset)};
 
     BigInt totalGenerations{};
     for (auto i = 0; i < numJumps; ++i) {
@@ -92,7 +93,8 @@ TEST(HashQuadtreeTest, RectTest) {
 
 TEST(HashQuadtreeTest, EmptyTree) {
     LifeHashSet cells{};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     EXPECT_EQ(tree.begin(), tree.end())
@@ -105,7 +107,8 @@ TEST(HashQuadtreeTest, EmptyTree) {
 }
 
 TEST(HashQuadtreeTest, PopulationMatchesLiveCells) {
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
 
     LifeHashSet singleCell{{5, 5}};
     HashQuadtree singleTree{cache, singleCell};
@@ -125,7 +128,8 @@ TEST(HashQuadtreeTest, PopulationMatchesLiveCells) {
 
 TEST(HashQuadtreeTest, SingleCell) {
     LifeHashSet cells = {{10, 20}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     ASSERT_NE(tree.begin(), tree.end());
@@ -138,7 +142,8 @@ TEST(HashQuadtreeTest, SingleCell) {
 TEST(HashQuadtreeTest, BlockPattern) {
     // Standard 2x2 block
     LifeHashSet cells{{0, 0}, {1, 0}, {0, 1}, {1, 1}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     EXPECT_EQ(std::ranges::distance(tree), 4);
@@ -148,7 +153,8 @@ TEST(HashQuadtreeTest, BlockPattern) {
 TEST(HashQuadtreeTest, SparsePattern) {
     // Points far away to force deep quadtree recursion
     LifeHashSet cells = {{-1280, -1208}, {0, 0}, {1208, 1028}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     EXPECT_EQ(std::ranges::distance(tree), 3);
@@ -162,7 +168,8 @@ TEST(HashQuadtreeTest, LargeDenseGrid) {
             cells.insert({x, y});
         }
     }
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
     VerifyContent(tree, cells);
 }
@@ -172,7 +179,8 @@ TEST(HashQuadtreeTest, DiagonalLine) {
     for (int i = 0; i < 1000; ++i) {
         cells.insert({i, i});
     }
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
     VerifyContent(tree, cells);
 }
@@ -185,7 +193,8 @@ TEST(HashQuadtreeTest, RandomSparse) {
     for (int i = 0; i < 500; ++i) {
         cells.insert({dist(gen), dist(gen)});
     }
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
     VerifyContent(tree, cells);
 }
@@ -198,7 +207,8 @@ TEST(HashQuadtreeTest, Checkerboard) {
                 cells.insert({x, y});
         }
     }
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
     VerifyContent(tree, cells);
 }
@@ -208,7 +218,8 @@ TEST(HashQuadtreeTest, RangesCompliance) {
     static_assert(std::ranges::input_range<HashQuadtree>);
 
     LifeHashSet cells = {{1, 1}, {2, 2}, {3, 3}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     // Test with std::algorithms
@@ -221,7 +232,8 @@ TEST(HashQuadtreeTest, RangesCompliance) {
 TEST(HashQuadtreeTest, AdvanceBlock) {
     // 2x2 Block (Still Life)
     LifeHashSet cells{{0, 0}, {1, 0}, {0, 1}, {1, 1}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     // Should remain stable
@@ -238,7 +250,8 @@ TEST(HashQuadtreeTest, AdvanceBlock) {
 TEST(HashQuadtreeTest, AdvanceBlinker) {
     // Blinker (Period 2 Oscillator)
     LifeHashSet start{{0, 0}, {0, 1}, {0, 2}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, start};
 
     auto gens = HashLife{cache.GetRule()}.Step(tree, 0);
@@ -263,7 +276,8 @@ TEST(HashQuadtreeTest, AdvanceGlider) {
     // Glider
     LifeHashSet start{{1, 0}, {2, 1}, {0, 2}, {1, 2}, {2, 2}};
 
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, start};
 
     auto gens = HashLife{cache.GetRule()}.Step(tree, 0);
@@ -289,7 +303,8 @@ TEST(HashQuadtreeTest, AdvanceGlider) {
 
 TEST(HashQuadtreeTest, ConstIteratorUsage) {
     const LifeHashSet cells{{1, 1}, {5, 5}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     const HashQuadtree tree{cache, cells};
 
     // Ensure we can iterate over a const tree using range-based for
@@ -306,8 +321,10 @@ TEST(HashQuadtreeTest, ConstIteratorUsage) {
 TEST(HashQuadtreeTest, CopyingBreeder) {
     const std::filesystem::path directory{"universes"};
 
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
-    const auto data = FileEncoder::ReadRegion(cache, directory / "glider_gun.rle");
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
+    const auto data =
+        FileEncoder::ReadRegion(cache, directory / "glider_gun.rle");
 
     HashQuadtree original{cache,
                           data->Grid.Data() | std::ranges::to<LifeHashSet>(),
@@ -327,7 +344,8 @@ TEST(HashQuadtreeTest, TranslationInvariance) {
     const LifeHashSet blockAtDistance{
         {1000, 1000}, {1001, 1000}, {1000, 1001}, {1001, 1001}};
 
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree1{cache, blockAtOrigin};
     HashQuadtree tree2{cache, blockAtDistance};
 
@@ -342,7 +360,8 @@ TEST(HashQuadtreeTest, TranslationInvariance) {
 TEST(HashQuadtreeTest, UniverseHeatDeath) {
     // A single cell dies in the next generation
     LifeHashSet cells{{42, 42}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     const auto gens = HashLife{cache.GetRule()}.Step(tree, 0);
@@ -358,7 +377,8 @@ TEST(HashQuadtreeTest, LargeCoordinateStability) {
     constexpr static int32_t far = 1'000'000;
     const LifeHashSet cells{
         {far, far}, {far + 1, far}, {far, far + 1}, {far + 1, far + 1}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     EXPECT_EQ(std::ranges::distance(tree), 4);
@@ -376,7 +396,8 @@ TEST(HashQuadtreeTest, LargeCoordinateStability) {
 TEST(HashQuadtreeTest, LifecycleAndCopy) {
     // Testing that copy and move work correctly and maintain tree integrity
     LifeHashSet cells{{1, 1}, {2, 2}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree1{cache, cells};
 
     // Copy construction
@@ -398,7 +419,8 @@ TEST(HashQuadtreeTest, LifecycleAndCopy) {
 TEST(HashQuadtreeTest, StandardViewComposition) {
     // Integration with C++23 views
     const LifeHashSet cells{{0, 0}, {1, 1}, {2, 2}, {10, 10}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     // Filter and count using ranges
@@ -415,7 +437,8 @@ TEST(HashQuadtreeTest, StandardViewComposition) {
 
 TEST(HashQuadtreeTest, SlowAdvanceSingleStepDyingPattern) {
     LifeHashSet cells{{0, 0}, {7, 0}, {0, 7}, {7, 7}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     EXPECT_GE(tree.CalculateDepth(), 3)
@@ -432,7 +455,8 @@ TEST(HashQuadtreeTest, SlowAdvanceSingleStepDyingPattern) {
 TEST(HashQuadtreeTest, Vec2LInternalStoragePositiveCoordinates) {
     // Test that Vec2L internal storage correctly handles positive coordinates
     LifeHashSet cells{{100, 200}, {150, 250}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     LifeHashSet actual;
@@ -448,7 +472,8 @@ TEST(HashQuadtreeTest, Vec2LInternalStoragePositiveCoordinates) {
 TEST(HashQuadtreeTest, Vec2LInternalStorageNegativeCoordinates) {
     // Test that Vec2L internal storage correctly handles negative coordinates
     LifeHashSet cells{{-100, -200}, {-50, -75}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     LifeHashSet actual;
@@ -464,7 +489,8 @@ TEST(HashQuadtreeTest, Vec2LInternalStorageNegativeCoordinates) {
 TEST(HashQuadtreeTest, Vec2LMixedSignCoordinates) {
     // Test that Vec2L internal storage correctly handles mixed sign coordinates
     LifeHashSet cells{{-500, 500}, {500, -500}, {-1000, -1000}, {1000, 1000}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     LifeHashSet actual;
@@ -483,7 +509,8 @@ TEST(HashQuadtreeTest, BoundsCheckingAtInt32Max) {
     // Test bounds checking at the maximum int32 value
     constexpr int32_t maxInt32 = std::numeric_limits<int32_t>::max();
     const LifeHashSet cells{{maxInt32, maxInt32}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     LifeHashSet actual;
@@ -499,7 +526,8 @@ TEST(HashQuadtreeTest, BoundsCheckingAtInt32Min) {
     // Test bounds checking at the minimum int32 value
     constexpr int32_t minInt32 = std::numeric_limits<int32_t>::min();
     const LifeHashSet cells{{minInt32, minInt32}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     LifeHashSet actual;
@@ -521,7 +549,8 @@ TEST(HashQuadtreeTest, BoundsCheckingNearInt32Boundaries) {
     const LifeHashSet cells{{maxInt32 - 1, maxInt32 - 1},
                             {minInt32 + 1, minInt32 + 1},
                             {maxInt32 - 100, minInt32 + 100}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     LifeHashSet actual;
@@ -538,7 +567,8 @@ TEST(HashQuadtreeTest, BoundsCheckingNearInt32Boundaries) {
 TEST(HashQuadtreeTest, Vec2LOffsetHandling) {
     // Test that Vec2L offsets are correctly computed and used during iteration
     LifeHashSet cells{{5000, 6000}, {5100, 6100}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     LifeHashSet actual;
@@ -560,7 +590,8 @@ TEST(HashQuadtreeTest, Vec2LConversionConsistency) {
     for (const auto cell : originalCells)
         input.insert(cell);
 
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, input};
 
     LifeHashSet actual;
@@ -578,7 +609,8 @@ TEST(HashQuadtreeTest, Vec2LWithLargeOffsets) {
     constexpr int32_t largeOffset = 1000000;
     const LifeHashSet cells{{largeOffset, largeOffset},
                             {largeOffset + 10, largeOffset + 20}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     LifeHashSet actual;
@@ -596,7 +628,8 @@ TEST(HashQuadtreeTest, Vec2LNegativeLargeOffsets) {
     const LifeHashSet cells{
         {largeNegativeOffset, largeNegativeOffset},
         {largeNegativeOffset - 10, largeNegativeOffset - 20}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     LifeHashSet actual;
@@ -615,7 +648,8 @@ TEST(HashQuadtreeTest, Vec2LWithExplicitConstructorOffset) {
     LifeHashSet cells{{100, 100}, {200, 200}};
     Vec2 explicitOffset{50, 50};
 
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
 
     // Create tree without explicit offset
     HashQuadtree tree1{cache, cells};
@@ -645,7 +679,8 @@ TEST(HashQuadtreeTest, Vec2LWithExplicitConstructorOffset) {
 TEST(HashQuadtreeTest, Vec2LCopyConstructorPreservesInternalState) {
     // Test that copying a tree preserves Vec2L internal state correctly
     LifeHashSet cells{{-500, 500}, {500, -500}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree1{cache, cells};
 
     HashQuadtree tree2 = tree1;
@@ -664,7 +699,8 @@ TEST(HashQuadtreeTest, Vec2LCopyConstructorPreservesInternalState) {
 TEST(HashQuadtreeTest, Vec2LMoveConstructorPreservesInternalState) {
     // Test that moving a tree preserves Vec2L internal state correctly
     LifeHashSet cells{{-500, 500}, {500, -500}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree1{cache, cells};
 
     LifeHashSet expectedCells;
@@ -685,7 +721,8 @@ TEST(HashQuadtreeTest, Vec2LIteratorComparison) {
     // Test that iterator comparison works correctly with Vec2 values converted
     // from Vec2L
     LifeHashSet cells{{100, 200}, {300, 400}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     auto it1 = tree.begin();
@@ -703,7 +740,8 @@ TEST(HashQuadtreeTest, Vec2LIteratorAdvancementWithBounds) {
     // Test that iterator advancement correctly handles Vec2L positions within
     // bounds
     LifeHashSet cells{{100, 100}, {200, 200}, {300, 300}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     size_t count = 0;
@@ -725,7 +763,8 @@ TEST(HashQuadtreeTest, Vec2LEqualityComparison) {
     LifeHashSet cells1{{10, 20}, {30, 40}, {-50, -60}};
     LifeHashSet cells2{{10, 20}, {30, 40}, {-50, -60}};
 
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree1{cache, cells1};
     HashQuadtree tree2{cache, cells2};
 
@@ -735,7 +774,8 @@ TEST(HashQuadtreeTest, Vec2LEqualityComparison) {
 TEST(HashQuadtreeTest, Vec2LEmptyTreeBoundsCheck) {
     // Test that empty tree bounds checking doesn't affect iteration
     LifeHashSet cells;
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     size_t count = 0;
@@ -757,7 +797,8 @@ TEST(HashQuadtreeTest, Vec2LDensePatternWithVaryingCoordinates) {
         }
     }
 
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, cells};
 
     LifeHashSet actual;
@@ -772,7 +813,8 @@ TEST(HashQuadtreeTest, Vec2LNextGenerationPreservesCoordinates) {
     // Test that NextGeneration correctly preserves coordinates through
     // Vec2L->Vec2 conversion
     LifeHashSet blockCells{{0, 0}, {1, 0}, {0, 1}, {1, 1}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     HashQuadtree tree{cache, blockCells};
 
     HashLife{cache.GetRule()}.Step(tree, 1);
@@ -787,7 +829,8 @@ TEST(HashQuadtreeTest, Vec2LNextGenerationPreservesCoordinates) {
 TEST(HashQuadtreeTest, Vec2LIteratorConstness) {
     // Test that const iterators correctly handle Vec2L conversion
     const LifeHashSet cells{{100, 200}, {-100, -200}};
-    HashLifeCache cache{}; cache.SetRule(ConwaysLife);
+    HashLifeCache cache{};
+    cache.SetRule(ConwaysLife);
     const HashQuadtree tree{cache, cells};
 
     LifeHashSet actual;

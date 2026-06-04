@@ -160,8 +160,8 @@ SelectionManager::Paste(const GameGrid& grid, std::string_view clipboardText,
     constexpr static std::array formats{FileEncoder::FileFormat::RLE,
                                         FileEncoder::FileFormat::Macrocell};
     for (auto i = 0UZ; i < formats.size(); i++) {
-        auto decodeResult = FileEncoder::DecodeRegion(grid.Cache(),
-            clipboardText.data(), warnThreshold, formats[i]);
+        auto decodeResult = FileEncoder::DecodeRegion(
+            grid.Cache(), clipboardText.data(), warnThreshold, formats[i]);
         if (decodeResult) {
             if (!gridPos) {
                 gridPos = decodeResult->Offset;
@@ -250,8 +250,8 @@ SelectionManager::InsertNoise(const GameGrid& grid, Rect selectionBounds,
         return std::nullopt;
     }
 
-    auto result =
-        GameGrid::GenerateNoise(grid.Cache(), selectionBounds, density, warnThreshold);
+    auto result = GameGrid::GenerateNoise(grid.Cache(), selectionBounds,
+                                          density, warnThreshold);
     if (result) {
         m_Selected = std::move(*result);
     } else {
@@ -417,12 +417,9 @@ std::optional<std::string_view> SelectionManager::SelectionRuleString() const {
     return m_Selected->GetRuleString();
 }
 
-void SelectionManager::SetSelectionRule(const LifeRule& rule, std::string_view ruleString) {
+void SelectionManager::SetSelectionRule(const LifeRule& rule,
+                                        std::string_view ruleString) {
     if (!m_Selected) {
-        return;
-    }
-
-    if (!rule) {
         return;
     }
 

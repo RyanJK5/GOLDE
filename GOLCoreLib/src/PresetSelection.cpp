@@ -387,7 +387,6 @@ void PresetSelection::ReadFiles(const std::filesystem::path& path) {
             m_DirectoryContents.try_emplace(parent);
         };
 
-    
     for (const auto& file :
          std::filesystem::recursive_directory_iterator(path)) {
         if (!FileEncoder::IsFormatSupported(

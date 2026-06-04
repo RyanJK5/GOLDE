@@ -42,11 +42,13 @@ class HashLifeCache {
     void SetRule(const LifeRule& rule);
     const LifeRule& GetRule() const;
 
-    const LifeNode* FindOrCreate(const LifeNode* nw, const LifeNode* ne, const LifeNode* sw, const LifeNode* se);
-private:
+    const LifeNode* FindOrCreate(const LifeNode* nw, const LifeNode* ne,
+                                 const LifeNode* sw, const LifeNode* se);
+
+  private:
     LifeRule m_Rule = *LifeRule::Make("B3/S23");
 #ifdef GOLDE_GARBAGE_COLLECTION
-public:
+  public:
     // Store the return value in a scope where the node should be protected from
     // garbage collection.
     [[nodiscard]] auto ProtectNodeFromGC(const LifeNode* node) {
@@ -68,15 +70,16 @@ public:
 
         return GCRootGuard{m_ProtectedRoots, node};
     }
-    
+
     void MarkAndSweep(const LifeNode* root);
+
   private:
     std::vector<const LifeNode*> m_ProtectedRoots{};
-    
+
     void Mark(const LifeNode* node);
 #endif
 };
 
-}
+} // namespace Golde
 
 #endif

@@ -31,9 +31,13 @@ EditorCommandExecutor::EditorCommandExecutor(HashLifeCache& cache,
 Size2 EditorCommandExecutor::GridSize() const { return m_Grid.Size(); }
 int32_t EditorCommandExecutor::GridWidth() const { return m_Grid.Width(); }
 int32_t EditorCommandExecutor::GridHeight() const { return m_Grid.Height(); }
-const HashQuadtree& EditorCommandExecutor::GridData() const { return m_Grid.Data(); }
+const HashQuadtree& EditorCommandExecutor::GridData() const {
+    return m_Grid.Data();
+}
 bool EditorCommandExecutor::GridDead() const { return m_Grid.Dead(); }
-bool EditorCommandExecutor::InBounds(Vec2 pos) const { return m_Grid.InBounds(pos); }
+bool EditorCommandExecutor::InBounds(Vec2 pos) const {
+    return m_Grid.InBounds(pos);
+}
 std::optional<bool> EditorCommandExecutor::CellAt(Vec2 pos) const {
     return m_Grid.Get(pos.X, pos.Y);
 }
@@ -88,7 +92,9 @@ bool EditorCommandExecutor::IsSimulationOutOfBounds() const {
 const GameGrid& EditorCommandExecutor::Grid() const { return m_Grid; }
 GameGrid& EditorCommandExecutor::Grid() { return m_Grid; }
 
-const GameGrid& EditorCommandExecutor::InitialGrid() const { return m_InitialGrid; }
+const GameGrid& EditorCommandExecutor::InitialGrid() const {
+    return m_InitialGrid;
+}
 void EditorCommandExecutor::SetInitialGrid(const GameGrid& grid) {
     m_InitialGrid = grid;
 }
@@ -147,7 +153,8 @@ void EditorCommandExecutor::ApplyVersionChange(const VersionState& change) {
 // Private command handlers
 // ---------------------------------------------------------------------------
 
-SimulationState EditorCommandExecutor::HandleRuleChange(std::string_view ruleStr) {
+SimulationState
+EditorCommandExecutor::HandleRuleChange(std::string_view ruleStr) {
     const auto rule = *LifeRule::Make(ruleStr);
     const auto oldSize = m_Grid.Size();
     const auto ruleBounds = rule.Bounds().value_or(Rect{});
@@ -159,7 +166,7 @@ SimulationState EditorCommandExecutor::HandleRuleChange(std::string_view ruleStr
                           rule.Bounds() ? rule.Bounds()->Size() : Size2{}};
     }
 
-    m_SelectionManager.SetSelectionRule(ruleStr);
+    m_SelectionManager.SetSelectionRule(rule, ruleStr);
     PushVersionChange(VersionState{.Universe = m_Grid});
 
     if (m_Grid.Size() == oldSize) {
@@ -185,7 +192,7 @@ bool EditorCommandExecutor::HandleGenerateNoise(float density,
     PushVersionChange(m_SelectionManager.Deselect(m_Grid));
 
     const auto result = m_SelectionManager.InsertNoise(m_Grid, selectionBounds,
-                                                        warnThreshold, density);
+                                                       warnThreshold, density);
     if (result) {
         PushVersionChange(result);
         return true;
@@ -251,8 +258,8 @@ EditorCommandExecutor::PasteSelection(std::optional<Vec2> cursorPos,
     if (cursorPos || m_SelectionManager.CanDrawGrid()) {
         PushVersionChange(m_SelectionManager.Deselect(m_Grid));
     }
-    auto pasteResult = m_SelectionManager.Paste(m_Grid, clipboardText, cursorPos,
-                                                 100'000'000U, unlock);
+    auto pasteResult = m_SelectionManager.Paste(
+        m_Grid, clipboardText, cursorPos, 100'000'000U, unlock);
     if (pasteResult) {
         PushVersionChange(*pasteResult);
         return {};
@@ -263,18 +270,17 @@ EditorCommandExecutor::PasteSelection(std::optional<Vec2> cursorPos,
 void EditorCommandExecutor::ForcePaste(std::optional<Vec2> cursorPos,
                                        std::string_view clipboardText) {
     auto pasteResult = m_SelectionManager.Paste(
-        m_Grid, clipboardText, cursorPos,
-        std::numeric_limits<uint32_t>::max());
+        m_Grid, clipboardText, cursorPos, std::numeric_limits<uint32_t>::max());
     if (pasteResult)
         PushVersionChange(*pasteResult);
 }
 
-void EditorCommandExecutor::InsertFromClipboard(Vec2 position,
-                                                std::string_view clipboardText) {
+void EditorCommandExecutor::InsertFromClipboard(
+    Vec2 position, std::string_view clipboardText) {
     PushVersionChange(m_SelectionManager.Deselect(m_Grid));
-    auto result = m_SelectionManager.Paste(m_Grid, clipboardText, position,
-                                           std::numeric_limits<uint32_t>::max(),
-                                           true);
+    auto result =
+        m_SelectionManager.Paste(m_Grid, clipboardText, position,
+                                 std::numeric_limits<uint32_t>::max(), true);
     if (result)
         PushVersionChange(*result);
 }
@@ -287,8 +293,7 @@ SimulationState EditorCommandExecutor::SetSelectionBounds(Rect bounds) {
     return m_State;
 }
 
-std::optional<ExecuteCommandResult>
-EditorCommandExecutor::HandleIncomingRule(
+std::optional<ExecuteCommandResult> EditorCommandExecutor::HandleIncomingRule(
     std::optional<std::string_view> incomingRule,
     bool hadExistingUniverseData) {
     if (!incomingRule)
@@ -345,9 +350,8 @@ EditorCommandExecutor::Execute(const SimulationCommand& cmd,
                     .State = SetSelectionBounds(command.Bounds)};
             },
             [this](const CameraPositionCommand& command) {
-                return ExecuteCommandResult{.State = m_State,
-                                            .CameraPositionCell =
-                                                command.Position};
+                return ExecuteCommandResult{
+                    .State = m_State, .CameraPositionCell = command.Position};
             },
             [this](const CameraZoomCommand& command) {
                 return ExecuteCommandResult{.State = m_State,
@@ -356,8 +360,7 @@ EditorCommandExecutor::Execute(const SimulationCommand& cmd,
             [this](const GenerateNoiseCommand& command) {
                 const static BigInt noiseThreshold{10'000'000U};
                 const auto result = HandleGenerateNoise(
-                    command.Density,
-                    static_cast<uint32_t>(noiseThreshold));
+                    command.Density, static_cast<uint32_t>(noiseThreshold));
                 if (!result) {
                     return ExecuteCommandResult{
                         .State = m_State,
@@ -431,10 +434,10 @@ EditorCommandExecutor::Execute(const SimulationCommand& cmd,
                 const auto oldWidth = GridWidth();
                 const auto oldHeight = GridHeight();
                 const auto state = HandleRuleChange(command.RuleString);
-                return ExecuteCommandResult{
-                    .State = state,
-                    .RecenterCameraToGridCenter =
-                        GridWidth() != oldWidth || GridHeight() != oldHeight};
+                return ExecuteCommandResult{.State = state,
+                                            .RecenterCameraToGridCenter =
+                                                GridWidth() != oldWidth ||
+                                                GridHeight() != oldHeight};
             },
             [this, &context](const SelectionCommand& command) {
                 if (command.Action == SelectionAction::Paste) {
@@ -463,10 +466,10 @@ EditorCommandExecutor::Execute(const SimulationCommand& cmd,
                                     FileEncoder::DecodeError::Type::TooManyCells
                                 ? ExecuteCommandErrorType::PasteTooManyCells
                                 : ExecuteCommandErrorType::Paste;
-                        return ExecuteCommandResult{
-                            .State = m_State,
-                            .ErrorType = errorType,
-                            .ErrorMessage = result.error().Message};
+                        return ExecuteCommandResult{.State = m_State,
+                                                    .ErrorType = errorType,
+                                                    .ErrorMessage =
+                                                        result.error().Message};
                     }
 
                     if (auto incomingRuleResult = HandleIncomingRule(

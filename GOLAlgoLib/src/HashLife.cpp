@@ -271,7 +271,8 @@ NodeUpdateInfo HashLife::AdvanceSlow(const LifeNode* node,
         // Also store under the actual generations for cross-request reuse.
         return {result, actualLevel};
     }
-    if (const auto it = m_StepData->Cache().SlowCache.find({node, m_StepAdvanceDepth});
+    if (const auto it =
+            m_StepData->Cache().SlowCache.find({node, m_StepAdvanceDepth});
         it != m_StepData->Cache().SlowCache.end()) {
         return {it->second, m_StepAdvanceDepth};
     }
@@ -414,7 +415,8 @@ bool HashLife::NeedsExpansion(const LifeNode* node, int32_t level) const {
     return false;
 }
 
-HashLife::HashLife(const LifeRule& rule) : m_Rule(rule), m_Topology(std::make_unique<Plane>()) {}
+HashLife::HashLife(const LifeRule& rule)
+    : m_Rule(rule), m_Topology(std::make_unique<Plane>()) {}
 
 HashLife::HashLife(const LifeRule& rule, std::unique_ptr<Topology> topology)
     : m_Rule(rule), m_Topology(std::move(topology)) {}

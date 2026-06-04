@@ -716,7 +716,8 @@ DecodeMacrocell(HashLifeCache& cache, std::string_view fileContents) {
 }
 } // namespace
 
-std::expected<DecodeResult, DecodeError> DecodeRegion(HashLifeCache& cache, std::string_view src,
+std::expected<DecodeResult, DecodeError> DecodeRegion(HashLifeCache& cache,
+                                                      std::string_view src,
                                                       uint32_t warnThreshold,
                                                       FileFormat fileFormat) {
     switch (fileFormat) {

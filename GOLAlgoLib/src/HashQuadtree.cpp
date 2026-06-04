@@ -30,7 +30,9 @@ HashQuadtree::HashQuadtree(HashLifeCache& cache) : m_Cache(cache) {
     ExpandUniverse(4); // So we can always serialize
 }
 
-HashQuadtree::HashQuadtree(HashLifeCache& cache, std::span<const Vec2> data, Vec2 offset) : m_Cache(cache) {
+HashQuadtree::HashQuadtree(HashLifeCache& cache, std::span<const Vec2> data,
+                           Vec2 offset)
+    : m_Cache(cache) {
     if (data.empty())
         return;
 
@@ -40,8 +42,10 @@ HashQuadtree::HashQuadtree(HashLifeCache& cache, std::span<const Vec2> data, Vec
     ExpandUniverse(4);
 }
 
-const LifeNode* HashQuadtree::FindOrCreate(const LifeNode* nw, const LifeNode* ne,
-                                 const LifeNode* sw, const LifeNode* se) const {
+const LifeNode* HashQuadtree::FindOrCreate(const LifeNode* nw,
+                                           const LifeNode* ne,
+                                           const LifeNode* sw,
+                                           const LifeNode* se) const {
     return m_Cache.get().FindOrCreate(nw, ne, sw, se);
 }
 
@@ -53,9 +57,7 @@ std::optional<const LifeNode*> HashQuadtree::Find(const LifeNode* node) const {
     return (*it)->AdvanceResult;
 }
 
-HashLifeCache& HashQuadtree::Cache() const {
-    return m_Cache.get();
-}
+HashLifeCache& HashQuadtree::Cache() const { return m_Cache.get(); }
 
 const LifeNode* HashQuadtree::Data() const { return m_Root; }
 

@@ -25,7 +25,8 @@
 
 namespace Golde {
 std::expected<GameGrid, std::string>
-GameGrid::GenerateNoise(HashLifeCache& cache, Rect bounds, float density, uint32_t warnThreshold) {
+GameGrid::GenerateNoise(HashLifeCache& cache, Rect bounds, float density,
+                        uint32_t warnThreshold) {
     static std::random_device random{};
     static std::mt19937 generator{random()};
 
@@ -72,17 +73,19 @@ GameGrid::GenerateNoise(HashLifeCache& cache, Rect bounds, float density, uint32
 }
 
 GameGrid::GameGrid(HashLifeCache& cache, int32_t width, int32_t height)
-    : m_HashLifeData(cache), m_Algorithm(std::make_unique<HashLife>(cache.GetRule())), m_Width(width),
+    : m_HashLifeData(cache),
+      m_Algorithm(std::make_unique<HashLife>(cache.GetRule())), m_Width(width),
       m_Height(height) {
     m_Algorithm->SetTopology(
         std::make_unique<Plane>(Rect{0, 0, width, height}));
 }
 
-GameGrid::GameGrid(HashLifeCache& cache, Size2 size) : GameGrid(cache, size.Width, size.Height) {}
+GameGrid::GameGrid(HashLifeCache& cache, Size2 size)
+    : GameGrid(cache, size.Width, size.Height) {}
 
 GameGrid::GameGrid(const GameGrid& other, Size2 size)
     : m_HashLifeData(other.m_HashLifeData.Extract({{0, 0}, size})),
-    m_Width(size.Width), m_Height(size.Height) {
+      m_Width(size.Width), m_Height(size.Height) {
     m_RuleString = other.m_RuleString;
     m_Algorithm = other.m_Algorithm->Clone();
 
@@ -131,7 +134,8 @@ GameGrid& GameGrid::operator=(const GameGrid& other) {
 }
 
 GameGrid::GameGrid(const HashQuadtree& data, Size2 size)
-    : m_HashLifeData(data), m_Algorithm(std::make_unique<HashLife>(data.Cache().GetRule())),
+    : m_HashLifeData(data),
+      m_Algorithm(std::make_unique<HashLife>(data.Cache().GetRule())),
       m_Width(size.Width), m_Height(size.Height) {
     m_Algorithm->SetTopology(
         std::make_unique<Plane>(Rect{0, 0, size.Width, size.Height}));
@@ -160,8 +164,8 @@ HashLifeCache& GameGrid::Cache() const { return m_HashLifeData.Cache(); }
 const HashQuadtree& GameGrid::Data() const { return m_HashLifeData; }
 
 void GameGrid::SetRule(const LifeRule& rule) {
-    Cache().SetRule(rule); 
-    m_Algorithm->SetRule(rule); 
+    Cache().SetRule(rule);
+    m_Algorithm->SetRule(Cache().GetRule());
 }
 
 void GameGrid::SetRule(const LifeRule& rule, std::string_view ruleString) {

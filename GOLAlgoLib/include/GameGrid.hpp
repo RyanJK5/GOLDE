@@ -23,7 +23,8 @@ class GameGrid {
     // Returns a GameGrid with randomly generated cells according to the
     // provided density.
     static std::expected<GameGrid, std::string>
-    GenerateNoise(HashLifeCache& cache, Rect bounds, float density, uint32_t warnThreshold);
+    GenerateNoise(HashLifeCache& cache, Rect bounds, float density,
+                  uint32_t warnThreshold);
 
     // Calling with `width` or `height` set to zero creates an unbounded
     // universe.

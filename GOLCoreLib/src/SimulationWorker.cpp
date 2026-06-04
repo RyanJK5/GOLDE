@@ -9,9 +9,7 @@ namespace Golde {
 SimulationWorker::SimulationWorker()
     : m_Thread(std::bind_front(&SimulationWorker::ThreadLoop, this)) {}
 
-SimulationWorker::~SimulationWorker() {
-    m_RunStopSource.request_stop();
-}
+SimulationWorker::~SimulationWorker() { m_RunStopSource.request_stop(); }
 
 void SimulationWorker::ThreadLoop(std::stop_token threadStopToken) {
     while (true) {
@@ -105,7 +103,7 @@ GameGrid SimulationWorker::Stop() {
         m_RunStopSource.request_stop();
         m_PauseSemaphore.acquire();
     }
-    
+
     const auto ret = std::move(*m_DisplayGrid);
     m_WorkGrid = std::nullopt;
     m_DisplayGrid = std::nullopt;
