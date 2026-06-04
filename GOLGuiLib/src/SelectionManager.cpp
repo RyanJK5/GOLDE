@@ -160,7 +160,7 @@ SelectionManager::Paste(const GameGrid& grid, std::string_view clipboardText,
     constexpr static std::array formats{FileEncoder::FileFormat::RLE,
                                         FileEncoder::FileFormat::Macrocell};
     for (auto i = 0UZ; i < formats.size(); i++) {
-        auto decodeResult = FileEncoder::DecodeRegion(
+        auto decodeResult = FileEncoder::DecodeRegion(grid.Cache(),
             clipboardText.data(), warnThreshold, formats[i]);
         if (decodeResult) {
             if (!gridPos) {
@@ -251,7 +251,7 @@ SelectionManager::InsertNoise(const GameGrid& grid, Rect selectionBounds,
     }
 
     auto result =
-        GameGrid::GenerateNoise(selectionBounds, density, warnThreshold);
+        GameGrid::GenerateNoise(grid.Cache(), selectionBounds, density, warnThreshold);
     if (result) {
         m_Selected = std::move(*result);
     } else {
@@ -267,7 +267,7 @@ SelectionManager::InsertNoise(const GameGrid& grid, Rect selectionBounds,
 std::expected<VersionState, FileEncoder::DecodeError>
 SelectionManager::Load(const GameGrid& grid,
                        const std::filesystem::path& filePath) {
-    auto result = FileEncoder::ReadRegion(filePath);
+    auto result = FileEncoder::ReadRegion(grid.Cache(), filePath);
     if (!result)
         return std::unexpected{std::move(result.error())};
 
@@ -396,8 +396,7 @@ const HashQuadtree& SelectionManager::GridData() const {
 }
 
 VersionState SelectionManager::CaptureState(const GameGrid& grid) const {
-    VersionState state{};
-    state.Universe = grid;
+    VersionState state{.Universe = grid};
 
     if (CanDrawGrid()) {
         state.SelectionBounds = SelectionBounds();

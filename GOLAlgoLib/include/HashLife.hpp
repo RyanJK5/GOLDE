@@ -4,17 +4,16 @@
 #include <concepts>
 
 #include "HashQuadtree.hpp"
+#include "HashLifeCache.hpp"
 #include "LifeAlgorithm.hpp"
 
 namespace Golde {
 
 class HashLife : public LifeAlgorithm {
   public:
-    static std::string_view Identifier;
+    HashLife(const LifeRule& rule);
 
-    HashLife();
-
-    HashLife(std::unique_ptr<Topology> topology);
+    HashLife(const LifeRule& rule, std::unique_ptr<Topology> topology);
 
     void SetTopology(std::unique_ptr<Topology> topology) override;
 
@@ -61,6 +60,7 @@ class HashLife : public LifeAlgorithm {
     uint16_t AssembleCentered6x6(const FirstGenResults& gen1) const;
 
   private:
+    std::reference_wrapper<const LifeRule> m_Rule;
     std::unique_ptr<Topology> m_Topology;
 
     // These variables are stored to reduce the size of the
@@ -68,15 +68,6 @@ class HashLife : public LifeAlgorithm {
     HashQuadtree* m_StepData = nullptr;
     std::stop_token m_StepStopToken{};
     int32_t m_StepAdvanceDepth = 0;
-
-    static thread_local LifeRule s_Rule;
-
-    // The cache for the HashLife algorithm when the step size is bounded.
-    using SlowCache =
-        ankerl::unordered_dense::map<SlowKey, const LifeNode*, SlowHash>;
-    static std::array<SlowCache, HashQuadtree::MaxCacheCount> s_SlowCache;
-
-    SlowCache* m_Cache = &s_SlowCache[HashQuadtree::GetCacheIndex()];
 };
 
 template <bool UseFastPath>
@@ -130,7 +121,7 @@ NodeUpdateInfo HashLife::AdvanceFast(const LifeNode* node,
 
     if (level == 3) {
         const auto* base = AdvanceBase(node);
-        m_StepData->CacheResult(node, base);
+        node->AdvanceResult = base;
         return {base, 1};
     }
 
@@ -184,7 +175,7 @@ NodeUpdateInfo HashLife::AdvanceFast(const LifeNode* node,
         return {node, 0};
     }
 
-    m_StepData->CacheResult(node, result);
+    node->AdvanceResult = result;
     return {result, level - 2};
 }
 

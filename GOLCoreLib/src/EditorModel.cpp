@@ -33,7 +33,7 @@ bool ShouldExecuteInline(const SimulationCommand& cmd) {
 
 EditorModel::EditorModel(uint32_t id, const std::filesystem::path& path,
                          Size2 gridSize)
-    : m_Grid(gridSize), m_Worker(std::make_unique<SimulationWorker>(id)),
+    : m_Grid(m_LifeCache, gridSize), m_Worker(std::make_unique<SimulationWorker>()),
       m_CurrentFilePath(path), m_EditorID(id) {
     // Seed history with the initial state so first undo restores correctly.
     m_VersionManager.PushChange(VersionState{.Universe = m_Grid});
@@ -102,7 +102,7 @@ SimulationState EditorModel::HandleClear() {
     TryPushVersionChange(m_SelectionManager.Deselect(m_Grid));
 
     const std::string oldRuleStr{m_Grid.GetRuleString()};
-    m_Grid = GameGrid{m_Grid.Size()};
+    m_Grid = GameGrid{m_LifeCache, m_Grid.Size()};
     m_Grid.SetRule(*LifeRule::Make(oldRuleStr), oldRuleStr);
 
     TryPushVersionChange(VersionState{.Universe = m_Grid});
@@ -398,14 +398,12 @@ bool EditorModel::TryStartCommand(const SimulationCommand& cmd,
 
     std::scoped_lock lock{m_CommandMutex};
     if (ShouldExecuteInline(cmd)) {
-        m_Grid.SetCacheIndex(m_EditorID);
         m_InlineCommandResult = ExecuteCommandImmediate(cmd, context);
         return true;
     }
 
     m_InFlightCommand = std::async(
         std::launch::async, [this, command = cmd, commandContext = context]() {
-            m_Grid.SetCacheIndex(m_EditorID);
             return ExecuteCommandImmediate(command, commandContext);
         });
     return true;

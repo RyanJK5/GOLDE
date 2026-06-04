@@ -22,96 +22,15 @@
 namespace Golde {
 constexpr static auto ViewportMaxLevel = 31;
 
-HashLifeCache::HashLifeCache() {
-    EmptyNodeCache.resize(64, nullptr);
-    NodeMap.reserve(1UZ << 20UZ);
-}
-
-void HashLifeCache::Mark(const LifeNode* root) {
-    std::stack<const LifeNode*, std::vector<const LifeNode*>> stack;
-    stack.push(root);
-
-    while (!stack.empty()) {
-        const auto* node = stack.top();
-        stack.pop();
-
-        if (node == FalseNode || node == TrueNode || node->MarkedForGC) {
-            continue;
-        }
-
-        node->MarkedForGC = true;
-
-        if (const auto it = NodeMap.find(node); it != NodeMap.end()) {
-            stack.push((*it)->AdvanceResult);
-        }
-
-        stack.push(node->NorthWest);
-        stack.push(node->NorthEast);
-        stack.push(node->SouthWest);
-        stack.push(node->SouthEast);
-    }
-}
-
-void HashLifeCache::MarkAndSweep(const LifeNode* root) {
-    Mark(EmptyNodeCache.back());
-    Mark(root);
-    for (const auto* node : m_ProtectedRoots) {
-        Mark(node);
-    }
-
-    decltype(NodeMap) newCache{};
-    newCache.reserve(NodeMap.size());
-
-    for (const auto* node : NodeMap) {
-        if (node != nullptr && node->MarkedForGC) {
-            newCache.insert(node);
-        }
-    }
-
-    NodeMap = std::move(newCache);
-
-    NodeStorage.SweepGarbage();
-}
-
-std::array<HashLifeCache, HashQuadtree::MaxCacheCount> HashQuadtree::s_Cache{};
-
 thread_local ankerl::unordered_dense::map<const LifeNode*, BigInt, LifeNodeHash,
                                           LifeNodeEqual>
     HashQuadtree::s_PopulationCache{};
 
-thread_local size_t HashQuadtree::t_CacheIndex{};
-
-// Mixes the node's precomputed hash with MaxAdvance. The node hash is already
-// well-distributed via splitmix64, so a single round of xor-shift mixing with
-// the advance count is sufficient.
-size_t SlowHash::operator()(SlowKey key) const noexcept {
-    // Use a non-zero seed to prevent (0,0) from hashing to 0
-    // This is a prime or a large constant like 0x9e3779b9
-    auto h = key.Node ? key.Node->Hash : 0xD3212C32483522FBULL;
-
-    const auto advanceHash = static_cast<uint64_t>(key.AdvanceLevel);
-
-    // Multiplicative combine using the Golden Ratio
-    // We shift 'h' to ensure the nodeHash and advanceHash don't
-    // just sit in the same bit-lanes before the multiply.
-    constexpr static auto GoldenRatio = 0x9E3779B97F4A7C15ULL;
-    h ^= (advanceHash * GoldenRatio) + 0x9e3779b9 + (h << 6) + (h >> 2);
-
-    // The "Avalanche": A faster, lighter version of Murmur's mixer.
-    // This ensures that changes in AdvanceLevel propagate
-    // across the entire 64-bit result.
-    h ^= h >> 33;
-    h *= 0xff51afd7ed558ccdULL;
-    h ^= h >> 33;
-
-    return static_cast<size_t>(h);
-}
-
-HashQuadtree::HashQuadtree() {
+HashQuadtree::HashQuadtree(HashLifeCache& cache) : m_Cache(cache) {
     ExpandUniverse(4); // So we can always serialize
 }
 
-HashQuadtree::HashQuadtree(std::span<const Vec2> data, Vec2 offset) {
+HashQuadtree::HashQuadtree(HashLifeCache& cache, std::span<const Vec2> data, Vec2 offset) : m_Cache(cache) {
     if (data.empty())
         return;
 
@@ -121,12 +40,22 @@ HashQuadtree::HashQuadtree(std::span<const Vec2> data, Vec2 offset) {
     ExpandUniverse(4);
 }
 
-void HashQuadtree::SetCacheIndex(size_t index) {
-    t_CacheIndex = index;
-    m_Cache = &s_Cache[t_CacheIndex];
+const LifeNode* HashQuadtree::FindOrCreate(const LifeNode* nw, const LifeNode* ne,
+                                 const LifeNode* sw, const LifeNode* se) const {
+    return m_Cache.get().FindOrCreate(nw, ne, sw, se);
 }
 
-size_t HashQuadtree::GetCacheIndex() { return t_CacheIndex; }
+std::optional<const LifeNode*> HashQuadtree::Find(const LifeNode* node) const {
+    auto it = m_Cache.get().NodeMap.find(node);
+    if (it == m_Cache.get().NodeMap.end() || (*it)->AdvanceResult == nullptr) {
+        return std::nullopt;
+    }
+    return (*it)->AdvanceResult;
+}
+
+HashLifeCache& HashQuadtree::Cache() const {
+    return m_Cache.get();
+}
 
 const LifeNode* HashQuadtree::Data() const { return m_Root; }
 
@@ -483,7 +412,7 @@ const LifeNode* HashQuadtree::ExtractImpl(const LifeNode* node, Vec2L pos,
 }
 
 HashQuadtree HashQuadtree::Extract(Rect region) const {
-    HashQuadtree result{};
+    HashQuadtree result{m_Cache.get()};
     result.m_SeedOffset = m_SeedOffset - Vec2L{region.X, region.Y};
 
     if (m_Root == FalseNode)
@@ -919,49 +848,6 @@ HashQuadtree::Iterator HashQuadtree::begin(Rect bounds) const {
                     &bounds};
 }
 
-const LifeNode* HashQuadtree::FindOrCreate(const LifeNode* nw,
-                                           const LifeNode* ne,
-                                           const LifeNode* sw,
-                                           const LifeNode* se) const {
-    LifeNode key{nw, ne, sw, se};
-    if (const auto itr = m_Cache->NodeMap.find(&key);
-        itr != m_Cache->NodeMap.end()) {
-        return *itr;
-    }
-
-#ifdef GOLDE_GARBAGE_COLLECTION
-    if (m_Cache->NodeMap.size() >= 1'000'000) {
-        auto guard1 = m_Cache->ProtectNodeFromGC(nw);
-        auto guard2 = m_Cache->ProtectNodeFromGC(ne);
-        auto guard3 = m_Cache->ProtectNodeFromGC(sw);
-        auto guard4 = m_Cache->ProtectNodeFromGC(se);
-        m_Cache->MarkAndSweep(m_Root);
-    }
-#endif
-
-    const auto* node = m_Cache->NodeStorage.emplace(nw, ne, sw, se);
-    m_Cache->NodeMap.insert(node);
-    return node;
-}
-
-std::optional<const LifeNode*> HashQuadtree::Find(const LifeNode* node) const {
-    auto it = m_Cache->NodeMap.find(node);
-    if (it == m_Cache->NodeMap.end() || (*it)->AdvanceResult == nullptr) {
-        return std::nullopt;
-    }
-    return (*it)->AdvanceResult;
-}
-
-void HashQuadtree::CacheResult(const LifeNode* key,
-                               const LifeNode* value) const {
-    key->AdvanceResult = value;
-}
-
-void HashQuadtree::ClearCache() {
-    s_Cache[t_CacheIndex].NodeMap.clear();
-    s_PopulationCache.clear();
-}
-
 void HashQuadtree::ExpandUniverse(int32_t targetLevel) {
     while (m_Depth < targetLevel) {
         m_Root = ExpandNode(m_Root, m_Depth);
@@ -980,7 +866,7 @@ const LifeNode* HashQuadtree::ExpandNode(const LifeNode* node,
     const auto* empty = level > 0 ? EmptyTree(level - 1) : FalseNode;
 
 #ifdef GOLDE_GARBAGE_COLLECTION
-    auto guard = m_Cache->ProtectNodeFromGC(node);
+    auto guard = m_Cache.get().ProtectNodeFromGC(node);
     const auto* expandedNW =
         guard.Protect(FindOrCreate(empty, empty, empty, node->NorthWest));
     const auto* expandedNE =
@@ -1003,15 +889,15 @@ const LifeNode* HashQuadtree::EmptyTree(int32_t level) const {
         return FalseNode;
     }
 
-    if (level >= static_cast<int32_t>(m_Cache->EmptyNodeCache.size())) {
-        m_Cache->EmptyNodeCache.resize(level + 1, nullptr);
-    } else if (m_Cache->EmptyNodeCache[level] != nullptr) {
-        return m_Cache->EmptyNodeCache[level];
+    if (level >= static_cast<int32_t>(m_Cache.get().EmptyNodeCache.size())) {
+        m_Cache.get().EmptyNodeCache.resize(level + 1, nullptr);
+    } else if (m_Cache.get().EmptyNodeCache[level] != nullptr) {
+        return m_Cache.get().EmptyNodeCache[level];
     }
 
     const auto* child = EmptyTree(level - 1);
     const auto* result = FindOrCreate(child, child, child, child);
-    m_Cache->EmptyNodeCache[level] = result;
+    m_Cache.get().EmptyNodeCache[level] = result;
     return result;
 }
 

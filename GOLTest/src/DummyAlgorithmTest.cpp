@@ -76,11 +76,13 @@ class TestAlgorithm : public LifeAlgorithm {
 } // namespace
 
 TEST(DummyAlgorithmTest, IdentifierCompatibilityAndClone) {
+    HashLifeCache cache{};
+
     TestAlgorithm algo{};
 
     EXPECT_EQ(algo.GetIdentifier(), "TestAlgorithm");
 
-    HashQuadtree tree{};
+    HashQuadtree tree{cache};
     DummyDataStructure dummy{};
     EXPECT_TRUE(algo.CompatibleWith(tree));
     EXPECT_FALSE(algo.CompatibleWith(dummy));
@@ -92,20 +94,22 @@ TEST(DummyAlgorithmTest, IdentifierCompatibilityAndClone) {
     ASSERT_NE(clone, nullptr);
     EXPECT_EQ(clone->GetIdentifier(), algo.GetIdentifier());
 
-    HashQuadtree originalTree{};
-    HashQuadtree clonedTree{};
+    HashQuadtree originalTree{cache};
+    HashQuadtree clonedTree{cache};
     EXPECT_EQ(algo.Step(originalTree, BigInt{1}), BigInt{1});
     EXPECT_EQ(clone->Step(clonedTree, BigInt{1}), BigInt{1});
     EXPECT_EQ(originalTree, clonedTree);
 }
 
 TEST(DummyAlgorithmTest, RuleAndTopologyAffectStepTarget) {
+    HashLifeCache cache{};
+    
     TestAlgorithm algo{};
 
     algo.SetTopology(std::make_unique<Plane>(Rect{0, 0, 4, 4}));
     algo.SetRule(*LifeRule::Make("B3/S23"));
 
-    HashQuadtree planeTree{};
+    HashQuadtree planeTree{cache};
     EXPECT_EQ(algo.Step(planeTree, BigInt{1}), BigInt{1});
     EXPECT_TRUE(planeTree.Get({3, 3}));
     EXPECT_FALSE(planeTree.Get({4, 4}));
@@ -113,14 +117,15 @@ TEST(DummyAlgorithmTest, RuleAndTopologyAffectStepTarget) {
     algo.SetTopology(std::make_unique<Torus>(Rect{0, 0, 4, 4}));
     algo.SetRule(*LifeRule::Make("B36/S23:T4,4"));
 
-    HashQuadtree torusTree{};
+    HashQuadtree torusTree{cache};
     EXPECT_EQ(algo.Step(torusTree, BigInt{1}), BigInt{1});
     EXPECT_TRUE(torusTree.Get({4, 4}));
 }
 
 TEST(DummyAlgorithmTest, ZeroStepsDoNotMutate) {
+    HashLifeCache cache{};
     TestAlgorithm algo{};
-    HashQuadtree tree{};
+    HashQuadtree tree{cache};
 
     EXPECT_EQ(algo.Step(tree, BigInt{0}), BigZero);
     EXPECT_TRUE(tree.empty());

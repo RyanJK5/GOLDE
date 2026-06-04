@@ -20,8 +20,8 @@ struct SelectionUpdateResult {
 };
 
 struct CopyResult {
-    VersionState Change{};
-    std::string ClipboardText{};
+    VersionState Change;
+    std::string ClipboardText;
 };
 
 class SelectionManager {

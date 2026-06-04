@@ -139,12 +139,10 @@ class EditorModel {
     std::optional<bool> CellAt(Vec2 pos) const {
         return m_Grid.Get(pos.X, pos.Y);
     }
-    const GameGrid* SimulationSnapshot() const { return m_Worker->GetResult(); }
+    std::optional<GameGrid> SimulationSnapshot() const { return m_Worker->GetResult(); }
     std::chrono::duration<float> SimulationLag() const {
         return m_Worker->GetTimeSinceLastUpdate();
     }
-
-    void SetCacheIndex(size_t index) { m_Grid.SetCacheIndex(index); }
 
     bool SelectionActive() const { return m_SelectionManager.CanDrawGrid(); }
     bool CanDrawSelection() const {
@@ -210,10 +208,12 @@ class EditorModel {
     std::string GenerateDepthError() const;
 
   private:
+    HashLifeCache m_LifeCache;
+        
     SelectionManager m_SelectionManager;
 
     GameGrid m_Grid;
-    GameGrid m_InitialGrid;
+    GameGrid m_InitialGrid = m_Grid;
 
     VersionManager m_VersionManager;
 

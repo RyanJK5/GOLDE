@@ -6,17 +6,11 @@
 
 namespace Golde {
 
-SimulationWorker::SimulationWorker(size_t cacheIndex)
-    : m_CacheIndex(cacheIndex),
-      m_Thread(std::bind_front(&SimulationWorker::ThreadLoop, this)) {}
+SimulationWorker::SimulationWorker()
+    : m_Thread(std::bind_front(&SimulationWorker::ThreadLoop, this)) {}
 
 SimulationWorker::~SimulationWorker() {
     m_RunStopSource.request_stop();
-    m_Thread.request_stop();
-    if (m_Thread.joinable()) {
-        m_Thread.join();
-    }
-    HashQuadtree::ClearCache();
 }
 
 void SimulationWorker::ThreadLoop(std::stop_token threadStopToken) {
@@ -32,24 +26,6 @@ void SimulationWorker::ThreadLoop(std::stop_token threadStopToken) {
             m_ResumeReady = false;
         }
 
-        for (auto& grid : m_Buffers) {
-            grid.SetCacheIndex(m_CacheIndex);
-        }
-
-        // Ensure the worker thread's algorithm sees the current rule.
-        // HashLife uses a `thread_local` cached rule (`s_Rule`) so simply
-        // cloning the algorithm on the main thread does not initialise the
-        // worker thread's thread-local state. Always call `SetRule` on the
-        // worker-side buffers to initialize thread-local state, even if the
-        // rule string already matches.
-        auto ruleStr = m_Buffers[0].GetRuleString();
-        auto rule = LifeRule::Make(ruleStr);
-        if (rule) {
-            for (auto i = 0UZ; i < 3UZ; i++) {
-                m_Buffers[i].SetRule(*rule, ruleStr);
-            }
-        }
-
         auto runStopToken = m_RunStopSource.get_token();
         SimulationLoop(runStopToken);
 
@@ -61,9 +37,7 @@ void SimulationWorker::ThreadLoop(std::stop_token threadStopToken) {
     }
 }
 
-size_t SimulationWorker::SimulationLoop(std::stop_token runStopToken) {
-    auto workerIndex = 1UZ;
-
+void SimulationWorker::SimulationLoop(std::stop_token runStopToken) {
     std::condition_variable_any sleepCondition{};
     std::mutex sleepMutex{};
     auto nextFrame = std::chrono::steady_clock::now();
@@ -72,31 +46,21 @@ size_t SimulationWorker::SimulationLoop(std::stop_token runStopToken) {
         m_LastUpdate.store(std::chrono::steady_clock::now(),
                            std::memory_order_relaxed);
 
-        // SYNC WITH LATEST SNAPSHOT:
-        // This ensures both independent buffers don't desynchronize or maintain
-        // separate generation lineages when `stepCount` changes mid-flight.
-        auto snapshot = m_SnapshotIndex.load(std::memory_order_acquire);
-        m_Buffers[workerIndex] = m_Buffers[snapshot];
-
         auto stepCount = [&] {
             std::scoped_lock locK{m_StepCountMutex};
             return m_StepCount;
         }();
 
-        m_Buffers[workerIndex].Update(stepCount, runStopToken);
+        m_WorkGrid->Update(stepCount, runStopToken);
 
         if (runStopToken.stop_requested()) {
             break;
         }
 
-        // Publish workerIndex as the new snapshot
-        m_SnapshotIndex.store(workerIndex, std::memory_order_release);
-
-        // Wait for UI to finish reading the old snapshot.
-        // We select the one buffer that is NOT the new snapshot, and NOT the
-        // old snapshot. Since we have buffers 0, 1, 2, the remaining is `3 -
-        // workerIndex - snapshot`.
-        workerIndex = 3UZ - workerIndex - snapshot;
+        {
+            std::scoped_lock lock{m_DisplayMutex};
+            m_DisplayGrid = m_WorkGrid;
+        }
 
         if (m_OneStep) {
             break;
@@ -111,8 +75,6 @@ size_t SimulationWorker::SimulationLoop(std::stop_token runStopToken) {
                                       [] { return false; });
         }
     }
-
-    return workerIndex;
 }
 
 void SimulationWorker::Start(GameGrid& initialGrid, bool oneStep,
@@ -123,10 +85,9 @@ void SimulationWorker::Start(GameGrid& initialGrid, bool oneStep,
     }
     m_RunStopSource = {};
 
-    m_Buffers[0] = initialGrid;
-    m_Buffers[1] = initialGrid;
-    m_Buffers[2] = initialGrid;
-    m_SnapshotIndex.store(0UZ, std::memory_order_release);
+    m_WorkGrid = initialGrid;
+    m_DisplayGrid = initialGrid;
+
     m_LastUpdate.store(std::chrono::steady_clock::now(),
                        std::memory_order_relaxed);
 
@@ -144,7 +105,11 @@ GameGrid SimulationWorker::Stop() {
         m_RunStopSource.request_stop();
         m_PauseSemaphore.acquire();
     }
-    return m_Buffers[m_SnapshotIndex.load(std::memory_order_relaxed)];
+    
+    const auto ret = std::move(*m_DisplayGrid);
+    m_WorkGrid = std::nullopt;
+    m_DisplayGrid = std::nullopt;
+    return ret;
 }
 
 bool SimulationWorker::IsRunning() {
@@ -160,11 +125,9 @@ void SimulationWorker::SetTickDelayMs(int64_t tickDelayMs) {
     m_TickDelayMs.store(tickDelayMs, std::memory_order_relaxed);
 }
 
-const GameGrid* SimulationWorker::GetResult() const {
-    if (!m_IsRunning.load(std::memory_order_acquire)) {
-        return nullptr;
-    }
-    return &m_Buffers[m_SnapshotIndex.load(std::memory_order_acquire)];
+std::optional<GameGrid> SimulationWorker::GetResult() const {
+    std::scoped_lock lock{m_DisplayMutex};
+    return m_DisplayGrid;
 }
 
 std::chrono::duration<float> SimulationWorker::GetTimeSinceLastUpdate() const {

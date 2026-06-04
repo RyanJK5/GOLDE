@@ -34,7 +34,8 @@ TEST(TopologyTest, PlaneIdentifierCloneAndCompatibility) {
     EXPECT_EQ(clone->GetIdentifier(), "Plane");
     EXPECT_EQ(clone->GetBounds(), plane.GetBounds());
 
-    HashQuadtree tree{};
+    HashLifeCache cache{};
+    HashQuadtree tree{cache};
     DummyDataStructure dummy{};
     EXPECT_TRUE(plane.CompatibleWith(tree));
     EXPECT_FALSE(plane.CompatibleWith(dummy));
@@ -43,7 +44,8 @@ TEST(TopologyTest, PlaneIdentifierCloneAndCompatibility) {
 TEST(TopologyTest, PlaneCleansUpOutsideBounds) {
     Plane plane{Rect{0, 0, 4, 4}};
     constexpr static std::array cells{Vec2{0, 0}, Vec2{3, 3}, Vec2{4, 4}};
-    HashQuadtree tree{cells};
+    HashLifeCache cache{};
+    HashQuadtree tree{cache, cells};
 
     plane.CleanupBorderCells(tree);
 
@@ -64,7 +66,8 @@ TEST(TopologyTest, TorusIdentifierCloneAndCompatibility) {
     EXPECT_EQ(clone->GetIdentifier(), "Torus");
     EXPECT_EQ(clone->GetBounds(), torus.GetBounds());
 
-    HashQuadtree tree{};
+    HashLifeCache cache{};
+    HashQuadtree tree{cache};
     DummyDataStructure dummy{};
     EXPECT_TRUE(torus.CompatibleWith(tree));
     EXPECT_FALSE(torus.CompatibleWith(dummy));
@@ -73,7 +76,8 @@ TEST(TopologyTest, TorusIdentifierCloneAndCompatibility) {
 TEST(TopologyTest, TorusPreparesWrapCells) {
     Torus torus{Rect{0, 0, 4, 4}};
     constexpr static std::array cells{Vec2{0, 0}, Vec2{3, 3}};
-    HashQuadtree tree{cells};
+    HashLifeCache cache{};
+    HashQuadtree tree{cache, cells};
 
     torus.PrepareBorderCells(tree);
 
@@ -104,7 +108,8 @@ TEST(TopologyTest, Log2MaxIncrementDependsOnBounds) {
 }
 
 TEST(TopologyTest, GameGridResizePreservesTorusTopologyWhenRuleIsBounded) {
-    GameGrid grid{10, 10};
+    HashLifeCache cache{};
+    GameGrid grid{cache, 10, 10};
     grid.Set(4, 0, true);
     grid.Set(4, 1, true);
     grid.Set(0, 1, true);

@@ -11,7 +11,7 @@ namespace Golde {
 static std::expected<FileEncoder::DecodeResult, std::string>
 EncodeDecodeRegionTest(const GameGrid& grid, Rect region, Vec2 offset) {
     const auto encoded = FileEncoder::EncodeRegion(grid, region, offset);
-    const auto decodeResult = FileEncoder::DecodeRegion(encoded, 1000000);
+    const auto decodeResult = FileEncoder::DecodeRegion(grid.Cache(), encoded, 1000000);
 
     if (!decodeResult.has_value()) {
         const auto str = std::format("Decode failed with error: {}",
@@ -25,10 +25,11 @@ EncodeDecodeRegionTest(const GameGrid& grid, Rect region, Vec2 offset) {
 TEST(EncodeTest, DecodeEncodeTest) {
     const auto filePath =
         std::filesystem::path{"universes"} / "bigsquiggles1.rle";
-    const auto result = FileEncoder::ReadRegion(filePath);
+    HashLifeCache cache{};
+    const auto result = FileEncoder::ReadRegion(cache, filePath);
     ASSERT_TRUE(result.has_value()) << result.error().Message;
 
-    GameGrid finalGrid{};
+    GameGrid finalGrid{cache};
     for (const auto pos : result->Grid.Data())
         finalGrid.Set(pos.X + result->Offset.X, pos.Y + result->Offset.Y, true);
 
@@ -47,7 +48,8 @@ TEST(EncodeTest, DecodeEncodeTest) {
 
 TEST(EncodeTest, SquareTest) {
     const LifeHashSet data{{0, 0}, {1, 1}, {0, 1}, {1, 0}};
-    GameGrid grid{};
+    HashLifeCache cache{};
+    GameGrid grid{cache};
     for (const auto pos : data)
         grid.Set(pos.X, pos.Y, true);
 
@@ -61,7 +63,8 @@ TEST(EncodeTest, SquareTest) {
 }
 
 TEST(EncodeTest, SingleCellTest) {
-    GameGrid grid{};
+    HashLifeCache cache{};
+    GameGrid grid{cache};
     grid.Set(3, 4, true);
 
     constexpr static Vec2 offset{5, -3};
@@ -75,7 +78,8 @@ TEST(EncodeTest, SingleCellTest) {
 
 TEST(EncodeTest, HorizontalLineTest) {
     const LifeHashSet data{{0, 2}, {1, 2}, {2, 2}, {3, 2}, {4, 2}};
-    GameGrid grid{};
+    HashLifeCache cache{};
+    GameGrid grid{cache};
     for (const auto pos : data)
         grid.Set(pos.X, pos.Y, true);
 
@@ -91,7 +95,8 @@ TEST(EncodeTest, HorizontalLineTest) {
 TEST(EncodeTest, SparsePatternTest) {
     const LifeHashSet data{{0, 0}, {2, 5}, {3, 1}, {6, 6}, {8, 2}, {9, 9}};
 
-    GameGrid grid{};
+    HashLifeCache cache{};
+    GameGrid grid{cache};
     for (const auto pos : data)
         grid.Set(pos.X, pos.Y, true);
 
@@ -106,7 +111,8 @@ TEST(EncodeTest, SparsePatternTest) {
 }
 
 TEST(EncodeTest, EmptyRegionTest) {
-    GameGrid grid{};
+    HashLifeCache cache{};
+    GameGrid grid{cache};
 
     constexpr static Vec2 offset{2, 2};
     const auto result = EncodeDecodeRegionTest(grid, Rect{0, 0, 5, 5}, offset);
@@ -127,8 +133,9 @@ TEST(EncodeTest, BoundedTopologyCenterOriginOffsetTranslated) {
         "x = 600, y = 136, rule = B3/S23:T600,136\n"
         "o!\n";
 
+    HashLifeCache cache{};
     const auto decoded =
-        FileEncoder::DecodeRegion(rle, std::numeric_limits<uint32_t>::max(),
+        FileEncoder::DecodeRegion(cache, rle, std::numeric_limits<uint32_t>::max(),
                                   FileEncoder::FileFormat::RLE);
     ASSERT_TRUE(decoded.has_value()) << decoded.error().Message;
 
@@ -141,11 +148,13 @@ TEST(EncodeTest, BoundedTopologyCenterOriginOffsetTranslated) {
 TEST(EncodeTest, IgnoresCellsOutsideRegionTest) {
     const LifeHashSet data{{-1, 0}, {0, 0}, {3, 3}, {4, 0}, {0, 4}, {8, 8}};
 
-    GameGrid grid{};
+    HashLifeCache cache{};
+
+    GameGrid grid{cache};
     for (const auto pos : data)
         grid.Set(pos.X, pos.Y, true);
 
-    GameGrid expected{};
+    GameGrid expected{cache};
     expected.Set(0, 0, true);
     expected.Set(3, 3, true);
 

@@ -14,9 +14,9 @@
 
 namespace Golde {
 struct VersionState {
-    GameGrid Universe{};
-    GameGrid SelectionUniverse{};
-    std::optional<Rect> SelectionBounds{};
+    GameGrid Universe;
+    std::optional<GameGrid> SelectionUniverse;
+    std::optional<Rect> SelectionBounds;
 };
 
 class VersionManager {

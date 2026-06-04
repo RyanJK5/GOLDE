@@ -387,13 +387,14 @@ void PresetSelection::ReadFiles(const std::filesystem::path& path) {
             m_DirectoryContents.try_emplace(parent);
         };
 
+    HashLifeCache cache{};
     for (const auto& file :
          std::filesystem::recursive_directory_iterator(path)) {
         if (!FileEncoder::IsFormatSupported(
                 file.path().extension().generic_string()))
             continue;
 
-        auto result = FileEncoder::ReadRegion(file.path());
+        auto result = FileEncoder::ReadRegion(cache, file.path());
         if (!result) {
             ERROR("Failed to read file {}: {}",
                   file.path().filename().generic_string(),
