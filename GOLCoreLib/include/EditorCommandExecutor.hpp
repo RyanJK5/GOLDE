@@ -84,6 +84,7 @@ class EditorCommandExecutor {
     const GameGrid& InitialGrid() const;
     void SetInitialGrid(const GameGrid& grid);
 
+    std::optional<VersionState> Deselect();
   private:
     // Command handlers — each operates on the executor's own members.
     SimulationState HandleRuleChange(std::string_view ruleStr);

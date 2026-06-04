@@ -323,6 +323,10 @@ std::string EditorCommandExecutor::GenerateDepthError() const {
         m_Grid.UniverseDepth());
 }
 
+std::optional<VersionState> EditorCommandExecutor::Deselect() {
+    return m_SelectionManager.Deselect(m_Grid);
+}
+
 // ---------------------------------------------------------------------------
 // Execute — main dispatch
 // ---------------------------------------------------------------------------

@@ -145,6 +145,9 @@ void EditorModel::StopSimulation(bool stealGrid) {
 }
 
 SimulationState EditorModel::HandleStart() {
+    if (auto change = m_Executor.Deselect()) {
+        m_VersionManager.PushChange(*change);
+    }
     m_Executor.SetInitialGrid(m_Executor.Grid());
     return StartSimulation();
 }
@@ -183,6 +186,9 @@ SimulationState EditorModel::HandlePause() {
 }
 
 SimulationState EditorModel::HandleResume() {
+    if (auto change = m_Executor.Deselect()) {
+        m_VersionManager.PushChange(*change);
+    }
     const auto state = StartSimulation();
     m_Executor.SetState(state);
     return state;
