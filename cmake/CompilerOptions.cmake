@@ -7,7 +7,7 @@ if(MSVC)
     )
     
     target_compile_options(gol_compiler_options INTERFACE
-        $<$<CONFIG:Debug>:/WX;/Od;/Zi;/fsanitize=address>
+        $<$<CONFIG:Debug>:/WX;/Od;/Zi;/RTC1>
         $<$<CONFIG:Release>:/WX-;/O2;/DNDEBUG>
     )
 
