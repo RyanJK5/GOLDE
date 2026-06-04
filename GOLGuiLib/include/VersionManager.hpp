@@ -44,8 +44,8 @@ class VersionManager {
     size_t m_EditHeight = 0;
     size_t m_LastSavedHeight = 0;
 
-    std::stack<VersionState> m_UndoStack;
-    std::stack<VersionState> m_RedoStack;
+    std::stack<VersionState, std::vector<VersionState>> m_UndoStack;
+    std::stack<VersionState, std::vector<VersionState>> m_RedoStack;
 };
 } // namespace Golde
 
