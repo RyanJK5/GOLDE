@@ -376,8 +376,12 @@ void PresetSelection::ReadFiles(const std::filesystem::path& path) {
     m_CurrentPath.clear();
     m_DirectoryContents[m_CurrentPath];
 
-    m_LoadThread = std::jthread{[this, path] {
+    m_LoadThread = std::jthread{[this, path](std::stop_token stopToken) {
         for (const auto& file : std::filesystem::recursive_directory_iterator(path)) {
+            if (stopToken.stop_requested()) {
+                break;
+            }
+            
             if (!FileEncoder::IsFormatSupported(file.path().extension().generic_string())) {
                 continue;
             }
