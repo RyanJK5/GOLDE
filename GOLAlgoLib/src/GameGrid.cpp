@@ -81,8 +81,8 @@ GameGrid::GameGrid(HashLifeCache& cache, int32_t width, int32_t height)
 GameGrid::GameGrid(HashLifeCache& cache, Size2 size) : GameGrid(cache, size.Width, size.Height) {}
 
 GameGrid::GameGrid(const GameGrid& other, Size2 size)
-    : m_Width(size.Width), m_Height(size.Height), 
-    m_HashLifeData(other.m_HashLifeData.Extract({{0, 0}, size})) {
+    : m_HashLifeData(other.m_HashLifeData.Extract({{0, 0}, size})),
+    m_Width(size.Width), m_Height(size.Height) {
     m_RuleString = other.m_RuleString;
     m_Algorithm = other.m_Algorithm->Clone();
 
