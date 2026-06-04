@@ -60,7 +60,7 @@ bool ShouldExecuteInline(const SimulationCommand& cmd) {
 
 EditorModel::EditorModel(uint32_t id, const std::filesystem::path& path,
                          Size2 gridSize)
-    : m_Executor(m_LifeCache, id, path, gridSize),
+    : m_InitialGrid(m_LifeCache), m_Executor(m_LifeCache, id, path, gridSize),
       m_Worker(std::make_unique<SimulationWorker>()) {
     // Seed history with the initial state so first undo restores correctly.
     m_VersionManager.PushChange(VersionState{.Universe = m_Executor.Grid()});
@@ -144,7 +144,7 @@ SimulationState EditorModel::HandleStart() {
     if (auto change = m_Executor.Deselect()) {
         m_VersionManager.PushChange(*change);
     }
-    m_Executor.SetInitialGrid(m_Executor.Grid());
+    m_InitialGrid = m_Executor.Grid();
     return StartSimulation();
 }
 
@@ -164,14 +164,14 @@ SimulationState EditorModel::HandleClear() {
 
 SimulationState EditorModel::HandleReset() {
     StopSimulation(false);
-    m_Executor.Grid() = m_Executor.InitialGrid();
+    m_Executor.Grid() = m_InitialGrid;
     m_Executor.SetState(SimulationState::Paint);
     return SimulationState::Paint;
 }
 
 SimulationState EditorModel::HandleRestart() {
     StopSimulation(false);
-    m_Executor.Grid() = m_Executor.InitialGrid();
+    m_Executor.Grid() = m_InitialGrid;
     return StartSimulation();
 }
 
@@ -192,7 +192,7 @@ SimulationState EditorModel::HandleResume() {
 
 SimulationState EditorModel::HandleStep() {
     if (m_Executor.State() == SimulationState::Paint)
-        m_Executor.SetInitialGrid(m_Executor.Grid());
+        m_InitialGrid = m_Executor.Grid();
     m_Worker->Start(m_Executor.Grid(), true, [this] {
         m_StopStepCommand.store(true, std::memory_order_release);
     });

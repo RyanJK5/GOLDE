@@ -191,6 +191,8 @@ class EditorModel {
 
   private:
     HashLifeCache m_LifeCache;
+    GameGrid m_InitialGrid;
+
     EditorCommandExecutor m_Executor;
     VersionManager m_VersionManager;
     std::unique_ptr<SimulationWorker> m_Worker;

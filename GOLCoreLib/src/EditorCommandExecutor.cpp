@@ -21,12 +21,8 @@ EditorCommandExecutor::EditorCommandExecutor(HashLifeCache& cache,
                                              uint32_t editorID,
                                              const std::filesystem::path& path,
                                              Size2 gridSize)
-    : m_LifeCache(cache), m_Grid(cache, gridSize), m_InitialGrid(m_Grid),
-      m_CurrentFilePath(path), m_EditorID(editorID) {}
-
-// ---------------------------------------------------------------------------
-// Read facades
-// ---------------------------------------------------------------------------
+    : m_LifeCache(cache), m_Grid(cache, gridSize), m_CurrentFilePath(path),
+      m_EditorID(editorID) {}
 
 Size2 EditorCommandExecutor::GridSize() const { return m_Grid.Size(); }
 int32_t EditorCommandExecutor::GridWidth() const { return m_Grid.Width(); }
@@ -92,17 +88,6 @@ bool EditorCommandExecutor::IsSimulationOutOfBounds() const {
 const GameGrid& EditorCommandExecutor::Grid() const { return m_Grid; }
 GameGrid& EditorCommandExecutor::Grid() { return m_Grid; }
 
-const GameGrid& EditorCommandExecutor::InitialGrid() const {
-    return m_InitialGrid;
-}
-void EditorCommandExecutor::SetInitialGrid(const GameGrid& grid) {
-    m_InitialGrid = grid;
-}
-
-// ---------------------------------------------------------------------------
-// Version change accumulation
-// ---------------------------------------------------------------------------
-
 void EditorCommandExecutor::PushVersionChange(
     const std::optional<VersionState>& change) {
     if (change)
@@ -112,10 +97,6 @@ void EditorCommandExecutor::PushVersionChange(
 void EditorCommandExecutor::PushVersionChange(const VersionState& change) {
     m_PendingVersionChanges.push_back(change);
 }
-
-// ---------------------------------------------------------------------------
-// Direct-access methods (called by EditorModel on the main thread)
-// ---------------------------------------------------------------------------
 
 bool EditorCommandExecutor::UpdateSelectionAreaTracked(
     Vec2 gridPos, std::vector<VersionState>& outChanges) {

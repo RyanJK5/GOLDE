@@ -29,7 +29,7 @@ class EditorCommandExecutor {
 
     // Execute a command and return the result. All version changes are
     // accumulated in result.VersionChanges rather than written to a
-    // VersionManager — the caller applies them after publish.
+    // VersionManager.
     ExecuteCommandResult Execute(const SimulationCommand& cmd,
                                  const ExecuteCommandContext& context);
 
@@ -37,8 +37,6 @@ class EditorCommandExecutor {
     // Called by EditorModel on the main thread only.
     void ApplyVersionChange(const VersionState& change);
 
-    // Read facades — safe to call from the main thread when no async
-    // command is in flight.
     Size2 GridSize() const;
     int32_t GridWidth() const;
     int32_t GridHeight() const;
@@ -68,7 +66,6 @@ class EditorCommandExecutor {
 
     bool IsSimulationOutOfBounds() const;
 
-    // Direct-access methods called by EditorModel outside command dispatch.
     bool UpdateSelectionAreaTracked(Vec2 gridPos,
                                     std::vector<VersionState>& outChanges);
     void TryResetSelection();
@@ -79,10 +76,6 @@ class EditorCommandExecutor {
     // Expose grid reference so EditorModel can pass it to the worker.
     const GameGrid& Grid() const;
     GameGrid& Grid();
-
-    // Expose initial grid so EditorModel can manage reset/restart.
-    const GameGrid& InitialGrid() const;
-    void SetInitialGrid(const GameGrid& grid);
 
     std::optional<VersionState> Deselect();
 
@@ -119,7 +112,6 @@ class EditorCommandExecutor {
     std::reference_wrapper<HashLifeCache> m_LifeCache;
 
     GameGrid m_Grid;
-    GameGrid m_InitialGrid;
     SelectionManager m_SelectionManager;
     SimulationState m_State = SimulationState::Paint;
 
