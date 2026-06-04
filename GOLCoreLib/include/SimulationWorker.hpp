@@ -20,6 +20,12 @@ class SimulationWorker {
     SimulationWorker();
     ~SimulationWorker();
 
+    SimulationWorker(const SimulationWorker&) = delete;
+    SimulationWorker(SimulationWorker&&) = delete;
+
+    SimulationWorker& operator=(const SimulationWorker&) = delete;
+    SimulationWorker& operator=(SimulationWorker&&) = delete;
+
     void Start(GameGrid& initialGrid, bool oneStep = false,
                const std::function<void()>& onStop = {});
 
