@@ -66,3 +66,4 @@ Golden test values must come from bgolly or published sources. **Never change an
 - Run the build, tests and formatter before saying a change is done. Report what was verified and how.
 - Each roadmap phase has a **Gate**; a phase is done only when its gate passes.
 - Ask before changing public interfaces outside the phase being worked on.
+- Keep replies short. Give the answer or recommendation and leave out detail the user can ask for.
