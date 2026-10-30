@@ -7,10 +7,10 @@
 #include <utility>
 #include <vector>
 
+#include "GLDebug.hpp"
 #include "GLException.hpp"
 #include "Graphics2D.hpp"
 #include "GraphicsHandler.hpp"
-#include "Logging.hpp"
 #include "ShaderManager.hpp"
 
 namespace Golde {

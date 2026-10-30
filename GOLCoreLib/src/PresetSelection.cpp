@@ -1,11 +1,13 @@
 #include <algorithm>
 #include <cstdint>
+#include <cstdio>
 #include <filesystem>
 #include <font-awesome/IconsFontAwesome7.h>
 #include <format>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_stdlib.h>
+#include <print>
 #include <string>
 #include <utility>
 #include <vector>
@@ -20,7 +22,6 @@
 #include "GraphicsHandler.hpp"
 #include "GraphicsInterop.hpp"
 #include "LoadingSpinner.hpp"
-#include "Logging.hpp"
 #include "PresetSelection.hpp"
 #include "PresetSelectionResult.hpp"
 
@@ -406,9 +407,9 @@ void PresetSelection::ReadFiles(const std::filesystem::path& path) {
 
             auto result = FileEncoder::ReadRegion(m_Cache, file.path());
             if (!result) {
-                ERROR("Failed to read file {}: {}",
-                      file.path().filename().generic_string(),
-                      result.error().Message);
+                std::println(stderr, "Failed to read preset {}: {}",
+                             file.path().filename().generic_string(),
+                             result.error().Message);
                 continue;
             }
 

@@ -23,7 +23,6 @@ target_link_libraries(GOLTest PRIVATE
     GOLCoreLib
     GOLGuiLib
     GOLAlgoLib
-    GOLLoggingLib
     imgui_lib
     GTest::gtest
 )

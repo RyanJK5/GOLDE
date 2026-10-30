@@ -36,7 +36,6 @@ target_link_libraries(imgui_lib
         OpenGL::GL
         glm
         glew
-        GOLLoggingLib
 )
 
 target_compile_definitions(imgui_lib PUBLIC IMGUI_IMPL_OPENGL_LOADER_GLEW)

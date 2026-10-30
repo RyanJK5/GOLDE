@@ -36,6 +36,5 @@ target_link_libraries(GOLAlgoLib
         gol_compiler_options
     PUBLIC
         unordered_dense
-        GOLLoggingLib
         GOLGraphicsLib
 )

@@ -32,7 +32,6 @@ target_link_libraries(GOLCoreLib
         GOLAlgoLib
         GOLGraphicsLib
         GOLGuiLib
-        GOLLoggingLib
         stb_image
         glew
         glfw

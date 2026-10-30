@@ -9,8 +9,8 @@
 #include <string_view>
 #include <utility>
 
+#include "GLDebug.hpp"
 #include "GLException.hpp"
-#include "Logging.hpp"
 #include "ShaderManager.hpp"
 
 namespace Golde {

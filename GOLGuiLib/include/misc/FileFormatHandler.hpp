@@ -15,7 +15,6 @@
 
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
-#include "Logging.hpp"
 
 namespace Golde::FileEncoder {
 struct DecodeResult {

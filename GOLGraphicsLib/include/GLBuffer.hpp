@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <utility>
 
-#include "Logging.hpp"
+#include "GLDebug.hpp"
 
 namespace Golde {
 template <typename T>

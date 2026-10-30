@@ -74,5 +74,4 @@ target_link_libraries(GOLGuiLib
         fontawesome
         GOLAlgoLib
         GOLGraphicsLib
-        GOLLoggingLib
 )

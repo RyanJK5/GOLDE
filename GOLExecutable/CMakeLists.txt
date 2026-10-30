@@ -50,7 +50,6 @@ target_link_libraries(GOLDE PRIVATE
     GOLGuiLib
     GOLGraphicsLib
     GOLAlgoLib
-    GOLLoggingLib
     imgui_lib
     glew
     glfw

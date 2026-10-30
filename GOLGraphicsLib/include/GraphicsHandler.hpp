@@ -14,9 +14,9 @@
 
 #include "Camera.hpp"
 #include "GLBuffer.hpp"
+#include "GLDebug.hpp"
 #include "Graphics2D.hpp"
 #include "HashQuadtree.hpp"
-#include "Logging.hpp"
 #include "ShaderManager.hpp"
 
 namespace Golde {

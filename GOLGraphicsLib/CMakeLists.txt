@@ -1,5 +1,6 @@
 set(SOURCES
     src/Camera.cpp
+    src/GLDebug.cpp
     src/GraphicsHandler.cpp
     src/ShaderManager.cpp
 )
@@ -7,6 +8,7 @@ set(SOURCES
 set(HEADERS
     include/Camera.hpp
     include/GLBuffer.hpp
+    include/GLDebug.hpp
     include/GLException.hpp
     include/GraphicsHandler.hpp
     include/GraphicsInterop.hpp
@@ -32,7 +34,6 @@ target_link_libraries(GOLGraphicsLib
         stb_image
         OpenGL::GL
         GOLAlgoLib
-        GOLLoggingLib
 )
 
 # GLEW needs GLEW_STATIC defined

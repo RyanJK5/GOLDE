@@ -13,11 +13,11 @@
 #include <utility>
 
 #include "ConfigLoader.hpp"
+#include "GLDebug.hpp"
 #include "GLException.hpp"
 #include "Game.hpp"
 #include "GameEnums.hpp"
 #include "Graphics2D.hpp"
-#include "Logging.hpp"
 #include "PopupWindow.hpp"
 #include "PresetSelectionResult.hpp"
 #include "SimulationCommand.hpp"
