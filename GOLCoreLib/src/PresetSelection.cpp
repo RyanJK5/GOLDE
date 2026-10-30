@@ -18,6 +18,7 @@
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
 #include "GraphicsHandler.hpp"
+#include "GraphicsInterop.hpp"
 #include "LoadingSpinner.hpp"
 #include "Logging.hpp"
 #include "PresetSelection.hpp"
@@ -169,7 +170,7 @@ PresetSelectionResult PresetSelection::Update(const EditorResult& info) {
     }
 
     ImGui::Dummy(ImVec2{0.f, ImGui::GetStyle().ItemSpacing.y * 2.f});
-    const auto windowBounds = RectF{Vec2F{ImGui::GetCursorPos()},
+    const auto windowBounds = RectF{ToVec2F(ImGui::GetCursorPos()),
                                     Size2F{templateWidth, templateWidth}};
 
     auto childFolders = std::vector<std::filesystem::path>{};

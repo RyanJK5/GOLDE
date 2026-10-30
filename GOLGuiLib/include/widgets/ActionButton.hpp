@@ -14,6 +14,7 @@
 #include "EditorResult.hpp"
 #include "GameEnums.hpp"
 #include "Graphics2D.hpp"
+#include "GraphicsInterop.hpp"
 #include "KeyShortcut.hpp"
 
 namespace Golde {
@@ -52,7 +53,9 @@ class MultiActionButton {
                         active = shortcut.Active() || active;
                     }
 
-                if (ImGui::Button(Label(state).c_str(), Dimensions()) || active)
+                if (ImGui::Button(Label(state).c_str(),
+                                  ToImVec2(Dimensions())) ||
+                    active)
                     return ActionButtonResult<ActType>{Action(state), active};
                 return ActionButtonResult<ActType>{};
             }();

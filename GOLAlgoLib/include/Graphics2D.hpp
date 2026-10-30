@@ -5,8 +5,6 @@
 #include <concepts>
 #include <cstdint>
 #include <format>
-#include <glm/glm.hpp>
-#include <imgui.h>
 #include <utility>
 
 namespace Golde {
@@ -131,12 +129,7 @@ struct Vec2F : public GenericVec<float> {
     constexpr Vec2F() : GenericVec() {}
     constexpr explicit Vec2F(GenericVec<int32_t> vec)
         : GenericVec(static_cast<float>(vec.X), static_cast<float>(vec.Y)) {}
-    constexpr Vec2F(ImVec2 vec) : GenericVec(vec.x, vec.y) {}
-    constexpr Vec2F(glm::vec2 vec) : GenericVec(vec.x, vec.y) {}
     constexpr Vec2F(float x, float y) : GenericVec(x, y) {}
-
-    constexpr operator ImVec2() const { return {X, Y}; }
-    constexpr operator glm::vec2() const { return {X, Y}; }
 
     float Magnitude() const { return std::sqrt(X * X + Y * Y); }
     Vec2F Normalized() const {
@@ -149,9 +142,6 @@ struct Vec2D : public GenericVec<double> {
     constexpr Vec2D() : GenericVec() {}
     constexpr explicit Vec2D(GenericVec<int32_t> vec)
         : GenericVec(static_cast<double>(vec.X), static_cast<double>(vec.Y)) {}
-    constexpr Vec2D(ImVec2 vec)
-        : GenericVec(static_cast<double>(vec.x), static_cast<double>(vec.y)) {}
-    constexpr Vec2D(glm::dvec2 vec) : GenericVec(vec.x, vec.y) {}
     constexpr Vec2D(float x, float y)
         : GenericVec(static_cast<double>(x), static_cast<double>(y)) {}
     constexpr Vec2D(double x, double y) : GenericVec(x, y) {}
@@ -160,7 +150,6 @@ struct Vec2D : public GenericVec<double> {
     constexpr explicit Vec2D(GenericVec<float> vec)
         : GenericVec(static_cast<double>(vec.X), static_cast<double>(vec.Y)) {}
 
-    constexpr operator glm::dvec2() const { return {X, Y}; }
     constexpr explicit operator Vec2F() const {
         return {static_cast<float>(X), static_cast<float>(Y)};
     }
@@ -174,10 +163,7 @@ struct Vec2D : public GenericVec<double> {
 
 struct Size2F : public GenericSize<float> {
     constexpr Size2F() : GenericSize() {}
-    constexpr Size2F(ImVec2 vec) : GenericSize(vec.x, vec.y) {}
     constexpr Size2F(float x, float y) : GenericSize(x, y) {}
-
-    constexpr operator ImVec2() const { return {Width, Height}; }
 };
 
 struct RectF : public GenericRect<float> {

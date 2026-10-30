@@ -9,6 +9,7 @@ set(HEADERS
     include/GLBuffer.hpp
     include/GLException.hpp
     include/GraphicsHandler.hpp
+    include/GraphicsInterop.hpp
     include/ShaderManager.hpp
 )
 

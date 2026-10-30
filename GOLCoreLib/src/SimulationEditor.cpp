@@ -27,6 +27,7 @@
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
 #include "GraphicsHandler.hpp"
+#include "GraphicsInterop.hpp"
 #include "HashQuadtree.hpp"
 #include "LoadingSpinner.hpp"
 #include "PopupWindow.hpp"
@@ -207,7 +208,7 @@ SimulationState SimulationEditor::PaintUpdate(const GraphicsHandlerArgs& args) {
     } else {
         m_Model.TryResetSelection();
     }
-    m_LeftDeltaLast = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
+    m_LeftDeltaLast = ToVec2F(ImGui::GetMouseDragDelta(ImGuiMouseButton_Left));
 
     return (m_Model.GridDead() && !m_Model.SelectionGridAlive())
                ? SimulationState::Empty
@@ -237,7 +238,7 @@ SimulationState SimulationEditor::PauseUpdate(const GraphicsHandlerArgs& args) {
             m_Model.TryResetSelection();
         }
     }
-    m_LeftDeltaLast = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
+    m_LeftDeltaLast = ToVec2F(ImGui::GetMouseDragDelta(ImGuiMouseButton_Left));
 
     return m_Model.State();
 }
@@ -268,8 +269,8 @@ SimulationEditor::DisplaySimulation(bool grabFocus) {
     splitter.Split(ImGui::GetWindowDrawList(), 2);
 
     splitter.SetCurrentChannel(ImGui::GetWindowDrawList(), 0);
-    m_WindowBounds = {Vec2F(ImGui::GetWindowPos()),
-                      Size2F(ImGui::GetContentRegionAvail())};
+    m_WindowBounds = {ToVec2F(ImGui::GetWindowPos()),
+                      ToSize2F(ImGui::GetContentRegionAvail())};
 
     ImGui::Image(static_cast<ImTextureID>(m_Graphics.TextureID()),
                  ImGui::GetContentRegionAvail(), {0, 1}, {1, 0});
@@ -327,7 +328,7 @@ SimulationEditor::DisplaySimulation(bool grabFocus) {
     ImGui::Text("%d FPS", fps);
 #endif
 
-    const auto mousePos = Vec2F{ImGui::GetMousePos()};
+    const auto mousePos = ToVec2F(ImGui::GetMousePos());
     const auto viewportBounds = ViewportBounds();
     const auto hoverText = [&] -> std::optional<std::string> {
         if (!viewportBounds.InBounds(mousePos.X, mousePos.Y)) {
@@ -408,7 +409,7 @@ std::optional<Vec2> SimulationEditor::ConvertToGridPos(Vec2F screenPos) {
 }
 
 std::optional<Vec2> SimulationEditor::CursorGridPos() {
-    return ConvertToGridPos(ImGui::GetMousePos());
+    return ConvertToGridPos(ToVec2F(ImGui::GetMousePos()));
 }
 
 SimulationState
@@ -687,8 +688,9 @@ void SimulationEditor::UpdateDragState() {
         return;
     }
 
-    Vec2F delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
-    m_Graphics.Camera.Translate(glm::vec2(delta) - glm::vec2(m_RightDeltaLast));
+    const auto delta =
+        ToVec2F(ImGui::GetMouseDragDelta(ImGuiMouseButton_Right));
+    m_Graphics.Camera.Translate(ToGlm(delta) - ToGlm(m_RightDeltaLast));
     m_RightDeltaLast = delta;
 }
 
@@ -698,7 +700,7 @@ void SimulationEditor::UpdateViewport() {
     auto mousePos = ImGui::GetIO().MousePos;
     if (bounds.InBounds(mousePos.x, mousePos.y) &&
         ImGui::GetIO().MouseWheel != 0)
-        m_Graphics.Camera.ZoomBy(mousePos, bounds,
+        m_Graphics.Camera.ZoomBy(ToVec2F(mousePos), bounds,
                                  ImGui::GetIO().MouseWheel / 10.f);
 }
 } // namespace Golde
