@@ -30,6 +30,7 @@ target_link_libraries(GOLCoreLib
         gol_compiler_options
     PUBLIC
         GOLAlgoLib
+        GOLIOLib
         GOLGraphicsLib
         GOLGuiLib
         stb_image

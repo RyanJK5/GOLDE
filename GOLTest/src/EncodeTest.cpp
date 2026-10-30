@@ -3,8 +3,8 @@
 #include <limits>
 #include <print>
 
-#include "FileFormatHandler.hpp"
 #include "Graphics2D.hpp"
+#include "PatternIO.hpp"
 
 namespace Golde {
 

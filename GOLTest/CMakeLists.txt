@@ -25,6 +25,7 @@ target_link_libraries(GOLTest PRIVATE
     GOLGuiLib
     GOLGraphicsLib
     GOLAlgoLib
+    GOLIOLib
     imgui_lib
     GTest::gtest
 )

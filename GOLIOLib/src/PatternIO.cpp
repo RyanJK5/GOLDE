@@ -11,10 +11,10 @@
 #include <string>
 #include <vector>
 
-#include "FileFormatHandler.hpp"
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
 #include "LifeRule.hpp"
+#include "PatternIO.hpp"
 
 namespace Golde::FileEncoder {
 static std::string EncodeRLE(const GameGrid& grid, Rect region, Vec2 offset) {

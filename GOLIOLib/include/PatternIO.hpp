@@ -1,5 +1,5 @@
-#ifndef FileFormatHandler_hpp_
-#define FileFormatHandler_hpp_
+#ifndef PatternIO_hpp_
+#define PatternIO_hpp_
 
 #include <algorithm>
 #include <concepts>

@@ -3,7 +3,7 @@
 #include <string_view>
 #include <vector>
 
-#include "FileFormatHandler.hpp"
+#include "PatternIO.hpp"
 
 namespace Golde {
 namespace {

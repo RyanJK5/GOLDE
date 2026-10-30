@@ -5,7 +5,6 @@ set(SOURCES
     src/dialogs/WarnWindow.cpp
     src/misc/Combo.cpp
     src/misc/DisabledScope.cpp
-    src/misc/FileFormatHandler.cpp
     src/misc/LoadingSpinner.cpp
     src/widgets/CameraPositionWidget.cpp
     src/widgets/DelayWidget.cpp
@@ -30,7 +29,6 @@ set(HEADERS
     include/misc/ConfigLoader.hpp
     include/misc/Combo.hpp
     include/misc/DisabledScope.hpp
-    include/misc/FileFormatHandler.hpp
     include/misc/LoadingSpinner.hpp
     include/widgets/ActionButton.hpp
     include/widgets/CameraPositionWidget.hpp
@@ -73,5 +71,6 @@ target_link_libraries(GOLGuiLib
         nfd
         fontawesome
         GOLAlgoLib
+        GOLIOLib
         GOLGraphicsLib
 )

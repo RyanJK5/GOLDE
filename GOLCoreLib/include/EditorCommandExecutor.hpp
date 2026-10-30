@@ -9,10 +9,10 @@
 #include <string_view>
 #include <vector>
 
-#include "FileFormatHandler.hpp"
 #include "GameEnums.hpp"
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
+#include "PatternIO.hpp"
 #include "SelectionManager.hpp"
 #include "SimulationCommand.hpp"
 #include "VersionManager.hpp"

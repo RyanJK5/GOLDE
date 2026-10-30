@@ -26,6 +26,7 @@ endif()
 # Add dependencies first
 add_subdirectory(Dependencies)
 add_subdirectory(GOLAlgoLib)
+add_subdirectory(GOLIOLib)
 add_subdirectory(GOLGraphicsLib)
 add_subdirectory(GOLGuiLib)
 add_subdirectory(GOLCoreLib)

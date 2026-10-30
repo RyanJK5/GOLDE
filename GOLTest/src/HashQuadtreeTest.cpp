@@ -5,10 +5,10 @@
 #include <random>
 #include <ranges>
 
-#include "FileFormatHandler.hpp"
 #include "HashLife.hpp"
 #include "HashQuadtree.hpp"
 #include "LifeAlgorithm.hpp"
+#include "PatternIO.hpp"
 
 namespace Golde {
 
