@@ -25,19 +25,6 @@ if(TARGET boost_multiprecision)
     endif()
 endif()
 
-# FontAwesome
-add_library(fontawesome INTERFACE)
-target_include_directories(fontawesome INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/FontAwesome)
-
-# GLM
-FetchContent_Declare(
-    glm
-    GIT_REPOSITORY https://github.com/g-truc/glm.git
-    GIT_TAG master
-    SYSTEM
-)
-FetchContent_MakeAvailable(glm)
-
 # unordered_dense
 FetchContent_Declare(
     unordered_dense
@@ -46,16 +33,6 @@ FetchContent_Declare(
     SYSTEM
 )
 FetchContent_MakeAvailable(unordered_dense)
-
-# stb_image
-set(STB_IMAGE_DIR ${CMAKE_BINARY_DIR}/_deps/stb_image-src)
-if(NOT EXISTS "${STB_IMAGE_DIR}/stb_image.h")
-    file(DOWNLOAD https://raw.githubusercontent.com/nothings/stb/master/stb_image.h 
-         "${STB_IMAGE_DIR}/stb_image.h"
-         STATUS download_status)
-endif()
-add_library(stb_image INTERFACE)
-target_include_directories(stb_image SYSTEM INTERFACE ${STB_IMAGE_DIR})
 
 # GoogleTest
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
@@ -71,55 +48,80 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
-# Fetch GLFW from source
-set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
-FetchContent_Declare(
-    glfw
-    GIT_REPOSITORY https://github.com/glfw/glfw.git
-    GIT_TAG 3.3.8
-)
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(glfw)
+if(GOLDE_BUILD_GUI)
+    # FontAwesome
+    add_library(fontawesome INTERFACE)
+    target_include_directories(fontawesome INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/FontAwesome)
 
-# Fetch GLEW and build from the single source file
-FetchContent_Declare(
-    glew_fetch
-    URL https://github.com/nigels-com/glew/releases/download/glew-2.2.0/glew-2.2.0.zip
-)
-FetchContent_GetProperties(glew_fetch)
-if(NOT glew_fetch_POPULATED)
-    FetchContent_Populate(glew_fetch)
-    # Treat glew.c as C++ so we don't require the user to configure a C compiler
-    set_source_files_properties(${glew_fetch_SOURCE_DIR}/src/glew.c PROPERTIES LANGUAGE CXX)
-    add_library(glew STATIC EXCLUDE_FROM_ALL ${glew_fetch_SOURCE_DIR}/src/glew.c)
-    target_include_directories(glew SYSTEM PUBLIC ${glew_fetch_SOURCE_DIR}/include)
-    target_compile_definitions(glew PUBLIC GLEW_STATIC)
+    # GLM
+    FetchContent_Declare(
+        glm
+        GIT_REPOSITORY https://github.com/g-truc/glm.git
+        GIT_TAG master
+        SYSTEM
+    )
+    FetchContent_MakeAvailable(glm)
+
+    # stb_image
+    set(STB_IMAGE_DIR ${CMAKE_BINARY_DIR}/_deps/stb_image-src)
+    if(NOT EXISTS "${STB_IMAGE_DIR}/stb_image.h")
+        file(DOWNLOAD https://raw.githubusercontent.com/nothings/stb/master/stb_image.h 
+             "${STB_IMAGE_DIR}/stb_image.h"
+             STATUS download_status)
+    endif()
+    add_library(stb_image INTERFACE)
+    target_include_directories(stb_image SYSTEM INTERFACE ${STB_IMAGE_DIR})
+
+    # Fetch GLFW from source
+    set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(
+        glfw
+        GIT_REPOSITORY https://github.com/glfw/glfw.git
+        GIT_TAG 3.3.8
+    )
+    set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(glfw)
+
+    # Fetch GLEW and build from the single source file
+    FetchContent_Declare(
+        glew_fetch
+        URL https://github.com/nigels-com/glew/releases/download/glew-2.2.0/glew-2.2.0.zip
+    )
+    FetchContent_GetProperties(glew_fetch)
+    if(NOT glew_fetch_POPULATED)
+        FetchContent_Populate(glew_fetch)
+        # Treat glew.c as C++ so we don't require the user to configure a C compiler
+        set_source_files_properties(${glew_fetch_SOURCE_DIR}/src/glew.c PROPERTIES LANGUAGE CXX)
+        add_library(glew STATIC EXCLUDE_FROM_ALL ${glew_fetch_SOURCE_DIR}/src/glew.c)
+        target_include_directories(glew SYSTEM PUBLIC ${glew_fetch_SOURCE_DIR}/include)
+        target_compile_definitions(glew PUBLIC GLEW_STATIC)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+            target_compile_options(glew PRIVATE -Wno-error)
+        endif()
+        target_link_libraries(glew PUBLIC OpenGL::GL)
+        if(UNIX AND NOT APPLE)
+            # glew.c calls glXGetProcAddressARB
+            target_link_libraries(glew PUBLIC OpenGL::GLX)
+        endif()
+    endif()
+    message(STATUS "GLEW configured from source")
+
+    # Fetch NFD-Extended
+    FetchContent_Declare(
+        nfd
+        GIT_REPOSITORY https://github.com/btzy/nativefiledialog-extended.git
+        GIT_TAG v1.2.1
+        SYSTEM
+    )
+    set(NFD_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(NFD_INSTALL OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(nfd)
+
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        target_compile_options(glew PRIVATE -Wno-error)
+        target_compile_options(nfd PRIVATE -Wno-error)
     endif()
-    target_link_libraries(glew PUBLIC OpenGL::GL)
-    if(UNIX AND NOT APPLE)
-        # glew.c calls glXGetProcAddressARB
-        target_link_libraries(glew PUBLIC OpenGL::GLX)
-    endif()
+
+    add_subdirectory(ImGUI)
 endif()
-message(STATUS "GLEW configured from source")
-
-# Fetch NFD-Extended
-FetchContent_Declare(
-    nfd
-    GIT_REPOSITORY https://github.com/btzy/nativefiledialog-extended.git
-    GIT_TAG v1.2.1
-    SYSTEM
-)
-set(NFD_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(NFD_INSTALL OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(nfd)
-
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(nfd PRIVATE -Wno-error)
-endif()
-
-add_subdirectory(ImGUI)

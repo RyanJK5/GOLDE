@@ -5,9 +5,12 @@ set(SOURCES
     src/TopologyTest.cpp
     src/DummyAlgorithmTest.cpp
     src/PatternRegressionTest.cpp
-    src/ShaderParseTest.cpp
     src/TestMain.cpp
 )
+
+if(GOLDE_BUILD_GUI)
+    list(APPEND SOURCES src/ShaderParseTest.cpp)
+endif()
 
 add_executable(GOLTest ${SOURCES})
 
@@ -21,14 +24,14 @@ gtest_discover_tests(GOLTest
 
 target_link_libraries(GOLTest PRIVATE
     gol_compiler_options
-    GOLCoreLib
-    GOLGuiLib
-    GOLGraphicsLib
     GOLAlgoLib
     GOLIOLib
-    imgui_lib
     GTest::gtest
 )
+
+if(GOLDE_BUILD_GUI)
+    target_link_libraries(GOLTest PRIVATE GOLGraphicsLib)
+endif()
 
 add_custom_command(TARGET GOLTest POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -37,15 +40,7 @@ add_custom_command(TARGET GOLTest POST_BUILD
 )
 
 
-# Windows system libs
-if(WIN32)
-    target_link_libraries(GOLTest PRIVATE
-        User32.lib 
-        Gdi32.lib 
-        Shell32.lib 
-        ole32.lib
-    )
-elseif(UNIX AND NOT APPLE)
+if(UNIX AND NOT APPLE)
     # Linux: Link required system libraries
     target_link_libraries(GOLTest PRIVATE
         ${CMAKE_DL_LIBS}  # for dlopen, dlsym, etc.

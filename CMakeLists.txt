@@ -13,13 +13,19 @@ include("cmake/CompilerOptions.cmake")
 # Restrict to Debug and Release only
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 
-# Find OpenGL globally so all subprojects can use OpenGL::GL
-find_package(OpenGL REQUIRED)
+# OFF builds only the algorithm and IO libraries and their tests, with no
+# OpenGL, windowing or ImGui dependencies.
+option(GOLDE_BUILD_GUI "Build the OpenGL/ImGui application" ON)
 
-if(UNIX AND NOT APPLE)
-    find_package(X11 REQUIRED)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(GLX REQUIRED glx)
+if(GOLDE_BUILD_GUI)
+    # Find OpenGL globally so all subprojects can use OpenGL::GL
+    find_package(OpenGL REQUIRED)
+
+    if(UNIX AND NOT APPLE)
+        find_package(X11 REQUIRED)
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(GLX REQUIRED glx)
+    endif()
 endif()
 
 
@@ -27,10 +33,12 @@ endif()
 add_subdirectory(Dependencies)
 add_subdirectory(GOLAlgoLib)
 add_subdirectory(GOLIOLib)
-add_subdirectory(GOLGraphicsLib)
-add_subdirectory(GOLGuiLib)
-add_subdirectory(GOLCoreLib)
-add_subdirectory(GOLExecutable)
+if(GOLDE_BUILD_GUI)
+    add_subdirectory(GOLGraphicsLib)
+    add_subdirectory(GOLGuiLib)
+    add_subdirectory(GOLCoreLib)
+    add_subdirectory(GOLExecutable)
+endif()
 add_subdirectory(GOLTest)
 
 
