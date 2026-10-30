@@ -11,6 +11,7 @@ set(SOURCES
     src/Torus.cpp
 )
 set(HEADERS
+    include/BigInt.hpp
     include/GameGrid.hpp
     include/Graphics2D.hpp
     include/HashLife.hpp
@@ -19,6 +20,7 @@ set(HEADERS
     include/LifeAlgorithm.hpp
     include/LifeDataStructure.hpp
     include/LifeHashSet.hpp
+    include/LifeNode.hpp
     include/LifeRule.hpp
     include/Plane.hpp
     include/Topology.hpp
@@ -36,5 +38,4 @@ target_link_libraries(GOLAlgoLib
         gol_compiler_options
     PUBLIC
         unordered_dense
-        GOLGraphicsLib
 )

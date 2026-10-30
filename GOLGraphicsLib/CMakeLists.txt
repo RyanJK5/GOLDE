@@ -18,7 +18,7 @@ set(HEADERS
 
 add_library(GOLGraphicsLib STATIC ${SOURCES} ${HEADERS} )
 
-target_include_directories(GOLAlgoLib
+target_include_directories(GOLGraphicsLib
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
