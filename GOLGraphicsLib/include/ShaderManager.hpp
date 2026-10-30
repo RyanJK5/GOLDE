@@ -4,12 +4,24 @@
 #include <cstdint>
 #include <filesystem>
 #include <glm/glm.hpp>
+#include <istream>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 #include <utility>
 
 namespace Golde {
+
+struct ShaderSources {
+    std::string Vertex;
+    std::string Fragment;
+};
+
+// Splits a combined shader file into its "#shader vertex" and
+// "#shader fragment" sections. Accepts LF and CRLF line endings. Returns
+// std::nullopt if a section is missing or a "#shader" type is unknown.
+std::optional<ShaderSources> ParseShaderSource(std::istream& stream);
 
 class ShaderManager {
     using IDPair = typename std::pair<unsigned int, unsigned int>;

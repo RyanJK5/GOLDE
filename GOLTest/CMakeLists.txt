@@ -5,6 +5,7 @@ set(SOURCES
     src/TopologyTest.cpp
     src/DummyAlgorithmTest.cpp
     src/PatternRegressionTest.cpp
+    src/ShaderParseTest.cpp
     src/TestMain.cpp
 )
 
@@ -22,6 +23,7 @@ target_link_libraries(GOLTest PRIVATE
     gol_compiler_options
     GOLCoreLib
     GOLGuiLib
+    GOLGraphicsLib
     GOLAlgoLib
     imgui_lib
     GTest::gtest

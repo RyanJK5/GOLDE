@@ -4,6 +4,7 @@
 #include <format>
 #include <fstream>
 #include <glm/glm.hpp>
+#include <istream>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -104,6 +105,40 @@ uint32_t ShaderManager::CompileShader(uint32_t type,
     throw GLException(error);
 }
 
+std::optional<ShaderSources> ParseShaderSource(std::istream& stream) {
+    ShaderSources result{};
+    std::string* section = nullptr;
+    bool hasVertex = false;
+    bool hasFragment = false;
+
+    std::string line;
+    while (std::getline(stream, line)) {
+        if (line.ends_with('\r'))
+            line.pop_back();
+
+        if (!line.starts_with("#shader")) {
+            if (section)
+                *section += line + '\n';
+            continue;
+        }
+
+        const auto typeStr = std::string_view{line}.substr(line.find(' ') + 1);
+        if (typeStr == "vertex") {
+            section = &result.Vertex;
+            hasVertex = true;
+        } else if (typeStr == "fragment") {
+            section = &result.Fragment;
+            hasFragment = true;
+        } else {
+            return std::nullopt;
+        }
+    }
+
+    if (!hasVertex || !hasFragment)
+        return std::nullopt;
+    return result;
+}
+
 std::optional<ShaderManager::IDPair>
 ShaderManager::ParseShader(const std::filesystem::path& shaderFilePath) const {
     std::ifstream stream(shaderFilePath);
@@ -111,51 +146,12 @@ ShaderManager::ParseShader(const std::filesystem::path& shaderFilePath) const {
         return std::nullopt;
     }
 
-    std::string line;
-    std::string shader;
-
-    auto setType = [](const std::string& line, std::optional<uint32_t>& type) {
-        size_t spaceIndex = line.find(' ');
-        std::string typeStr =
-            line.substr(spaceIndex + 1, line.length() - spaceIndex);
-
-        if (typeStr == "vertex")
-            type = GL_VERTEX_SHADER;
-        else if (typeStr == "fragment")
-            type = GL_FRAGMENT_SHADER;
-        else
-            type = std::nullopt;
-    };
-
-    std::optional<uint32_t> id1{};
-    std::optional<uint32_t> id2{};
-    std::optional<uint32_t> type{};
-    while (std::getline(stream, line, '\n')) {
-        if (line.find("#shader") == std::string::npos) {
-            shader += line + '\n';
-            continue;
-        }
-
-        if (!type) {
-            setType(line, type);
-            if (!type)
-                break;
-            continue;
-        }
-
-        id1 = CompileShader(type.value(), shader);
-
-        shader = "";
-        setType(line, type);
-    }
-
-    if (type)
-        id2 = CompileShader(type.value(), shader);
-
-    if (!id1 || !id2)
+    const auto sources = ParseShaderSource(stream);
+    if (!sources)
         return std::nullopt;
 
-    return std::make_pair(id1.value(), id2.value());
+    return std::make_pair(CompileShader(GL_VERTEX_SHADER, sources->Vertex),
+                          CompileShader(GL_FRAGMENT_SHADER, sources->Fragment));
 }
 
 void ShaderManager::AttachUniformVec2(std::string_view label, glm::vec2 vec) {
