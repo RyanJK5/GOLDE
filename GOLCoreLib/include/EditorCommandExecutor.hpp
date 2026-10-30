@@ -89,7 +89,7 @@ class EditorCommandExecutor {
     std::optional<std::string> LoadFile(const std::filesystem::path& path);
     bool SaveToFile(const std::filesystem::path& path, bool markAsSaved);
 
-    std::expected<void, FileEncoder::DecodeError>
+    std::expected<void, PatternIO::DecodeError>
     PasteSelection(std::optional<Vec2> cursorPos,
                    std::string_view clipboardText, bool unlock = false);
     void ForcePaste(std::optional<Vec2> cursorPos,

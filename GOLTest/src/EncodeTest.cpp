@@ -8,11 +8,11 @@
 
 namespace Golde {
 
-static std::expected<FileEncoder::DecodeResult, std::string>
+static std::expected<PatternIO::DecodeResult, std::string>
 EncodeDecodeRegionTest(const GameGrid& grid, Rect region, Vec2 offset) {
-    const auto encoded = FileEncoder::EncodeRegion(grid, region, offset);
+    const auto encoded = PatternIO::EncodeRegion(grid, region, offset);
     const auto decodeResult =
-        FileEncoder::DecodeRegion(grid.Cache(), encoded, 1000000);
+        PatternIO::DecodeRegion(grid.Cache(), encoded, 1000000);
 
     if (!decodeResult.has_value()) {
         const auto str = std::format("Decode failed with error: {}",
@@ -27,7 +27,7 @@ TEST(EncodeTest, DecodeEncodeTest) {
     const auto filePath =
         std::filesystem::path{"universes"} / "bigsquiggles1.rle";
     HashLifeCache cache{};
-    const auto result = FileEncoder::ReadRegion(cache, filePath);
+    const auto result = PatternIO::ReadRegion(cache, filePath);
     ASSERT_TRUE(result.has_value()) << result.error().Message;
 
     GameGrid finalGrid{cache};
@@ -36,7 +36,7 @@ TEST(EncodeTest, DecodeEncodeTest) {
 
     const auto boundingBox = finalGrid.BoundingBox();
     const auto encoded =
-        FileEncoder::EncodeRegion(finalGrid, boundingBox, boundingBox.Pos());
+        PatternIO::EncodeRegion(finalGrid, boundingBox, boundingBox.Pos());
 
     const auto fileStr = [&] {
         auto in = std::ifstream{filePath};
@@ -135,9 +135,9 @@ TEST(EncodeTest, BoundedTopologyCenterOriginOffsetTranslated) {
         "o!\n";
 
     HashLifeCache cache{};
-    const auto decoded = FileEncoder::DecodeRegion(
+    const auto decoded = PatternIO::DecodeRegion(
         cache, rle, std::numeric_limits<uint32_t>::max(),
-        FileEncoder::FileFormat::RLE);
+        PatternIO::FileFormat::RLE);
     ASSERT_TRUE(decoded.has_value()) << decoded.error().Message;
 
     EXPECT_EQ(decoded->Offset, (Vec2{0, 0}));

@@ -337,7 +337,7 @@ PresetSelectionResult PresetSelection::Update(const EditorResult& info) {
             const auto itemId = std::format("##{}", tooltipPath);
             if (ImGui::InvisibleButton(itemId.c_str(), {windowBounds.Width,
                                                         windowBounds.Height})) {
-                retString = FileEncoder::EncodeRegion(
+                retString = PatternIO::EncodeRegion(
                                 preset.Grid, {{0, 0}, preset.Grid.Size()})
                                 .c_str();
             }
@@ -400,12 +400,12 @@ void PresetSelection::ReadFiles(const std::filesystem::path& path) {
                 break;
             }
 
-            if (!FileEncoder::IsFormatSupported(
+            if (!PatternIO::IsFormatSupported(
                     file.path().extension().generic_string())) {
                 continue;
             }
 
-            auto result = FileEncoder::ReadRegion(m_Cache, file.path());
+            auto result = PatternIO::ReadRegion(m_Cache, file.path());
             if (!result) {
                 std::println(stderr, "Failed to read preset {}: {}",
                              file.path().filename().generic_string(),

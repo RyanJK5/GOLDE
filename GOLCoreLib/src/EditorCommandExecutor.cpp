@@ -232,7 +232,7 @@ bool EditorCommandExecutor::SaveToFile(const std::filesystem::path& path,
     return false;
 }
 
-std::expected<void, FileEncoder::DecodeError>
+std::expected<void, PatternIO::DecodeError>
 EditorCommandExecutor::PasteSelection(std::optional<Vec2> cursorPos,
                                       std::string_view clipboardText,
                                       bool unlock) {
@@ -444,7 +444,7 @@ EditorCommandExecutor::Execute(const SimulationCommand& cmd,
                     if (!result) {
                         const auto errorType =
                             result.error().ErrorType ==
-                                    FileEncoder::DecodeError::Type::TooManyCells
+                                    PatternIO::DecodeError::Type::TooManyCells
                                 ? ExecuteCommandErrorType::PasteTooManyCells
                                 : ExecuteCommandErrorType::Paste;
                         return ExecuteCommandResult{.State = m_State,

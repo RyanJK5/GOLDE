@@ -16,7 +16,7 @@
 #include "GameGrid.hpp"
 #include "Graphics2D.hpp"
 
-namespace Golde::FileEncoder {
+namespace Golde::PatternIO {
 struct DecodeResult {
     GameGrid Grid;
     Vec2 Offset;
@@ -54,6 +54,6 @@ bool WriteRegion(const GameGrid& grid, Rect region,
 
 std::expected<DecodeResult, DecodeError>
 ReadRegion(HashLifeCache& cache, const std::filesystem::path& filePath);
-} // namespace Golde::FileEncoder
+} // namespace Golde::PatternIO
 
 #endif

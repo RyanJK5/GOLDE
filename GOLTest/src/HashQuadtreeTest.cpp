@@ -39,8 +39,8 @@ static void CheckAgainstFile(const std::filesystem::path& unevolved,
     ASSERT_GE(numJumps, 1);
 
     HashLifeCache cache{};
-    const auto data1 = FileEncoder::ReadRegion(cache, unevolved);
-    const auto data2 = FileEncoder::ReadRegion(cache, evolved);
+    const auto data1 = PatternIO::ReadRegion(cache, unevolved);
+    const auto data2 = PatternIO::ReadRegion(cache, evolved);
     const auto shifted = [](const HashQuadtree& tree, Vec2 offset) {
         std::vector<Vec2> result{};
         for (const auto cell : tree) {
@@ -324,7 +324,7 @@ TEST(HashQuadtreeTest, CopyingBreeder) {
     HashLifeCache cache{};
     cache.SetRule(ConwaysLife);
     const auto data =
-        FileEncoder::ReadRegion(cache, directory / "glider_gun.rle");
+        PatternIO::ReadRegion(cache, directory / "glider_gun.rle");
 
     HashQuadtree original{cache,
                           data->Grid.Data() | std::ranges::to<LifeHashSet>(),

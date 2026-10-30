@@ -28,7 +28,7 @@ LifeHashSet ApplyOffset(const GameGrid& grid, Vec2 offset = {}) {
 TEST_P(ClassicPatternTest, FileLoadsAndMatchesExpectedPattern) {
     const auto path = std::filesystem::path{"universes"} / GetParam().FileName;
     HashLifeCache cache{};
-    const auto loaded = FileEncoder::ReadRegion(cache, path);
+    const auto loaded = PatternIO::ReadRegion(cache, path);
     ASSERT_TRUE(loaded.has_value()) << loaded.error().Message;
 
     EXPECT_EQ(loaded->Grid.GetRuleString(), "B3/S23");
@@ -39,7 +39,7 @@ TEST_P(ClassicPatternTest, FileLoadsAndMatchesExpectedPattern) {
 TEST_P(ClassicPatternTest, GameGridEvolvesPattern) {
     const auto path = std::filesystem::path{"universes"} / GetParam().FileName;
     HashLifeCache cache{};
-    const auto loaded = FileEncoder::ReadRegion(cache, path);
+    const auto loaded = PatternIO::ReadRegion(cache, path);
     ASSERT_TRUE(loaded.has_value()) << loaded.error().Message;
 
     GameGrid grid{loaded->Grid, Size2{8, 8}};

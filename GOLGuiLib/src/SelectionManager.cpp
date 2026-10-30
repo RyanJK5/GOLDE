@@ -119,11 +119,11 @@ std::optional<CopyResult> SelectionManager::Copy(GameGrid& grid) {
     }
 
     const auto fileFormat = m_Selected->ShouldValidateCache()
-                                ? FileEncoder::FileFormat::RLE
-                                : FileEncoder::FileFormat::Macrocell;
+                                ? PatternIO::FileFormat::RLE
+                                : PatternIO::FileFormat::Macrocell;
     std::string clipboardText{
-        FileEncoder::EncodeRegion(*m_Selected, {{0, 0}, m_Selected->Size()},
-                                  Vec2{}, fileFormat)
+        PatternIO::EncodeRegion(*m_Selected, {{0, 0}, m_Selected->Size()},
+                                Vec2{}, fileFormat)
             .c_str()};
 
     return CopyResult{.Change = std::move(*Deselect(grid)),
@@ -135,10 +135,10 @@ std::optional<CopyResult> SelectionManager::Cut(const GameGrid& grid) {
         return std::nullopt;
 
     const auto fileFormat = m_Selected->ShouldValidateCache()
-                                ? FileEncoder::FileFormat::RLE
-                                : FileEncoder::FileFormat::Macrocell;
+                                ? PatternIO::FileFormat::RLE
+                                : PatternIO::FileFormat::Macrocell;
     std::string clipboardText{
-        FileEncoder::EncodeRegion(
+        PatternIO::EncodeRegion(
             *m_Selected, {0, 0, m_Selected->Width(), m_Selected->Height()},
             Vec2{}, fileFormat)
             .c_str()};
@@ -147,7 +147,7 @@ std::optional<CopyResult> SelectionManager::Cut(const GameGrid& grid) {
                       .ClipboardText = std::move(clipboardText)};
 }
 
-std::expected<VersionState, FileEncoder::DecodeError>
+std::expected<VersionState, PatternIO::DecodeError>
 SelectionManager::Paste(const GameGrid& grid, std::string_view clipboardText,
                         std::optional<Vec2> gridPos, uint32_t warnThreshold,
                         bool unlock) {
@@ -157,10 +157,10 @@ SelectionManager::Paste(const GameGrid& grid, std::string_view clipboardText,
     if (!gridPos)
         gridPos = m_AnchorSelection;
 
-    constexpr static std::array formats{FileEncoder::FileFormat::RLE,
-                                        FileEncoder::FileFormat::Macrocell};
+    constexpr static std::array formats{PatternIO::FileFormat::RLE,
+                                        PatternIO::FileFormat::Macrocell};
     for (auto i = 0UZ; i < formats.size(); i++) {
-        auto decodeResult = FileEncoder::DecodeRegion(
+        auto decodeResult = PatternIO::DecodeRegion(
             grid.Cache(), clipboardText.data(), warnThreshold, formats[i]);
         if (decodeResult) {
             if (!gridPos) {
@@ -173,8 +173,8 @@ SelectionManager::Paste(const GameGrid& grid, std::string_view clipboardText,
 
         if (i == formats.size() - 1UZ ||
             decodeResult.error().ErrorType !=
-                FileEncoder::DecodeError::Type::MissingHeader) {
-            return std::unexpected<FileEncoder::DecodeError>{
+                PatternIO::DecodeError::Type::MissingHeader) {
+            return std::unexpected<PatternIO::DecodeError>{
                 decodeResult.error()};
         }
     }
@@ -264,10 +264,10 @@ SelectionManager::InsertNoise(const GameGrid& grid, Rect selectionBounds,
     return CaptureState(grid);
 }
 
-std::expected<VersionState, FileEncoder::DecodeError>
+std::expected<VersionState, PatternIO::DecodeError>
 SelectionManager::Load(const GameGrid& grid,
                        const std::filesystem::path& filePath) {
-    auto result = FileEncoder::ReadRegion(grid.Cache(), filePath);
+    auto result = PatternIO::ReadRegion(grid.Cache(), filePath);
     if (!result)
         return std::unexpected{std::move(result.error())};
 
@@ -283,11 +283,11 @@ bool SelectionManager::Save(const GameGrid& grid,
                             const std::filesystem::path& filePath) const {
     if (!m_Selected) {
         auto boundingBox = grid.BoundingBox();
-        return FileEncoder::WriteRegion(grid, boundingBox, filePath,
-                                        boundingBox.Pos());
+        return PatternIO::WriteRegion(grid, boundingBox, filePath,
+                                      boundingBox.Pos());
     }
-    return FileEncoder::WriteRegion(*m_Selected,
-                                    Rect{{0, 0}, m_Selected->Size()}, filePath);
+    return PatternIO::WriteRegion(*m_Selected, Rect{{0, 0}, m_Selected->Size()},
+                                  filePath);
 }
 
 std::optional<VersionState>

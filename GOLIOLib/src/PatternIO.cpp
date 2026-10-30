@@ -16,7 +16,7 @@
 #include "LifeRule.hpp"
 #include "PatternIO.hpp"
 
-namespace Golde::FileEncoder {
+namespace Golde::PatternIO {
 static std::string EncodeRLE(const GameGrid& grid, Rect region, Vec2 offset) {
     std::string out{};
 
@@ -745,4 +745,4 @@ ReadRegion(HashLifeCache& cache, const std::filesystem::path& filePath) {
     return DecodeRegion(cache, data, std::numeric_limits<uint32_t>::max(),
                         ParseFileExtension(filePath.extension()));
 }
-} // namespace Golde::FileEncoder
+} // namespace Golde::PatternIO
