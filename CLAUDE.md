@@ -12,6 +12,7 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure --parallel
 ```
 
+- Headless (algorithm, IO and tests only; no OpenGL/X11/ImGui needed): add `-DGOLDE_BUILD_GUI=OFF`.
 - Compilers: GCC 14 (Linux; CI pins it, older GCC may lack needed C++23 features), LLVM Clang with `-stdlib=libc++` (macOS), MSVC (Windows).
 - Dependencies come from FetchContent (`Dependencies/CMakeLists.txt`); the first configure needs network access.
 - Format before committing: `cmake -DPROJECT_SOURCE_DIR="$(pwd)" -P cmake/RunFormat.cmake`. CI fails on any formatting diff.
@@ -22,12 +23,12 @@ ctest --test-dir build --output-on-failure --parallel
 
 | Library | Role | Notes |
 | --- | --- | --- |
-| `GOLAlgoLib` | HashLife, `HashQuadtree`, `LifeNode`, rules, topologies, `GameGrid` | Should be headless; currently links GOLGraphicsLib (Phase 0 fixes this) |
-| `GOLLoggingLib` | Logging | Currently includes GLEW for `GL_DEBUG` (Phase 0 moves it) |
-| `GOLGraphicsLib` | OpenGL renderer, camera, shaders | |
-| `GOLGuiLib` | ImGui widgets, also `FileFormatHandler`, `VersionManager`, `SelectionManager` | File I/O moves to `GOLIOLib` in Phase 0 |
-| `GOLCoreLib` | App layer: `EditorModel`, `SimulationWorker`, `SimulationEditor`, presets | |
-| `GOLExecutable` | `main`, resources, patterns | |
+| `GOLAlgoLib` | HashLife, `HashQuadtree`, `LifeNode`, rules, topologies, `GameGrid`, geometry types (`Graphics2D.hpp`) | Headless; no GUI headers |
+| `GOLIOLib` | `PatternIO` (RLE and Macrocell read/write) | Headless; depends only on GOLAlgoLib |
+| `GOLGraphicsLib` | OpenGL renderer, camera, shaders, `GL_DEBUG` (`GLDebug.hpp`), ImGui/glm conversions (`GraphicsInterop.hpp`) | GUI only |
+| `GOLGuiLib` | ImGui widgets, `VersionManager`, `SelectionManager` | GUI only |
+| `GOLCoreLib` | App layer: `EditorModel`, `SimulationWorker`, `SimulationEditor`, presets | GUI only |
+| `GOLExecutable` | `main`, resources, patterns | GUI only |
 
 Key algorithm files: `HashLife.hpp/.cpp` (`AdvanceFast`, `AdvanceSlow`, base cases), `HashLifeCache.hpp/.cpp` (node table, arena, slow cache, GC), `LifeNode.hpp/.cpp`, `HashQuadtree.hpp/.cpp`, `Torus.cpp`, `Plane.cpp`.
 
@@ -54,7 +55,7 @@ Golden test values must come from bgolly or published sources. **Never change an
 
 ## Traps
 
-- **Loading a file gives a bounded grid.** `FileEncoder::ReadRegion` returns a `GameGrid` sized to the RLE's `x`/`y`, with a bounded `Plane` topology, because the app pastes it as a selection. Stepping it directly gives plausible but wrong populations. To simulate, wrap the data in an unbounded grid: `GameGrid grid{res->Grid.Data(), Size2{0, 0}};` then `grid.SetRule(...)`.
+- **Loading a file gives a bounded grid.** `PatternIO::ReadRegion` returns a `GameGrid` sized to the RLE's `x`/`y`, with a bounded `Plane` topology, because the app pastes it as a selection. Stepping it directly gives plausible but wrong populations. To simulate, wrap the data in an unbounded grid: `GameGrid grid{res->Grid.Data(), Size2{0, 0}};` then `grid.SetRule(...)`.
 - **The garbage collector is dead code today.** `GOLDE_GARBAGE_COLLECTION` is never defined, the code does not compile with it (`MarkAndSweep(m_Root)` references a removed member), and `HashQuadtree.hpp` misspells the macro twice. Phase 1 replaces it; don't patch it in place.
 - **One `HashLifeCache` is shared across threads** (editor, undo history, simulation worker, preset loader) with no synchronization. Don't add new cross-thread uses.
 - **`s_PopulationCache` is `static thread_local`** and keyed by node pointer; it goes stale if nodes are ever freed.
