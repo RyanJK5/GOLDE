@@ -89,3 +89,33 @@ jobs:
       with:
         name: build-${{ matrix.name }}
         path: build/
+
+  headless:
+    name: Build (linux-headless)
+    runs-on: ubuntu-latest
+    # A bare GCC image has no OpenGL or X11 headers, so this proves the
+    # algorithm layer builds without them (GOLDE_BUILD_GUI=OFF).
+    container: gcc:14
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: |
+        apt-get update
+        apt-get install -y ninja-build
+        curl -sSL https://github.com/Kitware/CMake/releases/download/v3.30.5/cmake-3.30.5-linux-x86_64.tar.gz | tar -xz -C /opt
+        echo "/opt/cmake-3.30.5-linux-x86_64/bin" >> "$GITHUB_PATH"
+
+    - name: Check that no GL headers are installed
+      run: |
+        if [ -e /usr/include/GL/gl.h ]; then echo "GL headers present"; exit 1; fi
+
+    - name: Configure CMake
+      run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGOLDE_BUILD_GUI=OFF
+
+    - name: Build
+      run: cmake --build build --parallel
+
+    - name: Test
+      run: ctest --test-dir build --output-on-failure --parallel
