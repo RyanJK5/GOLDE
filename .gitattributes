@@ -8,5 +8,10 @@
 *.ttf binary
 *.rle binary
 
+# Tests and the shader loader read these byte-for-byte; keep LF everywhere.
+# (Must come after "*.rle binary" to override it.)
+GOLTest/universes/*.rle text eol=lf
+*.shader text eol=lf
+
 *.mc  linguist-generated=true
 *.rle linguist-generated=true

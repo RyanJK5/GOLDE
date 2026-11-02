@@ -5,6 +5,7 @@
 #include <nfd.hpp>
 #include <ranges>
 #include <string>
+#include <vector>
 
 #include "FileDialog.hpp"
 
