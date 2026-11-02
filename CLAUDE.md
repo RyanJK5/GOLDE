@@ -12,6 +12,7 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure --parallel
 ```
 
+- On WSL, keep build directories on the Linux filesystem, not under `/mnt/c` (much slower), and build with `--parallel 4`; unbounded parallelism has run out of memory.
 - Compilers: GCC 14 (Linux; CI pins it, older GCC may lack needed C++23 features), LLVM Clang with `-stdlib=libc++` (macOS), MSVC (Windows).
 - Dependencies come from FetchContent (`Dependencies/CMakeLists.txt`); the first configure needs network access.
 - Format before committing: `cmake -DPROJECT_SOURCE_DIR="$(pwd)" -P cmake/RunFormat.cmake`. CI fails on any formatting diff.
@@ -59,6 +60,7 @@ Golden test values must come from bgolly or published sources. **Never change an
 - **One `HashLifeCache` is shared across threads** (editor, undo history, simulation worker, preset loader) with no synchronization. Don't add new cross-thread uses.
 - **`s_PopulationCache` is `static thread_local`** and keyed by node pointer; it goes stale if nodes are ever freed.
 - **Rule lives in the cache, the rule string in the grid**; they can disagree after undo.
+- **`HashLife::SetRule` only replaces the topology for bounded rules.** Switching from a torus rule (`B3/S23:T64,64`) to an unbounded one keeps the torus; reset the algorithm's topology yourself.
 
 ## Working agreements
 
